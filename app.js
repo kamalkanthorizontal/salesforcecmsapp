@@ -2,6 +2,7 @@ var express = require("express");
 var bodyParser = require("body-parser");
 var nforce = require("nforce");
 var hbs = require('hbs');
+const fetch = require('node-fetch');
 const https = require('https');
 var request = require('request');
 
@@ -23,7 +24,7 @@ const marketingCloudAuthBody = {
 };
 
 async function getMcAuth() {
-    return await fetch(MC_AUTHENTICATION_BASE_URI, {
+    return await fetch(process.env.MC_AUTHENTICATION_BASE_URI, {
             method: 'POST',
             body: JSON.stringify(marketingCloudAuthBody),
 
@@ -44,7 +45,7 @@ async function getMcAuth() {
 async function createMCAsset(access_token, assetBody) {
     return new Promise((resolve, reject) => {
         request.post(
-            mc_host + mc_assets_api_path, {
+            process.env.MC_REST_BASE_URI + mc_assets_api_path, {
                 headers: {
                     Authorization: 'Bearer ' + access_token,
                 },
