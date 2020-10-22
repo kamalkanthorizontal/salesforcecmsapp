@@ -5,6 +5,7 @@ var hbs = require('hbs');
 const fetch = require('node-fetch');
 const https = require('https');
 var request = require('request');
+require("dotenv").config();  
 
 var app = express();
 
@@ -13,106 +14,6 @@ app.enable('trust proxy');
 
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
-
-
-const mc_assets_api_path = '/asset/v1/content/assets';
-
-const marketingCloudAuthBody = {
-    grant_type: 'client_credentials',
-    client_id: process.env.MC_CLIENT_ID,
-    client_secret: process.env.MC_CLIENT_SECRET,
-};
-
-async function getMcAuth() {
-    return await fetch(process.env.MC_AUTHENTICATION_BASE_URI, {
-            method: 'POST',
-            body: JSON.stringify(marketingCloudAuthBody),
-
-            headers: {
-                'Content-Type': 'application/json'
-            },
-        })
-        .then((res) => res.json()) // expecting a json response
-        // .then((json) => console.log(json))
-        .catch((err) => {
-            console.log({
-                err
-            });
-            reject(err);
-        });
-}
-
-async function createMCAsset(access_token, assetBody) {
-    return new Promise((resolve, reject) => {
-        request.post(
-            process.env.MC_REST_BASE_URI + mc_assets_api_path, {
-                headers: {
-                    Authorization: 'Bearer ' + access_token,
-                },
-                json: assetBody,
-            },
-            (error, res, body) => {
-                if (error) {
-                    console.error(error);
-                    console.log({
-                        assetBody
-                    });
-                    reject({
-                        error
-                    });
-                } else {
-                    console.log(`statusCode: ${res.statusCode}`);
-                    console.log(body);
-                    resolve(res);
-                }
-            }
-        );
-    });
-}
-
-async function moveTextToMC(name, title, mcAuthResults) {
-    console.log(`Uploading text to MC: ${name} - ${title}`);
-
-    let textAssetBody = {
-        name: name,
-        assetType: {
-            id: 196,
-        },
-        content: title,
-        category: {
-            id: '6345',
-            name: 'Content Builder',
-            parentId: 0
-        },
-    };
-    // Create MC Asset
-    await createMCAsset(mcAuthResults.access_token, textAssetBody);
-}
-
-async function run(cmsContentResults) {
-    let mcAuthResults = await getMcAuth();
-
-    await cmsContentResults.items.forEach(async (content) => {
-            console.log({
-                content
-            });
-
-            await moveTextToMC(
-                content.contentUrlName,
-                content.title,
-                mcAuthResults
-            );
-        })
-        .then((res) => res.json()) // expecting a json response
-        // .then((json) => console.log(json))
-        .catch((err) => {
-            console.log({
-                err
-            });
-            reject(err);
-        });
-};
-
 
 function isSetup(req) {
     if (req.hostname.indexOf("localhost") == 0) {
@@ -154,7 +55,7 @@ app.get("/", function (req, res) {
         if (req.query.code !== undefined) {
             // authenticated
             org.authenticate(req.query, function (err) {
-                if (!err) console.log("Cached Token: " + org.oauth.access_token);
+                if (!err) console.log("Salesforce Access Token: " + org.oauth.access_token);
                 else console.log("Error: " + err.message);
                 if (!err) {
                     org.getUrl(url, function (err, resp) {
@@ -199,6 +100,101 @@ app.get("/setup", function (req, res) {
         });
     }
 });
+
+async function run(cmsContentResults) {
+    let mcAuthResults = await getMcAuth();
+    console.log('Marketing Access Token' + JSON.stringify(mcAuthResults));
+    await cmsContentResults.items.forEach(async (content) => {
+            //console.log({content});
+
+            await moveTextToMC(
+                content.contentUrlName,
+                content.title,
+                mcAuthResults
+            );
+        })
+        .then((res) => res.json()) // expecting a json response
+        // .then((json) => console.log(json))
+        .catch((err) => {
+            console.log({
+                err
+            });
+            reject(err);
+        });
+};
+
+
+
+const mc_assets_api_path = '/asset/v1/content/assets';
+const mc_auth_path = '/v2/token';
+
+const marketingCloudAuthBody = {
+    grant_type: 'client_credentials',
+    client_id: process.env.MC_CLIENT_ID,
+    client_secret: process.env.MC_CLIENT_SECRET,
+};
+
+async function getMcAuth() {
+    console.log(JSON.stringify(marketingCloudAuthBody));
+    console.log(process.env.MC_AUTHENTICATION_BASE_URI + mc_auth_path);
+    return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + mc_auth_path, {
+            method: 'POST',
+            body: JSON.stringify(marketingCloudAuthBody),
+            headers: { 'Content-Type': 'application/json' },
+        })
+        .then(res => res.json()) // expecting a json response
+        //.then(json => console.log(json))
+        .catch((err) => {
+            console.log({
+                err
+            });
+            reject(err);
+        });
+}
+
+async function moveTextToMC(name, title, mcAuthResults) {
+    console.log('Uploading text to MC: ${name} - ${title}');
+
+    let textAssetBody = {
+        name: name,
+        assetType: {
+            id: 196,
+        },
+        content: title,
+        category: {
+            id: '6345',
+            name: 'Content Builder',
+            parentId: 0
+        },
+    };
+    // Create MC Asset
+    await createMCAsset(mcAuthResults.access_token, textAssetBody);
+}
+
+async function createMCAsset(access_token, assetBody) {
+    return new Promise((resolve, reject) => {
+        request.post(process.env.MC_REST_BASE_URI + mc_assets_api_path, {
+                headers: {  Authorization: 'Bearer ' + access_token },
+                json: assetBody,
+            },
+            (error, res, body) => {
+                if (error) {
+                    console.error(error);
+                    console.log({
+                        assetBody
+                    });
+                    reject({
+                        error
+                    });
+                } else {
+                    console.log(`statusCode: ${res.statusCode}`);
+                    console.log(body);
+                    resolve(res);
+                }
+            }
+        );
+    });
+}
 
 // Initialize the app.
 var server = app.listen(process.env.PORT || 3000, function () {
