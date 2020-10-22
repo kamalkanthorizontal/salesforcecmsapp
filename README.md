@@ -1,4 +1,4 @@
-Quick Force Node
+CMS SFMC Connector
 ----------------
 
 The quickest and easiest way to start a Node web app that uses the Force.com REST APIs.
