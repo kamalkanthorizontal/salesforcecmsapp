@@ -1,7 +1,5 @@
 {
-  "name": "Quick Force (Node)",
-  "description": "The quickest and easiest way to start a Node web app that uses the Force.com REST APIs",
-  "repository": "https://github.com/jamesward/quick-force-node",
-  "website": "http://www.jamesward.com",
-  "keywords": ["node", "salesforce", "nforce"]
+    "name": "CMS SFMC Connector",
+    "description": "The quickest and easiest way to move CMS content to Marketing Cloud",
+    "repository": "https://github.com/kamalkanthorizontal/salesforcecmsapp"
 }
