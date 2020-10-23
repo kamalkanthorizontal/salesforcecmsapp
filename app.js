@@ -84,10 +84,28 @@ app.get("/", function (req, res) {
             username: process.env.SF_USERNAME,
             password: process.env.SF_PASSWORD,
             securityToken: process.env.SF_SECURITY_TOKEN
-        }, function (err, resp) {
+        }, async function (err, resp) {
             if (!err) {
                 console.log("Salesforce Access Token: " + resp.access_token);
                 //res.send("Salesforce Access Token: " + resp.access_token);
+
+                try{
+                    const res = await org.getUrl(cmsURL);
+                    console.log("Salesforce Access Token: ", JSON.stringify(res));
+                    run(res);
+                }catch(error){
+                    res.send(err.message);
+                }
+                
+
+                /*org.getUrl(cmsURL).then(res => {
+                    //  run(res);
+                      console.log("Salesforce Access Token: " + JSON.stringify(res));
+                  }).catch(error =>{
+                      res.send(error.message);
+                  });
+  
+
                 org.getUrl(cmsURL, function (err, resp) {
                     if (!err) {
                         run(resp);
@@ -96,7 +114,7 @@ app.get("/", function (req, res) {
                     } else {
                         res.send(err.message);
                     }
-                });
+                });*/
             } else {
                 res.send(err.message);
             }
@@ -124,15 +142,15 @@ async function run(cmsContentResults) {
                 content.title,
                 mcAuthResults
             );
-        })
-        .then((res) => res.json()) // expecting a json response
+        });
+       /* .then((res) => res.json()) // expecting a json response
         // .then((json) => console.log(json))
         .catch((err) => {
             console.log({
                 err
             });
             reject(err);
-        });
+        });*/
 };
 
 const MC_ASSETS_API_PATH = '/asset/v1/content/assets';
