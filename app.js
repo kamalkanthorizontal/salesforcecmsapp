@@ -2,12 +2,15 @@ var express = require("express");
 var bodyParser = require("body-parser");
 var nforce = require("nforce");
 var hbs = require('hbs');
+var dotenv = require("dotenv").config();
+
 const fetch = require('node-fetch');
 const https = require('https');
 var request = require('request');
-require("dotenv").config();  
 
 var app = express();
+var isLocal;
+var herokuApp = null;
 
 app.set('view engine', 'hbs');
 app.enable('trust proxy');
@@ -15,12 +18,29 @@ app.enable('trust proxy');
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
 
-function isSetup(req) {
-    if (req.hostname.indexOf("localhost") == 0) {
+function isNotBlank(val) {
+    if (typeof val !== 'undefined' && val) {
+        console.log('>>> ' + val);
+        return true;
+    };
+    return false;
+}
+
+
+function isSetup() {
+    /*if (isLocal) {
         require("dotenv").config();
-    }
+    }*/
     return (
-        process.env.CONSUMER_KEY != null && process.env.CONSUMER_SECRET != null
+        isNotBlank(process.env.CONSUMER_KEY) &&
+        isNotBlank(process.env.CONSUMER_SECRET) &&
+        isNotBlank(process.env.MC_CLIENT_ID) &&
+        isNotBlank(process.env.MC_CLIENT_SECRET) &&
+        isNotBlank(process.env.MC_AUTHENTICATION_BASE_URI) &&
+        isNotBlank(process.env.MC_REST_BASE_URI) &&
+        isNotBlank(process.env.SF_USERNAME) &&
+        isNotBlank(process.env.SF_PASSWORD) &&
+        isNotBlank(process.env.SF_SECURITY_TOKEN)
     );
 }
 
@@ -38,9 +58,17 @@ function handleError(res, reason, message, code) {
 }
 
 app.get("/", function (req, res) {
-    var url =
+    var oauth;
+    isLocal = req.hostname.indexOf("localhost") == 0;
+
+    if (req.hostname.indexOf(".herokuapp.com") > 0) {
+        herokuApp = req.hostname.replace(".herokuapp.com", "");
+    }
+    var cmsURL =
         "/services/data/v48.0/connect/cms/delivery/channels/0apL00000004CO6/contents/query?managedContentType=ContentBlock&page=0&pageSize=1";
-    if (isSetup(req)) {
+
+    //console.log(isLocal + '>>>' + herokuApp);
+    if (isSetup()) {
         //nforce setup to connect Salesforce
         var org = nforce.createConnection({
             clientId: process.env.CONSUMER_KEY,
@@ -49,64 +77,48 @@ app.get("/", function (req, res) {
             //apiVersion: "v37.0", // optional, defaults to current salesforce API version
             mode: "single", // optional, 'single' or 'multi' user mode, multi default
             environment: "sandbox", // optional, salesforce 'sandbox' or 'production', production default,
-            autoRefresh: true,
+            autoRefresh: true
         });
 
-        if (req.query.code !== undefined) {
-            // authenticated
-            org.authenticate(req.query, function (err) {
-                if (!err) console.log("Salesforce Access Token: " + org.oauth.access_token);
-                else console.log("Error: " + err.message);
-                if (!err) {
-                    org.getUrl(url, function (err, resp) {
-                        if (!err) {
-                            run(resp);
-                            //if (resp.items && resp.items.length)
-                            //res.type('json').send(JSON.stringify(resp.items, null, 2) + '\n');
-                            //res.send(resp.items);
-                        } else {
-                            res.send(err.message);
-                        }
-                    });
-                } else {
-                    if (err.message.indexOf("invalid_grant") >= 0) {
-                        res.redirect("/");
+        org.authenticate({
+            username: process.env.SF_USERNAME,
+            password: process.env.SF_PASSWORD,
+            securityToken: process.env.SF_SECURITY_TOKEN
+        }, function (err, resp) {
+            if (!err) {
+                console.log("Salesforce Access Token: " + resp.access_token);
+                //res.send("Salesforce Access Token: " + resp.access_token);
+                org.getUrl(cmsURL, function (err, resp) {
+                    if (!err) {
+                        run(resp);
+                        //if (resp.items && resp.items.length)
+                        //res.type('json').send(JSON.stringify(resp.items, null, 2) + '\n');
                     } else {
                         res.send(err.message);
                     }
-                }
-            });
-        } else {
-            res.redirect(org.getAuthUri());
-        }
+                });
+            } else {
+                res.send(err.message);
+            }
+        });
     } else {
         res.redirect("/setup");
     }
 });
 
 app.get("/setup", function (req, res) {
-    if (isSetup()) {
-        res.redirect("/");
-    } else {
-        var isLocal = req.hostname.indexOf("localhost") == 0;
-        var herokuApp = null;
-        if (req.hostname.indexOf(".herokuapp.com") > 0) {
-            herokuApp = req.hostname.replace(".herokuapp.com", "");
-        }
-        res.render("setup", {
-            isLocal: isLocal,
-            oauthCallbackUrl: oauthCallbackUrl(req),
-            herokuApp: herokuApp,
-        });
-    }
+    res.render("setup", {
+        isLocal: isLocal,
+        oauthCallbackUrl: oauthCallbackUrl(req),
+        herokuApp: herokuApp,
+    });
 });
 
 async function run(cmsContentResults) {
     let mcAuthResults = await getMcAuth();
-    console.log('Marketing Access Token' + JSON.stringify(mcAuthResults));
+    //console.log('Marketing Access Token' + mcAuthResults.access_token);
     await cmsContentResults.items.forEach(async (content) => {
             //console.log({content});
-
             await moveTextToMC(
                 content.contentUrlName,
                 content.title,
@@ -123,24 +135,23 @@ async function run(cmsContentResults) {
         });
 };
 
+const MC_ASSETS_API_PATH = '/asset/v1/content/assets';
+const MS_AUTH_PATH = '/v2/token';
 
-
-const mc_assets_api_path = '/asset/v1/content/assets';
-const mc_auth_path = '/v2/token';
-
-const marketingCloudAuthBody = {
+const getMcAuthBody = {
     grant_type: 'client_credentials',
     client_id: process.env.MC_CLIENT_ID,
     client_secret: process.env.MC_CLIENT_SECRET,
 };
 
 async function getMcAuth() {
-    console.log(JSON.stringify(marketingCloudAuthBody));
-    console.log(process.env.MC_AUTHENTICATION_BASE_URI + mc_auth_path);
-    return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + mc_auth_path, {
+    console.log('Auth Body: ' + JSON.stringify(getMcAuthBody));
+    return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + MS_AUTH_PATH, {
             method: 'POST',
-            body: JSON.stringify(marketingCloudAuthBody),
-            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(getMcAuthBody),
+            headers: {
+                'Content-Type': 'application/json'
+            },
         })
         .then(res => res.json()) // expecting a json response
         //.then(json => console.log(json))
@@ -153,7 +164,8 @@ async function getMcAuth() {
 }
 
 async function moveTextToMC(name, title, mcAuthResults) {
-    console.log('Uploading text to MC: ${name} - ${title}');
+    console.log('Marketing Cloud Access Token: ' + mcAuthResults.access_token);
+    console.log('Uploading text to MC: '+name +'-'+ title);
 
     let textAssetBody = {
         name: name,
@@ -173,8 +185,10 @@ async function moveTextToMC(name, title, mcAuthResults) {
 
 async function createMCAsset(access_token, assetBody) {
     return new Promise((resolve, reject) => {
-        request.post(process.env.MC_REST_BASE_URI + mc_assets_api_path, {
-                headers: {  Authorization: 'Bearer ' + access_token },
+        request.post(process.env.MC_REST_BASE_URI + MC_ASSETS_API_PATH, {
+                headers: {
+                    Authorization: 'Bearer ' + access_token
+                },
                 json: assetBody,
             },
             (error, res, body) => {
