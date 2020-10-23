@@ -1,5 +1,14 @@
 {
     "name": "CMS SFMC Connector",
     "description": "The quickest and easiest way to move CMS content to Marketing Cloud",
-    "repository": "https://github.com/kamalkanthorizontal/salesforcecmsapp"
+    "repository": "https://github.com/kamalkanthorizontal/salesforcecmsapp",
+    "website": "http://www.horizontaldigital.com",
+    "keywords": ["node", "salesforce", "nforce"],
+    "environments": {
+        "test": {
+            "scripts": {
+                "test": "bundle exec rake test"
+            }
+        }
+    }
 }

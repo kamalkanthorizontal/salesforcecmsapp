@@ -210,7 +210,7 @@ async function createMCAsset(access_token, assetBody) {
                         error
                     });
                 } else {
-                    console.log('statusCode: ${res.statusCode}');
+                    //console.log('statusCode: ${res.statusCode}');
                     console.log(body);
                     resolve(res);
                 }
