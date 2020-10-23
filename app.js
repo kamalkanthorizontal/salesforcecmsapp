@@ -51,7 +51,7 @@ function oauthCallbackUrl(req) {
 // Generic error handler used by all endpoints.
 //handleError(res, "Invalid user input", "Please enter the Name.", 400); 
 function handleError(res, reason, message, code) {
-    console.log("ERROR: " + reason);
+    console.log("ERROR: ", reason);
     res.status(code || 500).json({
         error: message
     });
@@ -86,12 +86,13 @@ app.get("/", function (req, res) {
             securityToken: process.env.SF_SECURITY_TOKEN
         }, async function (err, resp) {
             if (!err) {
-                console.log("Salesforce Access Token: " + resp.access_token);
+                console.log("Salesforce Access Token: " , resp.access_token);
                 //res.send("Salesforce Access Token: " + resp.access_token);
 
                 try{
                     const res = await org.getUrl(cmsURL);
-                    console.log("Salesforce Access Token: ", JSON.stringify(res));
+                    console.log("Response: ", JSON.stringify(res));
+                    //res.type('json').send(JSON.stringify(resp.items, null, 2) + '\n');
                     run(res);
                 }catch(error){
                     res.send(err.message);
@@ -110,7 +111,6 @@ app.get("/", function (req, res) {
                     if (!err) {
                         run(resp);
                         //if (resp.items && resp.items.length)
-                        //res.type('json').send(JSON.stringify(resp.items, null, 2) + '\n');
                     } else {
                         res.send(err.message);
                     }
@@ -134,7 +134,6 @@ app.get("/setup", function (req, res) {
 
 async function run(cmsContentResults) {
     let mcAuthResults = await getMcAuth();
-    //console.log('Marketing Access Token' + mcAuthResults.access_token);
     await cmsContentResults.items.forEach(async (content) => {
             //console.log({content});
             await moveTextToMC(
@@ -143,14 +142,6 @@ async function run(cmsContentResults) {
                 mcAuthResults
             );
         });
-       /* .then((res) => res.json()) // expecting a json response
-        // .then((json) => console.log(json))
-        .catch((err) => {
-            console.log({
-                err
-            });
-            reject(err);
-        });*/
 };
 
 const MC_ASSETS_API_PATH = '/asset/v1/content/assets';
@@ -163,7 +154,7 @@ const getMcAuthBody = {
 };
 
 async function getMcAuth() {
-    console.log('Auth Body: ' + JSON.stringify(getMcAuthBody));
+    console.log('Auth Body: ', JSON.stringify(getMcAuthBody));
     return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + MS_AUTH_PATH, {
             method: 'POST',
             body: JSON.stringify(getMcAuthBody),
@@ -182,8 +173,8 @@ async function getMcAuth() {
 }
 
 async function moveTextToMC(name, title, mcAuthResults) {
-    console.log('Marketing Cloud Access Token: ' + mcAuthResults.access_token);
-    console.log('Uploading text to MC: '+name +'-'+ title);
+    console.log('Marketing Cloud Access Token: ', mcAuthResults.access_token);
+    console.log('Uploading text to MC: ', name +'-'+ title);
 
     let textAssetBody = {
         name: name,
@@ -219,7 +210,7 @@ async function createMCAsset(access_token, assetBody) {
                         error
                     });
                 } else {
-                    console.log(`statusCode: ${res.statusCode}`);
+                    console.log('statusCode: ${res.statusCode}');
                     console.log(body);
                     resolve(res);
                 }
