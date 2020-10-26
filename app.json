@@ -1,14 +1,55 @@
 {
     "name": "CMS SFMC Connector",
+    "repository": "https://github.com/vinaybothra/salesforcecms",
     "description": "The quickest and easiest way to move CMS content to Marketing Cloud",
-    "repository": "https://github.com/kamalkanthorizontal/salesforcecmsapp",
-    "website": "http://www.horizontaldigital.com",
-    "keywords": ["node", "salesforce", "nforce"],
-    "environments": {
-        "test": {
-            "scripts": {
-                "test": "bundle exec rake test"
-            }
+    "logo": "https://cdn.rawgit.com/heroku/node-js-getting-started/main/public/node.svg",
+    "image": "heroku/nodejs",
+    "env": {
+        "CONSUMER_KEY": {
+            "description": "Get it from Salesforce Connected App's Consumer Key.",
+            "required": true,
+            "value": ""
+        },
+        "CONSUMER_SECRET": {
+            "description": "Get it from Salesforce Connected App's Consumer Secret.",
+            "required": true,
+            "value": ""
+        },
+        "SF_USERNAME": {
+            "description": "Salesforce Username.",
+            "required": true,
+            "value": ""
+        },
+        "SF_PASSWORD": {
+            "description": "Salesforce Password.",
+            "required": true,
+            "value": ""
+        },
+        "SF_SECURITY_TOKEN": {
+            "description": "Get it from Salesforce personal settings, enter Reset in the Quick Find box, then select Reset My Security Token.",
+            "required": true,
+            "value": ""
+        },
+        "MC_CLIENT_ID": {
+            "description": "Get it from Marketing Cloud Installed Package's Client Id.",
+            "required": true,
+            "value": ""
+        },
+        "MC_CLIENT_SECRET": {
+            "description": "Get it from Marketing Cloud Installed Package's Client Secret.",
+            "required": true,
+            "value": ""
+        },
+        "MC_AUTHENTICATION_BASE_URI": {
+            "description": "Get it from Marketing Cloud Installed Package's Authentication Base URI.",
+            "required": true,
+            "value": ""
+        },
+        "MC_REST_BASE_URI": {
+            "description": "Get it from Marketing Cloud Installed Package's Rest Base URI.",
+            "required": true,
+            "value": ""
         }
-    }
+    },
+    "keywords": ["node", "express", "heroku", "nforce", "salesforce"]
 }
