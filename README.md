@@ -12,9 +12,11 @@ or
 
 [![Deploy to Heroku](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy)
 
-2. View the newly deployed application and follow the instructions to setup an OAuth Connected App in Salesforce, an Installed Package in Marketing Cloud and then set the config in your Heroku app
+- For **App Name**, specify a name for your application. For example, if you specify my-conference, your application will be available at http://my-conference.herokuapp.com. Your app name has to be unique on the herokuapp.com domain.
+- Setup an OAuth Connected App in Salesforce and an Installed Package in Marketing Cloud to enter all the environment variables in the deployment wizard.
+- Click the **Deploy** button
 
-3. Running Locally?
+2. Running Locally?
 Setup a local development environment by downloading your app's source: https://download-heroku-source.herokuapp.com/
 Make sure you have [Node.js](http://nodejs.org/) and the [Heroku CLI](https://cli.heroku.com/) installed.
 
@@ -22,8 +24,7 @@ Make sure you have [Node.js](http://nodejs.org/) and the [Heroku CLI](https://cl
 $ npm install
 $ npm start
 ```
-
-4. Check out the local app at: [http://localhost:3000](http://localhost:3000)
-5. Again follow the instructions in your local app to setup local environment variables
-6. Make and test some local changes to the app
-8. Deploy those changes
+- Check out the local app at: [http://localhost:3000](http://localhost:3000)
+- Again follow the instructions in your local app to setup local environment variables
+- Make and test some local changes to the app
+- Deploy those changes
