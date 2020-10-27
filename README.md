@@ -25,6 +25,6 @@ $ npm install
 $ npm start
 ```
 - Check out the local app at: [http://localhost:3000](http://localhost:3000)
-- Again follow the instructions in your local app to setup local environment variables
-- Make and test some local changes to the app
-- Deploy those changes
+- Again follow the instructions in your local app to setup local environment variables.
+- Make and test some local changes to the app.
+- Deploy those changes.
