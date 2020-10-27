@@ -221,14 +221,17 @@ async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
       );
   
       console.log(`Uploading Image to MC: ${name} - ${imageUrl}`);
-  
+      const fileName =  currentNode.fileName.replace(/\s/g, "");
+
+      console.log(`fileName: ${fileName}`);
+
       let imageAssetBody = {
         name: name,
         assetType: {
-          id: getImageAssetType(currentNode.fileName),
+          id: getImageAssetType(fileName),
         },
         fileProperties: {
-            fileName: currentNode.fileName.replace(/\s/g, ""),
+            fileName,
             extension: "png",
         },
         file: base64ImageBody,
