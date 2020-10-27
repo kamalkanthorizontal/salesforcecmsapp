@@ -207,14 +207,14 @@ async function moveTextToMC(name, title, mcAuthResults) {
 
 async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
     return new Promise(async (resolve, reject) => {
-      const imageUrl = `${cmsAuthResults.instance_url}${currentNode.resourceUrl}`;
+      const imageUrl = `${cmsAuthResults.instance_url}${currentNode.url}`;
       console.log(`name: ${name}`);
-      console.log(`cmsAuthResults.instance_url: ${cmsAuthResults.instance_url}`);
+      //console.log(`cmsAuthResults.instance_url: ${cmsAuthResults.instance_url}`);
 
-      console.log(`currentNode: ${currentNode}`);
+      console.log(`currentNode: ${currentNode.fileName}`);
 
       console.log(`imageUrl: ${imageUrl} - ${cmsAuthResults.instance_url}`);
-      
+
       const base64ImageBody = await downloadBase64FromURL(
         imageUrl,
         cmsAuthResults.access_token
