@@ -189,7 +189,7 @@ async function moveTextToMC(name, title, mcAuthResults) {
     console.log(`Uploading text to MC: ${name} - ${title}`);
 
     let textAssetBody = {
-        name: name,
+        name: Date.now()+name,
         assetType: {
             id: 196,
         },
