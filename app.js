@@ -207,7 +207,7 @@ async function moveTextToMC(name, title, mcAuthResults) {
 
 async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
     return new Promise(async (resolve, reject) => {
-      const imageUrl = `${cmsAuthResults.instance_url}${currentNode.url}`;
+      const imageUrl = `${cmsAuthResults.instance_url}${currentNode.unauthenticatedUrl}`;
       console.log(`name: ${name}`);
       //console.log(`cmsAuthResults.instance_url: ${cmsAuthResults.instance_url}`);
 
@@ -226,10 +226,6 @@ async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
         name: name,
         assetType: {
           id: getImageAssetType(currentNode.fileName),
-        },
-        fileProperties: {
-            fileName: "Digital3601.png",
-            extension: "png",
         },
         file: base64ImageBody,
         category: {
