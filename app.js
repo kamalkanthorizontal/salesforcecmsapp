@@ -134,7 +134,7 @@ app.get("/setup", function (req, res) {
 
 async function run(cmsContentResults) {
     let mcAuthResults = await getMcAuth();
-    let cmsAuthResults = await sfAuth();
+   // let cmsAuthResults = await sfAuth();
     await cmsContentResults.items.forEach(async (content) => {
         let contentTitle = `CMS Promotion - ${content.title}`;    
         let image = content.contentNodes['Image'];
@@ -149,7 +149,7 @@ async function run(cmsContentResults) {
                 `${contentTitle} - image - ${image.fileName}`,
                 image,
                 mcAuthResults,
-                cmsAuthResults
+                cmsContentResults
             );
         }
         
