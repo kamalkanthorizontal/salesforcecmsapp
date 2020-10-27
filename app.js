@@ -134,14 +134,25 @@ app.get("/setup", function (req, res) {
 
 async function run(cmsContentResults) {
     let mcAuthResults = await getMcAuth();
+    let cmsAuthResults = await sfAuth();
     await cmsContentResults.items.forEach(async (content) => {
-            //console.log({content});
-            await moveTextToMC(
+        let contentTitle = `CMS Promotion - ${content.title}`;    
+        let image = content.contentNodes['Image'];
+        //console.log({content});
+        await moveTextToMC(
                 content.contentUrlName,
                 content.title,
                 mcAuthResults
-            );
-        });
+        );
+
+
+        await moveImageToMC(
+            `${contentTitle} - secondImage - ${image.fileName}`,
+            image,
+            mcAuthResults,
+            cmsAuthResults
+        );
+    });
 };
 
 const MC_ASSETS_API_PATH = '/asset/v1/content/assets';
@@ -190,6 +201,86 @@ async function moveTextToMC(name, title, mcAuthResults) {
     };
     // Create MC Asset
     await createMCAsset(mcAuthResults.access_token, textAssetBody);
+}
+
+
+async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
+    return new Promise(async (resolve, reject) => {
+      const imageUrl = `${cmsAuthResults.instance_url}${currentNode.resourceUrl}`;
+  
+      const base64ImageBody = await downloadBase64FromURL(
+        imageUrl,
+        cmsAuthResults.access_token
+      );
+  
+      console.log(`Uploading Image to MC: ${name} - ${imageUrl}`);
+  
+      let imageAssetBody = {
+        name: name,
+        assetType: {
+          id: getImageAssetType(currentNode.fileName),
+        },
+        file: base64ImageBody,
+        category: {
+          id: '1520210',
+        },
+      };
+      // Create MC Asset
+      await createMCAsset(mcAuthResults.access_token, imageAssetBody);
+      resolve();
+    });
+  }
+
+  function getImageAssetType(imageName) {
+    let assetTypeResults = '8';
+  
+    let fileNameChunks = imageName.split('.');
+  
+    let imageExtension = fileNameChunks[fileNameChunks.length - 1];
+  
+    switch (imageExtension.toLowerCase()) {
+      case 'gif':
+        assetTypeResults = 20;
+        break;
+      case 'jpeg':
+        assetTypeResults = 22;
+        break;
+      case 'jpg':
+        assetTypeResults = 23;
+        break;
+      case 'png':
+        assetTypeResults = 28;
+        break;
+      default:
+        break;
+    }
+  
+    return assetTypeResults;
+  }
+  
+
+async function downloadBase64FromURL(url, access_token, callback) {
+    return new Promise((resolve, reject) => {
+      https
+        .get(
+          url,
+          { headers: { Authorization: 'Bearer ' + access_token } },
+          (resp) => {
+            resp.setEncoding('base64');
+            let imageBody = '';
+            resp.on('data', (data) => {
+              imageBody += data;
+            });
+            resp.on('end', () => {
+              console.log('end');
+              resolve(imageBody);
+            });
+          }
+        )
+        .on('error', (e) => {
+          reject(`Got error: ${e.message}`);
+        });
+    });
 }
 
 async function createMCAsset(access_token, assetBody) {
