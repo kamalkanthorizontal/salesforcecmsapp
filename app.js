@@ -224,9 +224,12 @@ async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
   
       let imageAssetBody = {
         name: name,
-        fileName: name,
         assetType: {
           id: getImageAssetType(currentNode.fileName),
+        },
+        fileProperties: {
+            fileName: "Digital3601",
+            extension: "png",
         },
         file: base64ImageBody,
         category: {
