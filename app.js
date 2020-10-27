@@ -66,7 +66,7 @@ app.get("/", function (req, res) {
         herokuApp = req.hostname.replace(".herokuapp.com", "");
     }
     var cmsURL =
-        "/services/data/v48.0/connect/cms/delivery/channels/0apL00000004CO6/contents/query?managedContentType=ContentBlock&page=0&pageSize=1";
+        "/services/data/v48.0/connect/cms/delivery/channels/0apL00000004CO6/contents/query?managedContentType=ContentBlock&page=0&pageSize=3";
 
     //console.log(isLocal + '>>>' + herokuApp);
     if (isSetup()) {
