@@ -144,14 +144,15 @@ async function run(cmsContentResults) {
                 content.title,
                 mcAuthResults
         );
-
-
-        await moveImageToMC(
-            `${contentTitle} - secondImage - ${image.fileName}`,
-            image,
-            mcAuthResults,
-            cmsAuthResults
-        );
+        if(image){
+            await moveImageToMC(
+                `${contentTitle} - image - ${image.fileName}`,
+                image,
+                mcAuthResults,
+                cmsAuthResults
+            );
+        }
+        
     });
 };
 
