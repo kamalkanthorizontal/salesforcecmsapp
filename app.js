@@ -65,6 +65,7 @@ app.get("/", function (req, res) {
     if (req.hostname.indexOf(".herokuapp.com") > 0) {
         herokuApp = req.hostname.replace(".herokuapp.com", "");
     }
+
     var cmsURL =
         "/services/data/v48.0/connect/cms/delivery/channels/0apL00000004CO6/contents/query?managedContentType=ContentBlock&page=0&pageSize=3";
 
@@ -87,19 +88,17 @@ app.get("/", function (req, res) {
             securityToken: process.env.SF_SECURITY_TOKEN
         }, async function (err, resp) {
             if (!err) {
-                console.log("Salesforce Access Token: " , resp.access_token);
-                //res.send("Salesforce Access Token: " + resp.access_token);
+                console.log("Salesforce Response: ", resp);
 
-                try{
-                    const res = await org.getUrl(cmsURL);
-                    console.log("Response: ", JSON.stringify(res));
-                    //res.type('json').send(JSON.stringify(resp.items, null, 2) + '\n');
-                    run(res, resp);
-                }catch(error){
+                try {
+                    const result = await org.getUrl(cmsURL);
+                    console.log("Salesforce Result: ", result);
+                    //res.type('json').send(JSON.stringify(result.items, null, 2) + '\n');
+                    run(result, resp);
+                } catch(error) {
                     res.send(err.message);
                 }
                 
-
                 /*org.getUrl(cmsURL).then(res => {
                     //  run(res);
                       console.log("Salesforce Access Token: " + JSON.stringify(res));
@@ -135,24 +134,26 @@ app.get("/setup", function (req, res) {
 
 async function run(cmsContentResults, cmsAuthResults) {
     let mcAuthResults = await getMcAuth();
-    await cmsContentResults.items.forEach(async (content) => {
-        let contentTitle = `CMS Promotion - ${content.title}`;    
-        let image = content.contentNodes['Image'];
+    console.log('Marketing Cloud Access Token: ', mcAuthResults.access_token);
+
+    await cmsContentResults.items.forEach(async (content) => { 
         //console.log({content});
         await moveTextToMC(
                 content.contentUrlName,
                 content.title,
                 mcAuthResults
         );
-        if(image){
+        
+        
+        let image = content.contentNodes['Image'];
+        if(image) {
             await moveImageToMC(
-                `${contentTitle} - image - ${image.fileName}`,
+                image.fileName,
                 image,
                 mcAuthResults,
                 cmsAuthResults
             );
         }
-        
     });
 };
 
@@ -185,8 +186,7 @@ async function getMcAuth() {
 }
 
 async function moveTextToMC(name, title, mcAuthResults) {
-    console.log('Marketing Cloud Access Token: ', mcAuthResults.access_token);
-    console.log('Uploading text to MC: ', name +'-'+ title);
+    console.log(`Uploading text to MC: ${name} - ${title}`);
 
     let textAssetBody = {
         name: name,
@@ -195,9 +195,7 @@ async function moveTextToMC(name, title, mcAuthResults) {
         },
         content: title,
         category: {
-            id: '6345',
-            name: 'Content Builder',
-            parentId: 0
+            id: '311558'
         },
     };
     // Create MC Asset
@@ -208,37 +206,32 @@ async function moveTextToMC(name, title, mcAuthResults) {
 async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
     return new Promise(async (resolve, reject) => {
       const imageUrl = `${cmsAuthResults.instance_url}${currentNode.unauthenticatedUrl}`;
-      console.log(`name: ${name}`);
-      //console.log(`cmsAuthResults.instance_url: ${cmsAuthResults.instance_url}`);
-
-      console.log(`currentNode: ${currentNode.fileName}`);
-
-      console.log(`imageUrl: ${imageUrl} - ${cmsAuthResults.instance_url}`);
+      console.log(`Uploading Image to MC: ${name} - ${imageUrl}`);
 
       const base64ImageBody = await downloadBase64FromURL(
         imageUrl,
         cmsAuthResults.access_token
       );
   
-      console.log(`Uploading Image to MC: ${name} - ${imageUrl}`);
-      const fileName =  currentNode.fileName.replace(/\s/g, "");
+      const fileName = currentNode.fileName.replace(/\s/g, "");
+      let fileNameChunks = fileName.split('.');
+      let imageExtension = fileNameChunks[fileNameChunks.length - 1];
 
       console.log(`fileName: ${fileName}`);
+      console.log(`imageExtension: ${imageExtension}`);
 
       let imageAssetBody = {
         name: name,
         assetType: {
-          id: getImageAssetType(fileName),
+          id: getImageAssetType(imageExtension),
         },
         fileProperties: {
-            fileName,
-            extension: "png",
+            fileName: fileName,
+            extension: imageExtension,
         },
         file: base64ImageBody,
         category: {
-            id: '6345',
-            name: 'Content Builder',
-            parentId: 0
+            id: '311558'
         },
       };
       // Create MC Asset
@@ -247,12 +240,8 @@ async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
     });
   }
 
-  function getImageAssetType(imageName) {
+  function getImageAssetType(imageExtension) {
     let assetTypeResults = '8';
-  
-    let fileNameChunks = imageName.split('.');
-  
-    let imageExtension = fileNameChunks[fileNameChunks.length - 1];
   
     switch (imageExtension.toLowerCase()) {
       case 'gif':
@@ -329,5 +318,5 @@ async function createMCAsset(access_token, assetBody) {
 // Initialize the app.
 var server = app.listen(process.env.PORT || 3000, function () {
     var port = server.address().port;
-    console.log("App now running on port", port);
+    console.log(`App now running on port: ${port}`);
 });
