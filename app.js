@@ -8,6 +8,7 @@ const fetch = require('node-fetch');
 const https = require('https');
 var request = require('request');
 
+
 var app = express();
 var isLocal;
 var herokuApp = null;
@@ -93,7 +94,7 @@ app.get("/", function (req, res) {
                     const res = await org.getUrl(cmsURL);
                     console.log("Response: ", JSON.stringify(res));
                     //res.type('json').send(JSON.stringify(resp.items, null, 2) + '\n');
-                    run(res);
+                    run(res, resp);
                 }catch(error){
                     res.send(err.message);
                 }
@@ -132,9 +133,8 @@ app.get("/setup", function (req, res) {
     });
 });
 
-async function run(cmsContentResults) {
+async function run(cmsContentResults, cmsAuthResults) {
     let mcAuthResults = await getMcAuth();
-   // let cmsAuthResults = await sfAuth();
     await cmsContentResults.items.forEach(async (content) => {
         let contentTitle = `CMS Promotion - ${content.title}`;    
         let image = content.contentNodes['Image'];
@@ -209,6 +209,7 @@ async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
     return new Promise(async (resolve, reject) => {
       const imageUrl = `${cmsAuthResults.instance_url}${currentNode.resourceUrl}`;
   
+      console.log(`imageUrl: ${imageUrl} - ${cmsAuthResults.instance_url}`);
       const base64ImageBody = await downloadBase64FromURL(
         imageUrl,
         cmsAuthResults.access_token
