@@ -229,7 +229,9 @@ async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
         },
         file: base64ImageBody,
         category: {
-          id: '1520210',
+            id: '6345',
+            name: 'Content Builder',
+            parentId: 0
         },
       };
       // Create MC Asset
