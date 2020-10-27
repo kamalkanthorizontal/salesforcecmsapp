@@ -213,7 +213,7 @@ async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
         cmsAuthResults.access_token
       );
   
-      const fileName = currentNode.fileName.replace(/\s/g, "");
+      const fileName = Date.now()+currentNode.fileName.replace(/\s/g, "");
       let fileNameChunks = fileName.split('.');
       let imageExtension = fileNameChunks[fileNameChunks.length - 1];
 
