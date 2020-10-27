@@ -228,7 +228,7 @@ async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
           id: getImageAssetType(currentNode.fileName),
         },
         fileProperties: {
-            fileName: "Digital3601",
+            fileName: "Digital3601.png",
             extension: "png",
         },
         file: base64ImageBody,
