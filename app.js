@@ -67,7 +67,7 @@ app.get("/", function (req, res) {
     }
 
     var cmsURL =
-        "/services/data/v48.0/connect/cms/delivery/channels/0apL00000004CO6/contents/query?managedContentType=ContentBlock&page=0&pageSize=3";
+        "/services/data/v48.0/connect/cms/delivery/channels/0apL00000004CO6/contents/query?managedContentType=ContentBlock&page=0&pageSize=3&showAbsoluteUrl=true";
 
     //console.log(isLocal + '>>>' + herokuApp);
     if (isSetup()) {
@@ -134,7 +134,7 @@ app.get("/setup", function (req, res) {
 
 async function run(cmsContentResults, cmsAuthResults) {
     let mcAuthResults = await getMcAuth();
-    console.log('Marketing Cloud Access Token: ', mcAuthResults.access_token);
+    console.log('Marketing Cloud Access Token: ', mcAuthResults.access_token.length);
 
     await cmsContentResults.items.forEach(async (content) => { 
         //console.log({content});
@@ -205,7 +205,7 @@ async function moveTextToMC(name, title, mcAuthResults) {
 
 async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
     return new Promise(async (resolve, reject) => {
-      const imageUrl = `${cmsAuthResults.instance_url}${currentNode.unauthenticatedUrl}`;
+      const imageUrl = `${currentNode.unauthenticatedUrl}`;
       console.log(`Uploading Image to MC: ${name} - ${imageUrl}`);
 
       const base64ImageBody = await downloadBase64FromURL(
@@ -219,6 +219,7 @@ async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
 
       console.log(`fileName: ${fileName}`);
       console.log(`imageExtension: ${imageExtension}`);
+      console.log(`base64ImageBody: ${base64ImageBody.length}`);
 
       let imageAssetBody = {
         name: name,
