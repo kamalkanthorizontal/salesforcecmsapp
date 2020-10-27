@@ -222,7 +222,7 @@ async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
       console.log(`base64ImageBody: ${base64ImageBody.length}`);
 
       let imageAssetBody = {
-        name: name,
+        name: fileName,
         assetType: {
           id: getImageAssetType(imageExtension),
         },
