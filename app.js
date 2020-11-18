@@ -1,12 +1,8 @@
 var express = require("express");
 var bodyParser = require("body-parser");
 var nforce = require("nforce");
-var hbs = require('hbs');
-var dotenv = require("dotenv").config();
 
-const fetch = require('node-fetch');
-const https = require('https');
-var request = require('request');
+const run = require('./src/mcUtils');
 
 
 var app = express();
@@ -58,21 +54,34 @@ function handleError(res, reason, message, code) {
     });
 }
 
+
+app.get("/setup", function (req, res) {
+    res.render("setup", {
+        isLocal: isLocal,
+        oauthCallbackUrl: oauthCallbackUrl(req),
+        herokuApp: herokuApp,
+    });
+});
+
 app.get("/", function (req, res) {
     var oauth;
     isLocal = req.hostname.indexOf("localhost") == 0;
-
+    console.log('isLocal', isLocal);
     if (req.hostname.indexOf(".herokuapp.com") > 0) {
         herokuApp = req.hostname.replace(".herokuapp.com", "");
     }
 
-    var cmsURL =
-        "/services/data/v48.0/connect/cms/delivery/channels/0apL00000004CO6/contents/query?managedContentType=ContentBlock&page=0&pageSize=3&showAbsoluteUrl=true";
+    const channelId = '0apL00000004CO6';
+    const managedContentType = 'ContentBlock';
+
+    //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
+
+    const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
 
     //console.log(isLocal + '>>>' + herokuApp);
     if (isSetup()) {
         //nforce setup to connect Salesforce
-        var org = nforce.createConnection({
+        let org = nforce.createConnection({
             clientId: process.env.CONSUMER_KEY,
             clientSecret: process.env.CONSUMER_SECRET,
             redirectUri: oauthCallbackUrl(req), //"https://APPNAME.herokuapp.com/oauth/_callback",
@@ -91,30 +100,12 @@ app.get("/", function (req, res) {
                 console.log("Salesforce Response: ", resp);
 
                 try {
-                    const result = await org.getUrl(cmsURL);
+                    const result = await org.getUrl(cmsURL); 
                     console.log("Salesforce Result: ", result);
-                    //res.type('json').send(JSON.stringify(result.items, null, 2) + '\n');
                     run(result, resp);
                 } catch(error) {
                     res.send(err.message);
                 }
-                
-                /*org.getUrl(cmsURL).then(res => {
-                    //  run(res);
-                      console.log("Salesforce Access Token: " + JSON.stringify(res));
-                  }).catch(error =>{
-                      res.send(error.message);
-                  });
-  
-
-                org.getUrl(cmsURL, function (err, resp) {
-                    if (!err) {
-                        run(resp);
-                        //if (resp.items && resp.items.length)
-                    } else {
-                        res.send(err.message);
-                    }
-                });*/
             } else {
                 res.send(err.message);
             }
@@ -124,197 +115,11 @@ app.get("/", function (req, res) {
     }
 });
 
-app.get("/setup", function (req, res) {
-    res.render("setup", {
-        isLocal: isLocal,
-        oauthCallbackUrl: oauthCallbackUrl(req),
-        herokuApp: herokuApp,
-    });
-});
-
-async function run(cmsContentResults, cmsAuthResults) {
-    let mcAuthResults = await getMcAuth();
-    console.log('Marketing Cloud Access Token: ', mcAuthResults.access_token.length);
-
-    await cmsContentResults.items.forEach(async (content) => { 
-        //console.log({content});
-        await moveTextToMC(
-                content.contentUrlName,
-                content.title,
-                mcAuthResults
-        );
-        
-        
-        let image = content.contentNodes['Image'];
-        if(image) {
-            await moveImageToMC(
-                image.fileName,
-                image,
-                mcAuthResults,
-                cmsAuthResults
-            );
-        }
-    });
-};
-
-const MC_ASSETS_API_PATH = '/asset/v1/content/assets';
-const MS_AUTH_PATH = '/v2/token';
-
-const getMcAuthBody = {
-    grant_type: 'client_credentials',
-    client_id: process.env.MC_CLIENT_ID,
-    client_secret: process.env.MC_CLIENT_SECRET,
-};
-
-async function getMcAuth() {
-    console.log('Auth Body: ', JSON.stringify(getMcAuthBody));
-    return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + MS_AUTH_PATH, {
-            method: 'POST',
-            body: JSON.stringify(getMcAuthBody),
-            headers: {
-                'Content-Type': 'application/json'
-            },
-        })
-        .then(res => res.json()) // expecting a json response
-        //.then(json => console.log(json))
-        .catch((err) => {
-            console.log({
-                err
-            });
-            reject(err);
-        });
-}
-
-async function moveTextToMC(name, title, mcAuthResults) {
-    console.log(`Uploading text to MC: ${name} - ${title}`);
-
-    let textAssetBody = {
-        name: Date.now()+name,
-        assetType: {
-            id: 196,
-        },
-        content: title,
-        category: {
-            id: '311558'
-        },
-    };
-    // Create MC Asset
-    await createMCAsset(mcAuthResults.access_token, textAssetBody);
-}
 
 
-async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
-    return new Promise(async (resolve, reject) => {
-      const imageUrl = `${currentNode.unauthenticatedUrl}`;
-      console.log(`Uploading Image to MC: ${name} - ${imageUrl}`);
 
-      const base64ImageBody = await downloadBase64FromURL(
-        imageUrl,
-        cmsAuthResults.access_token
-      );
-  
-      const fileName = Date.now()+currentNode.fileName.replace(/\s/g, "");
-      let fileNameChunks = fileName.split('.');
-      let imageExtension = fileNameChunks[fileNameChunks.length - 1];
 
-      console.log(`fileName: ${fileName}`);
-      console.log(`imageExtension: ${imageExtension}`);
-      console.log(`base64ImageBody: ${base64ImageBody.length}`);
 
-      let imageAssetBody = {
-        name: fileName,
-        assetType: {
-          id: getImageAssetType(imageExtension),
-        },
-        fileProperties: {
-            fileName: fileName,
-            extension: imageExtension,
-        },
-        file: base64ImageBody,
-        category: {
-            id: '311558'
-        },
-      };
-      // Create MC Asset
-      await createMCAsset(mcAuthResults.access_token, imageAssetBody);
-      resolve();
-    });
-  }
-
-  function getImageAssetType(imageExtension) {
-    let assetTypeResults = '8';
-  
-    switch (imageExtension.toLowerCase()) {
-      case 'gif':
-        assetTypeResults = 20;
-        break;
-      case 'jpeg':
-        assetTypeResults = 22;
-        break;
-      case 'jpg':
-        assetTypeResults = 23;
-        break;
-      case 'png':
-        assetTypeResults = 28;
-        break;
-      default:
-        break;
-    }
-  
-    return assetTypeResults;
-  }
-  
-
-async function downloadBase64FromURL(url, access_token, callback) {
-    return new Promise((resolve, reject) => {
-      https
-        .get(
-          url,
-          { headers: { Authorization: 'Bearer ' + access_token } },
-          (resp) => {
-            resp.setEncoding('base64');
-            let imageBody = '';
-            resp.on('data', (data) => {
-              imageBody += data;
-            });
-            resp.on('end', () => {
-              console.log('end');
-              resolve(imageBody);
-            });
-          }
-        )
-        .on('error', (e) => {
-          reject(`Got error: ${e.message}`);
-        });
-    });
-}
-
-async function createMCAsset(access_token, assetBody) {
-    return new Promise((resolve, reject) => {
-        request.post(process.env.MC_REST_BASE_URI + MC_ASSETS_API_PATH, {
-                headers: {
-                    Authorization: 'Bearer ' + access_token
-                },
-                json: assetBody,
-            },
-            (error, res, body) => {
-                if (error) {
-                    console.error(error);
-                    console.log({
-                        assetBody
-                    });
-                    reject({
-                        error
-                    });
-                } else {
-                    //console.log('statusCode: ${res.statusCode}');
-                    console.log(body);
-                    resolve(res);
-                }
-            }
-        );
-    });
-}
 
 // Initialize the app.
 var server = app.listen(process.env.PORT || 3000, function () {
