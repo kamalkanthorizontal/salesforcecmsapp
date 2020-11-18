@@ -103,6 +103,7 @@ app.get("/", function (req, res) {
                     const result = await org.getUrl(cmsURL); 
                     //console.log("Salesforce Result: ", result);
                     run(result, resp);
+                    res.send('sent');
                 } catch(error) {
                     res.send(err.message);
                 }
