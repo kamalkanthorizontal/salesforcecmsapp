@@ -5,9 +5,15 @@ var dotenv = require("dotenv").config();
 const fetch = require('node-fetch');
 const https = require('https');
 var request = require('request');
+let Queue = require('bull');
 
 const MC_ASSETS_API_PATH = '/asset/v1/content/assets';
 const MS_AUTH_PATH = '/v2/token';
+
+let REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+
+let workQueue = new Queue('work', REDIS_URL);
+
 
 const getMcAuthBody = {
     grant_type: 'client_credentials',
@@ -165,14 +171,69 @@ async function createMCAsset(access_token, assetBody) {
         );
     });
   }
+
+  workQueue.on('global:completed', (jobId, result) => {
+    console.log(`Job completed with result ${result}`);
+  });
+  let maxJobsPerWorker = 50;
+
+
+
+  function start() {
+    // Connect to the named work queue
+    let workQueue = new Queue('work', REDIS_URL);
+
+    workQueue.process(maxJobsPerWorker, async (job) => {
+      // This is an example job that just slowly reports on progress
+      // while doing no work. Replace this with your own job logic.
+
+      console.log('job.data', job.data)
+      if (job.name === 'content') {
+        
+        console.log('job.data', job.data)
+        //await paintCar(job.data);
+      }
+      
+      const { content } = job.data
+      if(content){
+        await moveTextToMC(
+          content.contentUrlName,
+          content.title,
+          mcAuthResults
+          );
   
+  
+        let image = content.contentNodes['Image'];
+        if(image) {
+            await moveImageToMC(
+                image.fileName,
+                image,
+                mcAuthResults,
+                cmsAuthResults
+            );
+        }
+      }
+      // throw an error 5% of the time
+      
+
+      // A job can return values that will be stored in Redis as JSON
+      // This return value is unused in this demo application.
+      return { value: "This will be stored" };
+    });
+  }
+
   module.exports = async function run(cmsContentResults, cmsAuthResults) {
     let mcAuthResults = await getMcAuth();
     console.log('Marketing Cloud Access Token: ', mcAuthResults.access_token.length);
-
+    
     await cmsContentResults.items.forEach(async (content) => { 
+      //console.log('content: ', content);
+      let job = await workQueue.add({content: {...content}});
+      
+      console.log('job.id', job.id);
+
         //console.log({content});
-        await moveTextToMC(
+        /*await moveTextToMC(
                 content.contentUrlName,
                 content.title,
                 mcAuthResults
@@ -187,6 +248,10 @@ async function createMCAsset(access_token, assetBody) {
                 mcAuthResults,
                 cmsAuthResults
             );
-        }
+        }*/
     });
+    start();
   }
+
+  
+  

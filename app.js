@@ -97,11 +97,11 @@ app.get("/", function (req, res) {
             securityToken: process.env.SF_SECURITY_TOKEN
         }, async function (err, resp) {
             if (!err) {
-                console.log("Salesforce Response: ", resp);
+              //  console.log("Salesforce Response: ", resp);
 
                 try {
                     const result = await org.getUrl(cmsURL); 
-                    console.log("Salesforce Result: ", result);
+                    //console.log("Salesforce Result: ", result);
                     run(result, resp);
                 } catch(error) {
                     res.send(err.message);
