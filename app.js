@@ -173,8 +173,8 @@ app.post('/', async (req, res, next) => {
             console.log("Salesforce Response: ", resp);
     
             let results = [];
-            [...contentType].forEach(async(ele) =>{
-                const managedContentType = ele.Name;
+            contentType.forEach(async(ele) =>{
+                const managedContentType = ele.DeveloperName;
                 const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
                 console.log('cmsURL', cmsURL);            
                 // const result = await org.getUrl(cmsURL); 
