@@ -215,7 +215,7 @@ async function createMCAsset(access_token, assetBody) {
                 image.fileName,
                 image,
                 mcAuthResults,
-                cmsAuthResults
+                content.cmsAuthResults
             );
         }
       }
