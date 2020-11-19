@@ -237,6 +237,7 @@ async function createMCAsset(access_token, assetBody) {
   }
 
   module.exports = async function run(cmsContentResults, cmsAuthResults) {
+    console.log(cmsContentResults);  
     cmsContentResults = cmsContentResults.map(ele => ele.items);
     await cmsContentResults.forEach(async (content) => { 
       let job = await workQueue.add({content: {results: content, cmsAuthResults}});

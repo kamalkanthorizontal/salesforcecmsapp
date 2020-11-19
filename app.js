@@ -159,8 +159,8 @@ app.post('/', async (req, res, next) => {
         console.log(req.body);
         let { contentTypeNodes, contentType, channelId } = req.body;
         
-        contentType = JSON.parse(contentType);
-        console.log(contentType);
+        contentTypeNodes = JSON.parse(contentTypeNodes);
+        console.log(contentTypeNodes);
         if (isSetup()) {
             //nforce setup to connect Salesforce
             let org = nforce.createConnection({
@@ -182,11 +182,13 @@ app.post('/', async (req, res, next) => {
                 console.log("Salesforce Response: ", resp);
     
                 let results = [];
-                await Promise.all(contentType.map(async (ele) => {
+                await Promise.all(contentTypeNodes.map(async (ele) => {
                     const managedContentType = ele.DeveloperName;
+                    const managedContentNodeTypes = ele.managedContentNodeTypes;
                     const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
                     console.log('cmsURL', cmsURL);            
-                    const result = await org.getUrl(cmsURL); 
+                    let result = await org.getUrl(cmsURL); 
+                    result.managedContentNodeTypes = managedContentNodeTypes;
                     console.log('result', result);  
                     results = [...results, result]; 
                 }));
