@@ -72,7 +72,7 @@ app.get("/", function (req, res) {
     }
 
     const channelId = '0apL00000004COkIAM';
-    const managedContentType = 'Image';
+    const managedContentType = 'ContentBlock';
 
     //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
 
@@ -101,7 +101,7 @@ app.get("/", function (req, res) {
 
                 try {
                     const result = await org.getUrl(cmsURL); 
-                    console.log("Salesforce Result: ", result);
+                    //console.log("Salesforce Result: ", result);
                     run(result, resp);
                     res.send('sent');
                 } catch(error) {
