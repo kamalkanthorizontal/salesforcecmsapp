@@ -73,7 +73,7 @@ app.get("/", async function (req, res) {
 
     const channelId = '0apL00000004COkIAM';
     //const managedContentType = 'ContentBlock';
-    const managedContentType = 'Image';
+    const managedContentType = 'cms_image';
 
     //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
 
@@ -139,12 +139,10 @@ app.post('/', async (req, res, next) => {
     console.log(req.body);
     const { contentTypeNodes, contentType, channelId } = req.body;
 
-    const managedContentType = contentTypeNodes[0].Name;
+    
 
     //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
 
-    const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
-    console.log('cmsURL', cmsURL);
     //console.log(isLocal + '>>>' + herokuApp);
     if (isSetup()) {
         //nforce setup to connect Salesforce
@@ -166,9 +164,18 @@ app.post('/', async (req, res, next) => {
             });
             console.log("Salesforce Response: ", resp);
     
-            const result = await org.getUrl(cmsURL); 
-            console.log("Salesforce Result: ", result);
-            await run(result, resp);
+            const results = [];
+            [...contentTypeNodes].forEach(async(ele) =>{
+                const managedContentType = ele.Name;
+                const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
+                console.log('cmsURL', cmsURL);            
+                const result = await org.getUrl(cmsURL); 
+                results = [...results, result];
+                
+            });
+            console.log("Salesforce Result: ", results); 
+            await run(results, resp);
+
             res.send('sent');
             
         }catch(error){
