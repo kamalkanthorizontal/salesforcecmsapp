@@ -72,7 +72,8 @@ app.get("/", async function (req, res) {
     }
 
     const channelId = '0apL00000004COkIAM';
-    const contentType = [{"Id":"0T1L00000004K6vKAE","MasterLabel":"Content Block","DeveloperName":"ContentBlock"}]
+    const contentType = [{"Id":"0T1L00000004K6vKAE","MasterLabel":"Content Block","DeveloperName":"ContentBlock"}];
+    const contentTypeNodes = [{"Id":"0T1L00000004K6vKAE","MasterLabel":"Content Block","DeveloperName":"ContentBlock","managedContentNodeTypes":[{"nodeLabel":"Name","nodeName":"Name","assetType":"0"},{"nodeLabel":"Headline","nodeName":"Headline","assetType":"15"},{"nodeLabel":"Subheadline","nodeName":"Subheadline","assetType":"15"},{"nodeLabel":"Image","nodeName":"Image","assetType":"8"}]}];
     //const managedContentType = 'ContentBlock';
     //const managedContentType = 'cms_image';
 
@@ -101,19 +102,22 @@ app.get("/", async function (req, res) {
             });
             console.log("Salesforce Response: ", resp);
             let results = [];
-            await Promise.all(contentType.map(async (ele) => {
-                const managedContentType = ele.DeveloperName;
-                const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
-                console.log('cmsURL', cmsURL);            
-                const result = await org.getUrl(cmsURL); 
-                console.log('result', result);  
-                results = [...results, result]; 
-            }));
+                await Promise.all(contentTypeNodes.map(async (ele) => {
+                    const managedContentType = ele.DeveloperName;
+                    const managedContentNodeTypes = ele.managedContentNodeTypes;
+                    const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
+                    console.log('cmsURL', cmsURL);            
+                    let result = await org.getUrl(cmsURL); 
+                    result.managedContentNodeTypes = managedContentNodeTypes;
+                    console.log('result', result);  
+                    results = [...results, result]; 
+                }));
            
             console.log("Salesforce Result: ", results); 
             if(results && results.length>0){
                 await run(results, resp);
             }
+            res.send('sent');
             
         }catch(error){
             res.send(error.message);

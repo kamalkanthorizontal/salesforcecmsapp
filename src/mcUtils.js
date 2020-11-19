@@ -238,6 +238,31 @@ async function createMCAsset(access_token, assetBody) {
 
   module.exports = async function run(cmsContentResults, cmsAuthResults) {
     console.log(cmsContentResults);  
+
+
+    cmsContentResults = cmsContentResults.map(ele => {
+      
+      let nodes = [...ele.managedContentNodeTypes].map(node => node.nodeLabel);
+      const contentNodes = ele.items[0].contentNodes; // nodes 
+      let objectsKeep = {};
+      Object.entries(contentNodes).forEach(([key, value]) => {
+        if(nodes.includes(key)){
+          objectsKeep = {...objectsKeep, [key]: value}
+        }
+      });
+      console.log(objectsKeep);
+
+     /* const re = Object.keys(contentNodes).map(o => nodes.reduce((acc, curr) => {
+        acc[curr] = o[curr];
+        return acc;
+      }, {}));*/
+
+     // console.log('ele.items',re);       
+      //console.log('ele.items',contentNodes);
+      
+      return ele;
+    });
+
     cmsContentResults = cmsContentResults.map(ele => ele.items);
     await cmsContentResults.forEach(async (content) => { 
       let job = await workQueue.add({content: {results: content, cmsAuthResults}});
