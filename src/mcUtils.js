@@ -59,7 +59,8 @@ async function moveTextToMC(name, title, mcAuthResults) {
 }
 
 async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
-    return new Promise(async (resolve, reject) => {
+  console.log(`Uploading Image to MC: ${name}`);  
+  return new Promise(async (resolve, reject) => {
       const imageUrl = `${currentNode.unauthenticatedUrl}`;
       console.log(`Uploading Image to MC: ${name} - ${imageUrl}`);
 
@@ -198,7 +199,7 @@ async function createMCAsset(access_token, assetBody) {
       }
       */
       const { content } = job.data;
-      console.log('content', content)
+      console.log('content', content);
       if(content){
         await moveTextToMC(
           content.contentUrlName,
@@ -208,6 +209,7 @@ async function createMCAsset(access_token, assetBody) {
   
   
         let image = content.contentNodes['Image'];
+        console.log('image', image);
         if(image) {
             await moveImageToMC(
                 image.fileName,
