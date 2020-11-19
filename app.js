@@ -136,6 +136,14 @@ app.get("/", async function (req, res) {
 });
 
 app.post('/', async (req, res, next) => {
+    
+    isLocal = req.hostname.indexOf("localhost") == 0;
+    console.log('isLocal', isLocal);
+    if (req.hostname.indexOf(".herokuapp.com") > 0) {
+        herokuApp = req.hostname.replace(".herokuapp.com", "");
+    }
+    
+    
     console.log(req.body);
     const { contentTypeNodes, contentType, channelId } = req.body;
 
