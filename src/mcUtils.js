@@ -198,17 +198,20 @@ async function createMCAsset(access_token, assetBody) {
         //await paintCar(job.data);
       }
       */
-      const { content } = job.data;
-      console.log('content', content);
+     try{
+      let { content } = job.data;
+      // content = JSON.parse(content);
+      console.log('content---->', content);
+      console.log('content', content.results[0].contentUrlName, content.results[0].title);
       if(content){
         await moveTextToMC(
-          content.contentUrlName,
-          content.title,
+          content.results[0].contentUrlName,
+          content.results[0].title,
           mcAuthResults
           );
   
   
-        let image = content.contentNodes['Image'];
+        let image = content.results[0].contentNodes['Image'];
         console.log('image', image);
         if(image) {
             await moveImageToMC(
@@ -219,6 +222,10 @@ async function createMCAsset(access_token, assetBody) {
             );
         }
       }
+     }catch(error){
+       console.log(error);
+     }
+     
       // call done when finished
       done();
       // A job can return values that will be stored in Redis as JSON
@@ -230,7 +237,7 @@ async function createMCAsset(access_token, assetBody) {
   module.exports = async function run(cmsContentResults, cmsAuthResults) {
     cmsContentResults = cmsContentResults.map(ele => ele.items);
     await cmsContentResults.forEach(async (content) => { 
-      let job = await workQueue.add({content: {...content, cmsAuthResults}});
+      let job = await workQueue.add({content: {results: content, cmsAuthResults}});
       
       console.log('job.id', job.id);
 
