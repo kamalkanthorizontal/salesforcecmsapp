@@ -145,9 +145,9 @@ app.post('/', async (req, res, next) => {
     
     
     console.log(req.body);
-    const { contentTypeNodes, contentType, channelId } = req.body;
-
-    
+    let { contentTypeNodes, contentType, channelId } = req.body;
+    console.log(contentType);
+    contentType = JSON.parse(JSON.stringify(contentType));
 
     //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
 
