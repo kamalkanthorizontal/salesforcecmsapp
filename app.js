@@ -113,7 +113,7 @@ app.get("/", async function (req, res) {
                     results = [...results, result]; 
                 }));
            
-            console.log("Salesforce Result: ", results); 
+           // console.log("Salesforce Result: ", results); 
             if(results && results.length>0){
                 await run(results, resp);
             }
