@@ -63,7 +63,7 @@ app.get("/setup", function (req, res) {
     });
 });
 
-app.get("/", function (req, res) {
+app.get("/", async function (req, res) {
     var oauth;
     isLocal = req.hostname.indexOf("localhost") == 0;
     console.log('isLocal', isLocal);
@@ -72,8 +72,8 @@ app.get("/", function (req, res) {
     }
 
     const channelId = '0apL00000004COkIAM';
-    const managedContentType = 'ContentBlock';
-    //const managedContentType = 'Image';
+    //const managedContentType = 'ContentBlock';
+    const managedContentType = 'Image';
 
     //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
 
@@ -92,7 +92,25 @@ app.get("/", function (req, res) {
             autoRefresh: true
         });
 
-        org.authenticate({
+        try{
+            const resp =  await org.authenticate({
+                username: process.env.SF_USERNAME,
+                password: process.env.SF_PASSWORD,
+                securityToken: process.env.SF_SECURITY_TOKEN
+            });
+            console.log("Salesforce Response: ", resp);
+    
+            const result = await org.getUrl(cmsURL); 
+            console.log("Salesforce Result: ", result);
+            await run(result, resp);
+            res.send('sent');
+
+        }catch(error){
+            res.send(error.message);
+        }
+       
+
+        /*org.authenticate({
             username: process.env.SF_USERNAME,
             password: process.env.SF_PASSWORD,
             securityToken: process.env.SF_SECURITY_TOKEN
@@ -111,7 +129,7 @@ app.get("/", function (req, res) {
             } else {
                 res.send(err.message);
             }
-        });
+        });*/
     } else {
         res.redirect("/setup");
     }
@@ -140,26 +158,22 @@ app.post('/', async (req, res, next) => {
             autoRefresh: true
         });
 
-        org.authenticate({
-            username: process.env.SF_USERNAME,
-            password: process.env.SF_PASSWORD,
-            securityToken: process.env.SF_SECURITY_TOKEN
-        }, async function (err, resp) {
-            if (!err) {
-               console.log("Salesforce Response: ", resp);
-
-                try {
-                    const result = await org.getUrl(cmsURL); 
-                    console.log("Salesforce Result: ", result);
-                    await run(result, resp);
-                    res.send('sent');
-                } catch(error) {
-                    res.send(error.message);
-                }
-            } else {
-                res.send(err.message);
-            }
-        });
+        try{
+            const resp =  await org.authenticate({
+                username: process.env.SF_USERNAME,
+                password: process.env.SF_PASSWORD,
+                securityToken: process.env.SF_SECURITY_TOKEN
+            });
+            console.log("Salesforce Response: ", resp);
+    
+            const result = await org.getUrl(cmsURL); 
+            console.log("Salesforce Result: ", result);
+            await run(result, resp);
+            res.send('sent');
+            
+        }catch(error){
+            res.send(error.message);
+        }
     } else {
         res.redirect("/setup");
     }
