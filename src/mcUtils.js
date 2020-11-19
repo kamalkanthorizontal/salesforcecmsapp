@@ -202,7 +202,7 @@ async function createMCAsset(access_token, assetBody) {
       let { content } = job.data;
       // content = JSON.parse(content);
       console.log('content---->', content);
-      console.log('content', content.results[0].contentUrlName, content.results[0].title);
+      console.log('content', content.results[0].contentNodes,  content.results[0].contentUrlName, content.results[0].title);
       if(content){
         await moveTextToMC(
           content.results[0].contentUrlName,
