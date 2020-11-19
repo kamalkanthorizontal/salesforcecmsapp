@@ -63,7 +63,7 @@ app.get("/setup", function (req, res) {
     });
 });
 
-app.post("/", function (req, res) {
+app.get("/", function (req, res) {
     var oauth;
     isLocal = req.hostname.indexOf("localhost") == 0;
     console.log('isLocal', isLocal);
@@ -71,7 +71,6 @@ app.post("/", function (req, res) {
         herokuApp = req.hostname.replace(".herokuapp.com", "");
     }
 
-    console.log('req', req);
     const channelId = '0apL00000004COkIAM';
     const managedContentType = 'ContentBlock';
     //const managedContentType = 'Image';
@@ -116,6 +115,10 @@ app.post("/", function (req, res) {
     } else {
         res.redirect("/setup");
     }
+});
+
+app.post('/', async (req, res, next) => {
+    console.log(req)
 });
 
 
