@@ -41,15 +41,15 @@ async function getMcAuth() {
 }
 
 
-async function moveTextToMC(name, title, mcAuthResults) {
-    console.log(`Uploading text to MC: ${name} - ${title}`);
+async function moveTextToMC(name, value, mcAuthResults) {
+    console.log(`Uploading text to MC: ${name} - ${value}`);
 
     let textAssetBody = {
-        name: Date.now()+name,
+        name: name,
         assetType: {
-            id: 193,
+            id: 196,
         },
-        content: title,
+        content: value,
         category: {
             id: '311558'
         },
@@ -58,11 +58,9 @@ async function moveTextToMC(name, title, mcAuthResults) {
     await createMCAsset(mcAuthResults.access_token, textAssetBody);
 }
 
-async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
-  console.log(`Uploading Image to MC: ${name}`);  
+async function moveImageToMC(currentNode, mcAuthResults, cmsAuthResults) {
   return new Promise(async (resolve, reject) => {
       const imageUrl = `${currentNode.unauthenticatedUrl}`;
-      console.log(`Uploading Image to MC: ${name} - ${imageUrl}`);
 
       const base64ImageBody = await downloadBase64FromURL(
         imageUrl,
@@ -76,6 +74,7 @@ async function moveImageToMC(name, currentNode, mcAuthResults, cmsAuthResults) {
       console.log(`fileName: ${fileName}`);
       console.log(`imageExtension: ${imageExtension}`);
       console.log(`base64ImageBody: ${base64ImageBody.length}`);
+      console.log(`Uploading Image to MC:  - ${imageUrl}`);
 
       let imageAssetBody = {
         name: fileName,
@@ -206,23 +205,24 @@ async function createMCAsset(access_token, assetBody) {
 
       console.log('content---->', JSON.stringify(content.results));
       if(content){
-        await moveTextToMC(
-          content.results[0].contentUrlName,
-          content.results[0].title,
-          mcAuthResults
-          );
-  
-  
-        let image = content.results[0].contentNodes['Image'];
-        console.log('image', image);
-        if(image) {
-            await moveImageToMC(
-                image.fileName,
-                image,
-                mcAuthResults,
-                content.cmsAuthResults
+       const contentNodes = content.results[0].contentNodes;
+
+       await Promise.all(contentNodes.map(async (ele) => {
+          if(ele.nodeType  === 'Text' || ele.nodeType  === 'MultilineText' || ele.nodeType  === 'RichText'){
+            console.log('ele', ele);
+            await moveTextToMC(
+              ele.name.replace(/\s+/g,""), //name
+              ele.value, //value
+              mcAuthResults
             );
-        }
+          }else if(ele.nodeType  === 'Media'){
+            await moveImageToMC(
+              ele,
+              mcAuthResults,
+              content.cmsAuthResults
+          );
+          }
+       }));
       }
      }catch(error){
        console.log(error);
@@ -238,35 +238,33 @@ async function createMCAsset(access_token, assetBody) {
 
   module.exports = async function run(cmsContentResults, cmsAuthResults) {
     console.log(cmsContentResults);  
-
-
     cmsContentResults = cmsContentResults.map(ele => {
       
-      let nodes = [...ele.managedContentNodeTypes].map(node => node.nodeLabel);
+      let nodes = [...ele.managedContentNodeTypes].map(node => node.nodeLabel).filter(ele=> ele !== 'Name');
+
       const contentNodes = ele.items[0].contentNodes; // nodes 
-      let objectsKeep = {};
+      console.log('contentNodes', ele.managedContentNodeTypes);
+    
+      const defaultNode = ele.managedContentNodeTypes.find(mcNode => mcNode.assetType == 0);
+      const nameKey = defaultNode.nodeLabel;
+      const namePrefix = contentNodes[nameKey].value;
+      console.log('namePrefix', namePrefix);
+
+      let finalArray = [];
       Object.entries(contentNodes).forEach(([key, value]) => {
         if(nodes.includes(key)){
-          objectsKeep = {...objectsKeep, [key]: value}
+          const objItem = value.nodeType === 'Media' ? value : { nodeType: value.nodeType,  name: `${namePrefix}-${key}-${Date.now()}`, value: value.value}
+          finalArray = [...finalArray,   objItem];
         }
       });
-      console.log(objectsKeep);
-      ele.items[0].contentNodes = objectsKeep;
-     /* const re = Object.keys(contentNodes).map(o => nodes.reduce((acc, curr) => {
-        acc[curr] = o[curr];
-        return acc;
-      }, {}));*/
-
-     // console.log('ele.items',re);       
-      //console.log('ele.items',contentNodes);
-      
+      console.log('finalArray', finalArray);
+      ele.items[0].contentNodes = finalArray;
       return ele;
     });
 
     cmsContentResults = cmsContentResults.map(ele => ele.items);
     await cmsContentResults.forEach(async (content) => { 
       let job = await workQueue.add({content: {results: content, cmsAuthResults}});
-      
       console.log('job.id', job.id);
     });
     start();
