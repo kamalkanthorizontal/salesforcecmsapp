@@ -203,7 +203,7 @@ async function createMCAsset(access_token, assetBody) {
       // content = JSON.parse(content);
       console.log('content---->', content);
       console.log('content', content.results[0].contentNodes,  content.results[0].contentUrlName, content.results[0].title);
-      if(content){
+      /*if(content){
         await moveTextToMC(
           content.results[0].contentUrlName,
           content.results[0].title,
@@ -221,7 +221,7 @@ async function createMCAsset(access_token, assetBody) {
                 content.cmsAuthResults
             );
         }
-      }
+      }*/
      }catch(error){
        console.log(error);
      }
