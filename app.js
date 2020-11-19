@@ -72,13 +72,14 @@ app.get("/", async function (req, res) {
     }
 
     const channelId = '0apL00000004COkIAM';
+    const contentType = [{"Id":"0T1L00000004K6vKAE","MasterLabel":"Content Block","DeveloperName":"ContentBlock"}]
     //const managedContentType = 'ContentBlock';
-    const managedContentType = 'cms_image';
+    //const managedContentType = 'cms_image';
 
     //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
 
-    const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
-    console.log('cmsURL', cmsURL);
+   // const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
+    //console.log('cmsURL', cmsURL);
     //console.log(isLocal + '>>>' + herokuApp);
     if (isSetup()) {
         //nforce setup to connect Salesforce
@@ -99,12 +100,21 @@ app.get("/", async function (req, res) {
                 securityToken: process.env.SF_SECURITY_TOKEN
             });
             console.log("Salesforce Response: ", resp);
-    
-            const result = await org.getUrl(cmsURL); 
-            console.log("Salesforce Result: ", result);
-            await run(result, resp);
-            res.send('sent');
-
+            let results = [];
+            await Promise.all(contentType.map(async (ele) => {
+                const managedContentType = ele.DeveloperName;
+                const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
+                console.log('cmsURL', cmsURL);            
+                const result = await org.getUrl(cmsURL); 
+                console.log('result', result);  
+                results = [...results, result]; 
+            }));
+           
+            console.log("Salesforce Result: ", results); 
+            if(results && results.length>0){
+                await run(results, resp);
+            }
+            
         }catch(error){
             res.send(error.message);
         }
@@ -134,6 +144,8 @@ app.get("/", async function (req, res) {
         res.redirect("/setup");
     }
 });
+
+
 
 app.post('/', async (req, res, next) => {
     try{
@@ -171,23 +183,21 @@ app.post('/', async (req, res, next) => {
                     securityToken: process.env.SF_SECURITY_TOKEN
                 });
                 console.log("Salesforce Response: ", resp);
-        
+    
                 let results = [];
-                await contentType.forEach(async(ele) =>{
+                await Promise.all(contentType.map(async (ele) => {
                     const managedContentType = ele.DeveloperName;
                     const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
                     console.log('cmsURL', cmsURL);            
                     const result = await org.getUrl(cmsURL); 
                     console.log('result', result);  
-                    results = [...results, result];
-                    
-                });
+                    results = [...results, result]; 
+                }));
                 console.log("Salesforce Result: ", results); 
                 if(results && results.length>0){
                     await run(results, resp);
                 }
                 
-    
                 res.send('sent');
                 
             }catch(error){
