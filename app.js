@@ -71,7 +71,7 @@ app.get("/", function (req, res) {
         herokuApp = req.hostname.replace(".herokuapp.com", "");
     }
 
-    const channelId = '0apL00000004CO6';
+    const channelId = '0apL00000004COGIA2';
     const managedContentType = 'ContentBlock';
 
     //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;

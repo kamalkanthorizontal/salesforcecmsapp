@@ -187,7 +187,7 @@ async function createMCAsset(access_token, assetBody) {
       // This is an example job that just slowly reports on progress
       // while doing no work. Replace this with your own job logic.
 
-      console.log('job.data', job.data)
+      //console.log('job.data', job.data)
      /* if (job.name === 'content') {
         
         console.log('job.data', job.data)
