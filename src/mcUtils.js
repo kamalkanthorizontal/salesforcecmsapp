@@ -179,7 +179,7 @@ async function createMCAsset(access_token, assetBody) {
 
 
 
-  function start() {
+  async function start() {
     // Connect to the named work queue
     let workQueue = new Queue('work', REDIS_URL);
 
@@ -195,7 +195,7 @@ async function createMCAsset(access_token, assetBody) {
       }
       */
       const { content } = job.data;
-      console.log('content', content)
+      //console.log('content', content)
       if(content){
         await moveTextToMC(
           content.contentUrlName,
