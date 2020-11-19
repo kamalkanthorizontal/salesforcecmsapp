@@ -198,7 +198,7 @@ async function createMCAsset(access_token, assetBody) {
       }
       */
       const { content } = job.data;
-      //console.log('content', content)
+      console.log('content', content)
       if(content){
         await moveTextToMC(
           content.contentUrlName,
