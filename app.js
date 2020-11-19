@@ -119,7 +119,50 @@ app.get("/", function (req, res) {
 
 app.post('/', async (req, res, next) => {
     console.log(req.body);
-    res.send('post');
+    const { contentTypeNodes, contentType, channelId } = req.body;
+
+    const managedContentType = contentTypeNodes[0].Name;
+
+    //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
+
+    const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
+    console.log('cmsURL', cmsURL);
+    //console.log(isLocal + '>>>' + herokuApp);
+    if (isSetup()) {
+        //nforce setup to connect Salesforce
+        let org = nforce.createConnection({
+            clientId: process.env.CONSUMER_KEY,
+            clientSecret: process.env.CONSUMER_SECRET,
+            redirectUri: oauthCallbackUrl(req), //"https://APPNAME.herokuapp.com/oauth/_callback",
+            //apiVersion: "v37.0", // optional, defaults to current salesforce API version
+            mode: "single", // optional, 'single' or 'multi' user mode, multi default
+            environment: "sandbox", // optional, salesforce 'sandbox' or 'production', production default,
+            autoRefresh: true
+        });
+
+        org.authenticate({
+            username: process.env.SF_USERNAME,
+            password: process.env.SF_PASSWORD,
+            securityToken: process.env.SF_SECURITY_TOKEN
+        }, async function (err, resp) {
+            if (!err) {
+               console.log("Salesforce Response: ", resp);
+
+                try {
+                    const result = await org.getUrl(cmsURL); 
+                    console.log("Salesforce Result: ", result);
+                    await run(result, resp);
+                    res.send('sent');
+                } catch(error) {
+                    res.send(error.message);
+                }
+            } else {
+                res.send(err.message);
+            }
+        });
+    } else {
+        res.redirect("/setup");
+    }
 });
 
 
