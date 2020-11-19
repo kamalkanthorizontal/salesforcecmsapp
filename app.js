@@ -178,6 +178,7 @@ app.post('/', async (req, res, next) => {
                 const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
                 console.log('cmsURL', cmsURL);            
                 const result = await org.getUrl(cmsURL); 
+                console.log('result', result);  
                 results = [...results, result];
                 
             });
