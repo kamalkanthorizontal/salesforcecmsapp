@@ -240,24 +240,6 @@ async function createMCAsset(access_token, assetBody) {
       let job = await workQueue.add({content: {results: content, cmsAuthResults}});
       
       console.log('job.id', job.id);
-
-        //console.log({content});
-        /*await moveTextToMC(
-                content.contentUrlName,
-                content.title,
-                mcAuthResults
-        );
-        
-        
-        let image = content.contentNodes['Image'];
-        if(image) {
-            await moveImageToMC(
-                image.fileName,
-                image,
-                mcAuthResults,
-                cmsAuthResults
-            );
-        }*/
     });
     start();
   }
