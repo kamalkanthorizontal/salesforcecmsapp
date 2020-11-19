@@ -72,12 +72,13 @@ app.get("/", function (req, res) {
     }
 
     const channelId = '0apL00000004COkIAM';
-    const managedContentType = 'Image';
+    const managedContentType = 'ContentBlock';
+    //const managedContentType = 'Image';
 
     //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
 
     const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
-
+    console.log('cmsURL', cmsURL);
     //console.log(isLocal + '>>>' + herokuApp);
     if (isSetup()) {
         //nforce setup to connect Salesforce
@@ -97,11 +98,11 @@ app.get("/", function (req, res) {
             securityToken: process.env.SF_SECURITY_TOKEN
         }, async function (err, resp) {
             if (!err) {
-              //  console.log("Salesforce Response: ", resp);
+               console.log("Salesforce Response: ", resp);
 
                 try {
                     const result = await org.getUrl(cmsURL); 
-                    //console.log("Salesforce Result: ", result);
+                    console.log("Salesforce Result: ", result);
                     run(result, resp);
                     res.send('sent');
                 } catch(error) {
