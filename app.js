@@ -161,9 +161,6 @@ app.post('/', async (req, res, next) => {
         
         contentType = JSON.parse(contentType);
         console.log(contentType);
-        //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
-    
-        //console.log(isLocal + '>>>' + herokuApp);
         if (isSetup()) {
             //nforce setup to connect Salesforce
             let org = nforce.createConnection({
@@ -194,6 +191,7 @@ app.post('/', async (req, res, next) => {
                     results = [...results, result]; 
                 }));
                 console.log("Salesforce Result: ", results); 
+                
                 if(results && results.length>0){
                     await run(results, resp);
                 }
