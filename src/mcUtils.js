@@ -180,6 +180,9 @@ async function createMCAsset(access_token, assetBody) {
 
 
   async function start() {
+    let mcAuthResults = await getMcAuth();
+    console.log('Marketing Cloud Access Token: ', mcAuthResults.access_token.length);
+    
     // Connect to the named work queue
     let workQueue = new Queue('work', REDIS_URL);
 
@@ -223,8 +226,6 @@ async function createMCAsset(access_token, assetBody) {
   }
 
   module.exports = async function run(cmsContentResults, cmsAuthResults) {
-    let mcAuthResults = await getMcAuth();
-    console.log('Marketing Cloud Access Token: ', mcAuthResults.access_token.length);
     
     await cmsContentResults.items.forEach(async (content) => { 
       //console.log('content: ', content);
