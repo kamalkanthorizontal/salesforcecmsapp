@@ -47,7 +47,7 @@ async function moveTextToMC(name, title, mcAuthResults) {
     let textAssetBody = {
         name: Date.now()+name,
         assetType: {
-            id: 196,
+            id: 193,
         },
         content: title,
         category: {
