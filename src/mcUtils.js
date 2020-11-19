@@ -188,13 +188,14 @@ async function createMCAsset(access_token, assetBody) {
       // while doing no work. Replace this with your own job logic.
 
       console.log('job.data', job.data)
-      if (job.name === 'content') {
+     /* if (job.name === 'content') {
         
         console.log('job.data', job.data)
         //await paintCar(job.data);
       }
-      
-      const { content } = job.data
+      */
+      const { content } = job.data;
+      console.log('content', content)
       if(content){
         await moveTextToMC(
           content.contentUrlName,
