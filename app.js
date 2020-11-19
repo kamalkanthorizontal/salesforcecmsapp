@@ -142,7 +142,7 @@ app.post('/', async (req, res, next) => {
     if (req.hostname.indexOf(".herokuapp.com") > 0) {
         herokuApp = req.hostname.replace(".herokuapp.com", "");
     }
-
+    
     
     console.log(req.body);
     const { contentTypeNodes, contentType, channelId } = req.body;
@@ -172,8 +172,8 @@ app.post('/', async (req, res, next) => {
             });
             console.log("Salesforce Response: ", resp);
     
-            /*const results = [];
-            [...contentTypeNodes].forEach(async(ele) =>{
+            const results = [];
+            [...contentType].forEach(async(ele) =>{
                 const managedContentType = ele.Name;
                 const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
                 console.log('cmsURL', cmsURL);            
@@ -182,8 +182,11 @@ app.post('/', async (req, res, next) => {
                 
             });
             console.log("Salesforce Result: ", results); 
-            await run(results, resp);
-            */
+            if(results && results.length>0){
+                await run(results, resp);
+            }
+            
+
             res.send('sent');
             
         }catch(error){
