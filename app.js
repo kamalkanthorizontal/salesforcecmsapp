@@ -118,7 +118,8 @@ app.get("/", function (req, res) {
 });
 
 app.post('/', async (req, res, next) => {
-    console.log(req)
+    console.log(req);
+    res.send('post');
 });
 
 
