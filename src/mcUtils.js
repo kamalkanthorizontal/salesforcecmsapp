@@ -251,7 +251,7 @@ async function createMCAsset(access_token, assetBody) {
         }
       });
       console.log(objectsKeep);
-
+      ele.items[0].contentNodes = objectsKeep;
      /* const re = Object.keys(contentNodes).map(o => nodes.reduce((acc, curr) => {
         acc[curr] = o[curr];
         return acc;
