@@ -136,66 +136,71 @@ app.get("/", async function (req, res) {
 });
 
 app.post('/', async (req, res, next) => {
-    
-    isLocal = req.hostname.indexOf("localhost") == 0;
-    console.log('isLocal', isLocal);
-    if (req.hostname.indexOf(".herokuapp.com") > 0) {
-        herokuApp = req.hostname.replace(".herokuapp.com", "");
-    }
-    
-    
-    console.log(req.body);
-    let { contentTypeNodes, contentType, channelId } = req.body;
-    
-    contentType = JSON.parse(contentType);
-    console.log(contentType);
-    //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
-
-    //console.log(isLocal + '>>>' + herokuApp);
-    if (isSetup()) {
-        //nforce setup to connect Salesforce
-        let org = nforce.createConnection({
-            clientId: process.env.CONSUMER_KEY,
-            clientSecret: process.env.CONSUMER_SECRET,
-            redirectUri: oauthCallbackUrl(req), //"https://APPNAME.herokuapp.com/oauth/_callback",
-            //apiVersion: "v37.0", // optional, defaults to current salesforce API version
-            mode: "single", // optional, 'single' or 'multi' user mode, multi default
-            environment: "sandbox", // optional, salesforce 'sandbox' or 'production', production default,
-            autoRefresh: true
-        });
-
-        try{
-            const resp =  await org.authenticate({
-                username: process.env.SF_USERNAME,
-                password: process.env.SF_PASSWORD,
-                securityToken: process.env.SF_SECURITY_TOKEN
-            });
-            console.log("Salesforce Response: ", resp);
-    
-            let results = [];
-            contentType.forEach(async(ele) =>{
-                const managedContentType = ele.DeveloperName;
-                const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
-                console.log('cmsURL', cmsURL);            
-                const result = await org.getUrl(cmsURL); 
-                console.log('result', result);  
-                results = [...results, result];
-                
-            });
-            console.log("Salesforce Result: ", results); 
-            if(results && results.length>0){
-                await run(results, resp);
-            }
-            
-
-            res.send('sent');
-            
-        }catch(error){
-            res.send(error.message);
+    try{
+        isLocal = req.hostname.indexOf("localhost") == 0;
+        console.log('isLocal', isLocal);
+        if (req.hostname.indexOf(".herokuapp.com") > 0) {
+            herokuApp = req.hostname.replace(".herokuapp.com", "");
         }
-    } else {
-        res.redirect("/setup");
+        
+        
+        console.log(req.body);
+        let { contentTypeNodes, contentType, channelId } = req.body;
+        
+        contentType = JSON.parse(contentType);
+        console.log(contentType);
+        //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
+    
+        //console.log(isLocal + '>>>' + herokuApp);
+        if (isSetup()) {
+            //nforce setup to connect Salesforce
+            let org = nforce.createConnection({
+                clientId: process.env.CONSUMER_KEY,
+                clientSecret: process.env.CONSUMER_SECRET,
+                redirectUri: oauthCallbackUrl(req), //"https://APPNAME.herokuapp.com/oauth/_callback",
+                //apiVersion: "v37.0", // optional, defaults to current salesforce API version
+                mode: "single", // optional, 'single' or 'multi' user mode, multi default
+                environment: "sandbox", // optional, salesforce 'sandbox' or 'production', production default,
+                autoRefresh: true
+            });
+    
+            try{
+                const resp =  await org.authenticate({
+                    username: process.env.SF_USERNAME,
+                    password: process.env.SF_PASSWORD,
+                    securityToken: process.env.SF_SECURITY_TOKEN
+                });
+                console.log("Salesforce Response: ", resp);
+        
+                let results = [];
+                contentType.forEach(async(ele) =>{
+                    const managedContentType = ele.DeveloperName;
+                    const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
+                    console.log('cmsURL', cmsURL);            
+                    const result = await org.getUrl(cmsURL); 
+                    console.log('result', result);  
+                    results = [...results, result];
+                    
+                });
+                console.log("Salesforce Result: ", results); 
+                if(results && results.length>0){
+                    await run(results, resp);
+                }
+                
+    
+                res.send('sent');
+                
+            }catch(error){
+                res.send(error.message);
+            }
+        } else {
+            res.redirect("/setup");
+        }
+    }catch(error){
+        res.send(error.message);
     }
+    
+    
 });
 
 
