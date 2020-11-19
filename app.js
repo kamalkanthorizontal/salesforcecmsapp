@@ -72,7 +72,7 @@ app.get("/", function (req, res) {
     }
 
     const channelId = '0apL00000004COkIAM';
-    const managedContentType = 'ContentBlock';
+    const managedContentType = 'Image';
 
     //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
 
