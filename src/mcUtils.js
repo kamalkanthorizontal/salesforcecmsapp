@@ -176,10 +176,7 @@ async function createMCAsset(access_token, assetBody) {
     console.log(`Job completed with result ${result} ${jobId}`);
   });
 
-  workQueue.on('SIGINT', function() {
-    redisClient.quit();
-    console.log('redis client quit');
-  });
+
 
   let maxJobsPerWorker = 50;
 
@@ -241,6 +238,14 @@ async function createMCAsset(access_token, assetBody) {
         console.log('error', error);  
       }
     });
+
+    workQueue.process('SIGINT', () => {
+      console.log('SIGINT');
+    })
+    
+    workQueue.process('SIGTERM', () => {
+      console.log('SIGTERM');
+    })
   }
 
   module.exports = async function run(cmsAuthResults, org,  contentTypeNodes, channelId ) {
