@@ -239,6 +239,7 @@ async function startUploadProcess() {
 
                 //Filter node.nodeName except node with assetTypeId = 0
                 let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName);
+                console.log(`Filtered node.nodeNames for ${items[0].typeLabel} ${nodes}`);
                 let finalArray = [];
 
                 //Filter nodes from the REST response as per the Salesforce CMS Content Type Node mapping
