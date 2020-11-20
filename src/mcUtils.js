@@ -164,7 +164,7 @@ async function createMCAsset(access_token, assetBody) {
                     });
                 } else {
                     //console.log('statusCode: ${res.statusCode}');
-                    console.log(body);
+                    //console.log(body);
                     resolve(res);
                 }
             }
@@ -175,6 +175,8 @@ async function createMCAsset(access_token, assetBody) {
   workQueue.on('global:completed', (jobId, result) => {
     console.log(`Job completed with result ${result} ${jobId}`);
   });
+
+  
 
 
 
@@ -214,11 +216,11 @@ async function createMCAsset(access_token, assetBody) {
               finalArray = [...finalArray,   objItem];
             }
           });
-          console.log('finalArray', finalArray)
+        //  console.log('finalArray', finalArray)
           //upload content to MC
           await Promise.all(finalArray.map(async (ele) => {
             if(ele.nodeType  === 'Text' || ele.nodeType  === 'MultilineText' || ele.nodeType  === 'RichText'){
-              console.log('ele', ele);
+             // console.log('ele', ele);
               await moveTextToMC(
                 ele.name, //name
                 ele.value, //value
@@ -239,13 +241,6 @@ async function createMCAsset(access_token, assetBody) {
       }
     });
 
-    workQueue.process('SIGINT', () => {
-      console.log('SIGINT');
-    })
-    
-    workQueue.process('SIGTERM', () => {
-      console.log('SIGTERM');
-    })
   }
 
   module.exports = async function run(cmsAuthResults, org,  contentTypeNodes, channelId ) {
