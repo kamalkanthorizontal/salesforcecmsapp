@@ -196,7 +196,7 @@ async function createMCAsset(access_token, assetBody) {
           // Get name prefix
           const contentNodes = items[0].contentNodes; // nodes 
           const defaultNode = managedContentNodeTypes.find(mcNode => mcNode.assetType == 0);      
-          const nameKey = defaultNode.nodeName;
+          const nameKey = defaultNode ? defaultNode.nodeName: null;
           const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value.replace(/\s+/g,"") : '';
           
           //filter only selected nodes
