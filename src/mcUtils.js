@@ -187,7 +187,7 @@ async function createMCAsset(access_token, assetBody) {
     workQueue.process(maxJobsPerWorker, async (job) => {
       try{
         let { content } = job.data;
-        console.log('content', content)
+        
         const {result} = content;
 
         if(result){
@@ -202,6 +202,9 @@ async function createMCAsset(access_token, assetBody) {
           //filter only selected nodes
           let nodes = [...managedContentNodeTypes].map(node => node.nodeLabel).filter(ele=> ele !== 'Name');
           let finalArray = [];
+          console.log('managedContentNodeTypes', managedContentNodeTypes);
+          console.log('contentNodes', contentNodes);
+          console.log('nodes', nodes);
           Object.entries(contentNodes).forEach(([key, value]) => {
             if(nodes.includes(key)){
               const objItem = value.nodeType === 'Media' ? value : { nodeType: value.nodeType,  name: `${namePrefix}-${key}-${Date.now()}`, value: value.value}
