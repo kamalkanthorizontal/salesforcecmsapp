@@ -176,6 +176,10 @@ async function createMCAsset(access_token, assetBody) {
     console.log(`Job completed with result ${result} ${jobId}`);
   });
 
+  workQueue.on('SIGINT', function() {
+    redisClient.quit();
+    console.log('redis client quit');
+  });
 
   let maxJobsPerWorker = 50;
 
@@ -197,17 +201,19 @@ async function createMCAsset(access_token, assetBody) {
           const contentNodes = items[0].contentNodes; // nodes 
           const defaultNode = managedContentNodeTypes.find(mcNode => mcNode.assetTypeId == 0);      
           const nameKey = defaultNode ? defaultNode.nodeName: null;
-          const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value.replace(/\s+/g,"") : '';
+          const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value: '';
           
           //filter only selected nodes
           let nodes = [...managedContentNodeTypes].map(node => node.nodeName).filter(ele=> ele !== 'Name');
           let finalArray = [];
-          console.log('managedContentNodeTypes', managedContentNodeTypes);
-          console.log('contentNodes', contentNodes);
-          console.log('nodes', nodes);
+          //console.log('managedContentNodeTypes', managedContentNodeTypes);
+          // console.log('contentNodes', contentNodes);
+          // console.log('nodes', nodes);
           Object.entries(contentNodes).forEach(([key, value]) => {
+           // console.log(value)
             if(nodes.includes(key)){
-              const objItem = value.nodeType === 'Media' ? value : { nodeType: value.nodeType,  name: `${namePrefix}-${key}-${Date.now()}`, value: value.value}
+              const mcNodes = managedContentNodeTypes.find(mcNode => mcNode.nodeName === key);  
+              const objItem = value.nodeType === 'Media' ? value : { nodeType: value.nodeType,  name: `${namePrefix}-${mcNodes ? mcNodes.nodeLabel : ''}-${Date.now()}`, value: value.value}
               finalArray = [...finalArray,   objItem];
             }
           });
@@ -217,7 +223,7 @@ async function createMCAsset(access_token, assetBody) {
             if(ele.nodeType  === 'Text' || ele.nodeType  === 'MultilineText' || ele.nodeType  === 'RichText'){
               console.log('ele', ele);
               await moveTextToMC(
-                ele.name.replace(/\s+/g,""), //name
+                ele.name, //name
                 ele.value, //value
                 mcAuthResults
               );
