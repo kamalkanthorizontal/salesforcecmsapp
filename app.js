@@ -135,7 +135,10 @@ app.get("/", async function (req, res) {
                 securityToken: process.env.SF_SECURITY_TOKEN
             });
             console.log("Salesforce Response: ", resp);
-            let results = [];
+           
+            await run(resp, org, contentTypeNodes, channelId);
+
+            /*let results = [];
                 await Promise.all(contentTypeNodes.map(async (ele) => {
                     const managedContentType = ele.DeveloperName;
                     const managedContentNodeTypes = ele.managedContentNodeTypes;
@@ -150,7 +153,7 @@ app.get("/", async function (req, res) {
            // console.log("Salesforce Result: ", results); 
             if(results && results.length>0){
                 await run(results, resp);
-            }
+            }*/
             res.send('sent');
             
         }catch(error){
@@ -158,26 +161,7 @@ app.get("/", async function (req, res) {
         }
        
 
-        /*org.authenticate({
-            username: process.env.SF_USERNAME,
-            password: process.env.SF_PASSWORD,
-            securityToken: process.env.SF_SECURITY_TOKEN
-        }, async function (err, resp) {
-            if (!err) {
-               console.log("Salesforce Response: ", resp);
-
-                try {
-                    const result = await org.getUrl(cmsURL); 
-                    console.log("Salesforce Result: ", result);
-                    await run(result, resp);
-                    res.send('sent');
-                } catch(error) {
-                    res.send(error.message);
-                }
-            } else {
-                res.send(err.message);
-            }
-        });*/
+       
     } else {
         res.redirect("/setup");
     }
@@ -218,25 +202,10 @@ app.post('/', async (req, res, next) => {
                     securityToken: process.env.SF_SECURITY_TOKEN
                 });
                 console.log("Salesforce Response: ", resp);
-    
-                let results = [];
-                await Promise.all(contentTypeNodes.map(async (ele) => {
-                    const managedContentType = ele.DeveloperName;
-                    const managedContentNodeTypes = ele.managedContentNodeTypes;
-                    const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
-                    console.log('cmsURL', cmsURL);            
-                    let result = await org.getUrl(cmsURL); 
-                    result.managedContentNodeTypes = managedContentNodeTypes;
-                    console.log('result', result);  
-                    results = [...results, result]; 
-                }));
-                console.log("Salesforce Result: ", results); 
+                await run(resp, org, contentTypeNodes, channelId);
+
                 
-                if(results && results.length>0){
-                    await run(results, resp);
-                }
-                
-                res.send('sent');
+                res.send('Upload process started');
                 
             }catch(error){
                 res.send(error.message);
@@ -250,11 +219,6 @@ app.post('/', async (req, res, next) => {
     
     
 });
-
-
-
-
-
 
 
 // Initialize the app.

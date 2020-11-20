@@ -173,96 +173,80 @@ async function createMCAsset(access_token, assetBody) {
   }
 
   workQueue.on('global:completed', (jobId, result) => {
-    console.log(`Job completed with result ${result}`);
+    console.log(`Job completed with result ${result} ${jobId}`);
   });
+
+
   let maxJobsPerWorker = 50;
 
-
-
-  async function start() {
+  async function startUploadProcess() {
     let mcAuthResults = await getMcAuth();
-    console.log('Marketing Cloud Access Token: ', mcAuthResults.access_token.length);
-    
     // Connect to the named work queue
     let workQueue = new Queue('work', REDIS_URL);
 
     workQueue.process(maxJobsPerWorker, async (job) => {
-      // This is an example job that just slowly reports on progress
-      // while doing no work. Replace this with your own job logic.
+      try{
+        let { content } = job.data;
+        console.log('content', content)
+        const {result} = content;
 
-      //console.log('job.data', job.data)
-     /* if (job.name === 'content') {
-        
-        console.log('job.data', job.data)
-        //await paintCar(job.data);
-      }
-      */
-     try{
-      let { content } = job.data;
-      // content = JSON.parse(content);
-      console.log('content---->', content);
-      console.log('content', content.results[0].contentNodes,  content.results[0].contentUrlName, content.results[0].title);
+        if(result){
+          const {managedContentNodeTypes, items} = result;
+          
+          // Get name prefix
+          const contentNodes = items[0].contentNodes; // nodes 
+          const defaultNode = managedContentNodeTypes.find(mcNode => mcNode.assetType == 0);      
+          const nameKey = defaultNode.nodeName;
+          const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value.replace(/\s+/g,"") : '';
+          
+          //filter only selected nodes
+          let nodes = [...managedContentNodeTypes].map(node => node.nodeLabel).filter(ele=> ele !== 'Name');
+          let finalArray = [];
+          Object.entries(contentNodes).forEach(([key, value]) => {
+            if(nodes.includes(key)){
+              const objItem = value.nodeType === 'Media' ? value : { nodeType: value.nodeType,  name: `${namePrefix}-${key}-${Date.now()}`, value: value.value}
+              finalArray = [...finalArray,   objItem];
+            }
+          });
 
-      console.log('content---->', JSON.stringify(content.results));
-      if(content){
-       const contentNodes = content.results[0].contentNodes;
-
-       await Promise.all(contentNodes.map(async (ele) => {
-          if(ele.nodeType  === 'Text' || ele.nodeType  === 'MultilineText' || ele.nodeType  === 'RichText'){
-            console.log('ele', ele);
-            await moveTextToMC(
-              ele.name.replace(/\s+/g,""), //name
-              ele.value, //value
-              mcAuthResults
+          //upload content to MC
+          await Promise.all(finalArray.map(async (ele) => {
+            if(ele.nodeType  === 'Text' || ele.nodeType  === 'MultilineText' || ele.nodeType  === 'RichText'){
+              console.log('ele', ele);
+              await moveTextToMC(
+                ele.name.replace(/\s+/g,""), //name
+                ele.value, //value
+                mcAuthResults
+              );
+            }else if(ele.nodeType  === 'Media'){
+              await moveImageToMC(
+                ele,
+                mcAuthResults,
+                content.cmsAuthResults
             );
-          }else if(ele.nodeType  === 'Media'){
-            await moveImageToMC(
-              ele,
-              mcAuthResults,
-              content.cmsAuthResults
-          );
-          }
-       }));
+            }
+         }));
+        }
+
+      }catch(error){
+        console.log('error', error);  
       }
-     }catch(error){
-       console.log(error);
-     }
-     
-      // call done when finished
-      done();
-      // A job can return values that will be stored in Redis as JSON
-      // This return value is unused in this demo application.
-      return { value: "This will be stored" };
     });
   }
 
-  module.exports = async function run(cmsContentResults, cmsAuthResults) {
-    console.log('cmsContentResults', cmsContentResults);  
-    cmsContentResults = cmsContentResults.map(ele => {
+  module.exports = async function run(cmsAuthResults, org,  contentTypeNodes, channelId ) {
+    await Promise.all(contentTypeNodes.map(async (ele) => {
+      const managedContentType = ele.DeveloperName;
+      const managedContentNodeTypes = ele.managedContentNodeTypes;
+      const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;     
+      let result = await org.getUrl(cmsURL); 
+      result.managedContentNodeTypes = managedContentNodeTypes;
       
-      let nodes = [...ele.managedContentNodeTypes].map(node => node.nodeLabel).filter(ele=> ele !== 'Name');
-      const contentNodes = ele.items[0].contentNodes; // nodes 
-      const defaultNode = ele.managedContentNodeTypes.find(mcNode => mcNode.assetType == 0);      
-      const nameKey = defaultNode.nodeName;
-      const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value.replace(/\s+/g,"") : '';
-      let finalArray = [];
-      Object.entries(contentNodes).forEach(([key, value]) => {
-        if(nodes.includes(key)){
-          const objItem = value.nodeType === 'Media' ? value : { nodeType: value.nodeType,  name: `${namePrefix}-${key}-${Date.now()}`, value: value.value}
-          finalArray = [...finalArray,   objItem];
-        }
-      });
-      console.log('finalArray', finalArray);
-      ele.items[0].contentNodes = finalArray;
-      return ele;
-    });
-
-    cmsContentResults = cmsContentResults.map(ele => ele.items);
-    await cmsContentResults.forEach(async (content) => { 
-      let job = await workQueue.add({content: {results: content, cmsAuthResults}});
+      const job = await workQueue.add({content: {result, cmsAuthResults}});
       console.log('job.id', job.id);
-    });
-    start();
+    }));
+
+    startUploadProcess();
   }
 
   
