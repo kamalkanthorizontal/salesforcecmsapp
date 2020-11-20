@@ -201,7 +201,7 @@ app.post('/', async (req, res, next) => {
                     password: process.env.SF_PASSWORD,
                     securityToken: process.env.SF_SECURITY_TOKEN
                 });
-                console.log("Salesforce Response: ", resp);
+               // console.log("Salesforce Response: ", resp);
                 await run(resp, org, contentTypeNodes, channelId);
 
                 

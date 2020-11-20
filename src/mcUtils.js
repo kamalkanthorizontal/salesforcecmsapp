@@ -22,7 +22,7 @@ const getMcAuthBody = {
 };
 
 async function getMcAuth() {
-    console.log('Auth Body: ', JSON.stringify(getMcAuthBody));
+    // console.log('Auth Body: ', JSON.stringify(getMcAuthBody));
     return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + MS_AUTH_PATH, {
             method: 'POST',
             body: JSON.stringify(getMcAuthBody),
@@ -208,7 +208,7 @@ async function createMCAsset(access_token, assetBody) {
               finalArray = [...finalArray,   objItem];
             }
           });
-
+          console.log('finalArray', finalArray)
           //upload content to MC
           await Promise.all(finalArray.map(async (ele) => {
             if(ele.nodeType  === 'Text' || ele.nodeType  === 'MultilineText' || ele.nodeType  === 'RichText'){
