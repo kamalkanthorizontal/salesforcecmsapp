@@ -66,7 +66,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
         let imageAssetBody = {
             name: fileName,
             assetType: {
-                id: getImageAssetType(imageExtension),
+                id: getImageAssetTypeId(imageExtension),
             },
             fileProperties: {
                 fileName: fileName,
@@ -106,26 +106,86 @@ async function downloadBase64FromURL(url, access_token, callback) {
     });
 }
 
-function getImageAssetType(imageExtension) {
-    let assetTypeResults = '8';
+function getImageAssetTypeId(imageExtension) {
+    let assetTypeId = '8';
 
     switch (imageExtension.toLowerCase()) {
+        case 'ai':
+            assetTypeId = '16';
+            break;
+        case 'psd':
+            assetTypeId = '17';
+            break;
+        case 'pdd':
+            assetTypeId = '18';
+            break;
+        case 'eps':
+            assetTypeId = '19';
+            break;
         case 'gif':
-            assetTypeResults = 20;
+            assetTypeId = '20';
+            break;
+        case 'jpe':
+            assetTypeId = '21';
             break;
         case 'jpeg':
-            assetTypeResults = 22;
+            assetTypeId = '22';
             break;
         case 'jpg':
-            assetTypeResults = 23;
+            assetTypeId = '23';
+            break;
+        case 'jp2':
+            assetTypeId = '24';
+            break;
+        case 'jpx':
+            assetTypeId = '25';
+            break;
+        case 'pict':
+            assetTypeId = '26';
+            break;
+        case 'pct':
+            assetTypeId = '27';
             break;
         case 'png':
-            assetTypeResults = 28;
+            assetTypeId = '28';
+            break;
+        case 'tif':
+            assetTypeId = '29';
+            break;
+        case 'tiff':
+            assetTypeId = '30';
+            break;
+        case 'tga':
+            assetTypeId = '31';
+            break;
+        case 'bmp':
+            assetTypeId = '32';
+            break;
+        case 'wmf':
+            assetTypeId = '33';
+            break;
+        case 'vsd':
+            assetTypeId = '34';
+            break;
+        case 'pnm':
+            assetTypeId = '35';
+            break;
+        case 'pgm':
+            assetTypeId = '36';
+            break;
+        case 'pbm':
+            assetTypeId = '37';
+            break;
+        case 'ppm':
+            assetTypeId = '38';
+            break;
+        case 'svg':
+            assetTypeId = '39';
             break;
         default:
             break;
     }
-    return assetTypeResults;
+    return assetTypeId;
 }
 
 async function createMCAsset(access_token, assetBody) {
@@ -177,8 +237,8 @@ async function startUploadProcess() {
                 const nameKey = defaultNameNode ? defaultNameNode.nodeName : null;
                 const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value : '';
 
-                //Filter nodes except name node
-                let nodes = [...managedContentNodeTypes].map(node => node.nodeName).filter(ele => ele !== 'Name');
+                //Filter node.nodeName except node with assetTypeId = 0
+                let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName);
                 let finalArray = [];
 
                 //Filter nodes from the REST response as per the Salesforce CMS Content Type Node mapping
@@ -186,30 +246,43 @@ async function startUploadProcess() {
                     if (nodes.includes(key)) {
                         const mcNodes = managedContentNodeTypes.find(mcNode => mcNode.nodeName === key);
                         const nameSuffix = mcNodes ? mcNodes.nodeLabel : '';
-                        const objItem = value.nodeType === 'Media' ? value : { nodeType: value.nodeType, name: `${namePrefix}-${nameSuffix}-${Date.now()}`, value: value.value };
+                        const assetTypeId = mcNodes ? mcNodes.assetTypeId : '';
+                        let objItem;
+                        if (value.nodeType === 'Media' || value.nodeType === 'MediaSource') { // MediaSource - cms_image and cms_document
+                            value.assetTypeId = assetTypeId;
+                            objItem = value;
+                        } else {
+                            objItem = { assetTypeId: assetTypeId, nodeType: value.nodeType, name: `${namePrefix}-${nameSuffix}-${Date.now()}`, value: value.value };
+                        }
                         finalArray = [...finalArray, objItem];
                     }
                 });
-
                 console.log(`Filtered no. of nodes for ${items[0].typeLabel} : ${finalArray.length}`);
 
                 //Upload CMS content to Marketing Cloud
                 await Promise.all(finalArray.map(async (ele) => {
-                    if (ele.nodeType === 'Text' || ele.nodeType === 'MultilineText' || ele.nodeType === 'RichText') {
+                    if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
                             ele.name,
                             ele.value,
-                            196,
+                            ele.assetTypeId,
                             '311558',
                             mcAuthResults
                         );
-                    } else if (ele.nodeType === 'Media') {
+                    } else if (ele.assetTypeId === '8') { //image
                         await moveImageToMC(
                             ele,
                             '311558',
                             mcAuthResults,
                             content.cmsAuthResults
                         );
+                    } else if (ele.assetTypeId === '11') { //document
+                        /*await moveDocumentToMC(
+                            ele,
+                            '311558',
+                            mcAuthResults,
+                            content.cmsAuthResults
+                        );*/
                     }
                 }));
             }
