@@ -237,19 +237,14 @@ async function createMCAsset(access_token, assetBody) {
   }
 
   module.exports = async function run(cmsContentResults, cmsAuthResults) {
-    console.log(cmsContentResults);  
+    console.log('cmsContentResults', cmsContentResults);  
     cmsContentResults = cmsContentResults.map(ele => {
       
       let nodes = [...ele.managedContentNodeTypes].map(node => node.nodeLabel).filter(ele=> ele !== 'Name');
-
       const contentNodes = ele.items[0].contentNodes; // nodes 
-      console.log('contentNodes', ele.managedContentNodeTypes);
-    
-      const defaultNode = ele.managedContentNodeTypes.find(mcNode => mcNode.assetType == 0);
-      const nameKey = defaultNode.nodeLabel;
-      const namePrefix = contentNodes[nameKey].value;
-      console.log('namePrefix', namePrefix);
-
+      const defaultNode = ele.managedContentNodeTypes.find(mcNode => mcNode.assetType == 0);      
+      const nameKey = defaultNode.nodeName;
+      const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value.replace(/\s+/g,"") : '';
       let finalArray = [];
       Object.entries(contentNodes).forEach(([key, value]) => {
         if(nodes.includes(key)){

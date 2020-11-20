@@ -73,7 +73,41 @@ app.get("/", async function (req, res) {
 
     const channelId = '0apL00000004COkIAM';
     const contentType = [{"Id":"0T1L00000004K6vKAE","MasterLabel":"Content Block","DeveloperName":"ContentBlock"}];
-    const contentTypeNodes = [{"Id":"0T1L00000004K6vKAE","MasterLabel":"Content Block","DeveloperName":"ContentBlock","managedContentNodeTypes":[{"nodeLabel":"Name","nodeName":"Name","assetType":"0"},{"nodeLabel":"Headline","nodeName":"Headline","assetType":"15"},{"nodeLabel":"Subheadline","nodeName":"Subheadline","assetType":"15"},{"nodeLabel":"Image","nodeName":"Image","assetType":"8"}]}];
+    const contentTypeNodes = [{
+        "Id": "0T1L00000004K6vKAE",
+        "MasterLabel": "Content Block",
+        "DeveloperName": "ContentBlock",
+        "managedContentNodeTypes": [{
+            "nodeLabel": "Name",
+            "nodeName": "Name",
+            "assetType": "0"
+        }, {
+            "nodeLabel": "Headline",
+            "nodeName": "Headline",
+            "assetType": "15"
+        }, {
+            "nodeLabel": "Subheadline",
+            "nodeName": "Subheadline",
+            "assetType": "15"
+        }, {
+            "nodeLabel": "Image",
+            "nodeName": "Image",
+            "assetType": "8"
+        }]
+    }, {
+        "Id": "0T1L00000004K6HKAU",
+        "MasterLabel": "Case Study Test Collection",
+        "DeveloperName": "Case_Study_Test_Collection",
+        "managedContentNodeTypes": [{
+            "nodeLabel": "Case Study Title",
+            "nodeName": "Title",
+            "assetType": "0"
+        }, {
+            "nodeLabel": "Case Study Description",
+            "nodeName": "Case_Study_Description",
+            "assetType": "15"
+        }]
+    }];
     //const managedContentType = 'ContentBlock';
     //const managedContentType = 'cms_image';
 
