@@ -1,17 +1,17 @@
 var express = require("express");
 var bodyParser = require("body-parser");
 var nforce = require("nforce");
+var hbs = require('hbs');
+var dotenv = require("dotenv").config();
 
 const run = require('./src/mcUtils');
 
+var isLocal;
+var herokuApp;
 
 var app = express();
-var isLocal;
-var herokuApp = null;
-
 app.set('view engine', 'hbs');
 app.enable('trust proxy');
-
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
 
@@ -72,7 +72,15 @@ app.get("/", async function (req, res) {
     }
 
     const channelId = '0apL00000004COkIAM';
-    const contentType = [{"Id":"0T1L00000004K6vKAE","MasterLabel":"Content Block","DeveloperName":"ContentBlock"}];
+    const contentType = [{
+        "Id": "0T1L00000004K6vKAE",
+        "MasterLabel": "Content Block",
+        "DeveloperName": "ContentBlock"
+    }, {
+        "Id": "0T1L00000004K6HKAU",
+        "MasterLabel": "Case Study Test Collection",
+        "DeveloperName": "Case_Study_Test_Collection"
+    }];
     const contentTypeNodes = [{
         "Id": "0T1L00000004K6vKAE",
         "MasterLabel": "Content Block",
@@ -80,15 +88,15 @@ app.get("/", async function (req, res) {
         "managedContentNodeTypes": [{
             "nodeLabel": "Name",
             "nodeName": "Name",
-            "assetType": "0"
+            "assetTypeId": "0"
         }, {
             "nodeLabel": "Headline",
             "nodeName": "Headline",
-            "assetType": "15"
+            "assetTypeId": "196"
         }, {
             "nodeLabel": "Subheadline",
             "nodeName": "Subheadline",
-            "assetType": "15"
+            "assetTypeId": "196"
         }, {
             "nodeLabel": "Image",
             "nodeName": "Image",
@@ -105,17 +113,14 @@ app.get("/", async function (req, res) {
         }, {
             "nodeLabel": "Case Study Description",
             "nodeName": "Case_Study_Description",
-            "assetType": "15"
+            "assetType": "196"
         }]
     }];
-    //const managedContentType = 'ContentBlock';
-    //const managedContentType = 'cms_image';
 
     //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
-
-   // const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
+    //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
     //console.log('cmsURL', cmsURL);
-    //console.log(isLocal + '>>>' + herokuApp);
+
     if (isSetup()) {
         //nforce setup to connect Salesforce
         let org = nforce.createConnection({
@@ -128,40 +133,19 @@ app.get("/", async function (req, res) {
             autoRefresh: true
         });
 
-        try{
-            const resp =  await org.authenticate({
+        try {
+            const resp = await org.authenticate({
                 username: process.env.SF_USERNAME,
                 password: process.env.SF_PASSWORD,
                 securityToken: process.env.SF_SECURITY_TOKEN
             });
             console.log("Salesforce Response: ", resp);
-           
-            await run(resp, org, contentTypeNodes, channelId);
 
-            /*let results = [];
-                await Promise.all(contentTypeNodes.map(async (ele) => {
-                    const managedContentType = ele.DeveloperName;
-                    const managedContentNodeTypes = ele.managedContentNodeTypes;
-                    const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
-                    console.log('cmsURL', cmsURL);            
-                    let result = await org.getUrl(cmsURL); 
-                    result.managedContentNodeTypes = managedContentNodeTypes;
-                    console.log('result', result);  
-                    results = [...results, result]; 
-                }));
-           
-           // console.log("Salesforce Result: ", results); 
-            if(results && results.length>0){
-                await run(results, resp);
-            }*/
-            res.send('sent');
-            
-        }catch(error){
+            await run(resp, org, contentTypeNodes, channelId);
+            res.send('CMS Content Type is syncing in the background. Please wait..');
+        } catch (error) {
             res.send(error.message);
         }
-       
-
-       
     } else {
         res.redirect("/setup");
     }
@@ -170,19 +154,17 @@ app.get("/", async function (req, res) {
 
 
 app.post('/', async (req, res, next) => {
-    try{
+    try {
         isLocal = req.hostname.indexOf("localhost") == 0;
-        console.log('isLocal', isLocal);
         if (req.hostname.indexOf(".herokuapp.com") > 0) {
             herokuApp = req.hostname.replace(".herokuapp.com", "");
         }
-        
-        
-        console.log(req.body);
+
         let { contentTypeNodes, contentType, channelId } = req.body;
-        
         contentTypeNodes = JSON.parse(contentTypeNodes);
+
         console.log(contentTypeNodes);
+
         if (isSetup()) {
             //nforce setup to connect Salesforce
             let org = nforce.createConnection({
@@ -194,30 +176,25 @@ app.post('/', async (req, res, next) => {
                 environment: "sandbox", // optional, salesforce 'sandbox' or 'production', production default,
                 autoRefresh: true
             });
-    
-            try{
-                const resp =  await org.authenticate({
+
+            try {
+                const resp = await org.authenticate({
                     username: process.env.SF_USERNAME,
                     password: process.env.SF_PASSWORD,
                     securityToken: process.env.SF_SECURITY_TOKEN
                 });
-               // console.log("Salesforce Response: ", resp);
+                // console.log("Salesforce Response: ", resp);
                 await run(resp, org, contentTypeNodes, channelId);
-
-                
-                res.send('Upload process started');
-                
-            }catch(error){
+                res.send('CMS Content Type is syncing in the background. Please wait..');
+            } catch (error) {
                 res.send(error.message);
             }
         } else {
             res.redirect("/setup");
         }
-    }catch(error){
+    } catch (error) {
         res.send(error.message);
     }
-    
-    
 });
 
 

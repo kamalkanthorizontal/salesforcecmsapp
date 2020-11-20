@@ -1,7 +1,3 @@
-
-var hbs = require('hbs');
-var dotenv = require("dotenv").config();
-
 const fetch = require('node-fetch');
 const https = require('https');
 var request = require('request');
