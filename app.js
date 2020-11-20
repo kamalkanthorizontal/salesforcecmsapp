@@ -17,18 +17,18 @@ app.use(bodyParser.json());
 
 function isNotBlank(val) {
     if (typeof val !== 'undefined' && val) {
-        console.log('>>> ' + val);
+        //console.log('>>> ' + val);
         return true;
     };
     return false;
 }
-
 
 function isSetup() {
     /*if (isLocal) {
         require("dotenv").config();
     }*/
     return (
+        isNotBlank(process.env.API_VERSION) &&
         isNotBlank(process.env.CONSUMER_KEY) &&
         isNotBlank(process.env.CONSUMER_SECRET) &&
         isNotBlank(process.env.MC_CLIENT_ID) &&
@@ -54,7 +54,6 @@ function handleError(res, reason, message, code) {
     });
 }
 
-
 app.get("/setup", function (req, res) {
     res.render("setup", {
         isLocal: isLocal,
@@ -64,9 +63,7 @@ app.get("/setup", function (req, res) {
 });
 
 app.get("/", async function (req, res) {
-    var oauth;
     isLocal = req.hostname.indexOf("localhost") == 0;
-    console.log('isLocal', isLocal);
     if (req.hostname.indexOf(".herokuapp.com") > 0) {
         herokuApp = req.hostname.replace(".herokuapp.com", "");
     }
@@ -139,7 +136,7 @@ app.get("/", async function (req, res) {
                 password: process.env.SF_PASSWORD,
                 securityToken: process.env.SF_SECURITY_TOKEN
             });
-            console.log("Salesforce Response: ", resp);
+            console.log("Salesforce access:", resp.access_token ? 'Successful' : 'Failure');
 
             await run(resp, org, contentTypeNodes, channelId);
             res.send('CMS Content Type is syncing in the background. Please wait..');
@@ -151,8 +148,6 @@ app.get("/", async function (req, res) {
     }
 });
 
-
-
 app.post('/', async (req, res, next) => {
     try {
         isLocal = req.hostname.indexOf("localhost") == 0;
@@ -160,12 +155,11 @@ app.post('/', async (req, res, next) => {
             herokuApp = req.hostname.replace(".herokuapp.com", "");
         }
 
-        let { contentTypeNodes, contentType, channelId } = req.body;
-        contentTypeNodes = JSON.parse(contentTypeNodes);
-
-        console.log(contentTypeNodes);
-
         if (isSetup()) {
+            let { contentTypeNodes, contentType, channelId } = req.body;
+            contentTypeNodes = JSON.parse(contentTypeNodes);
+
+            console.log(contentTypeNodes);
             //nforce setup to connect Salesforce
             let org = nforce.createConnection({
                 clientId: process.env.CONSUMER_KEY,
@@ -183,7 +177,7 @@ app.post('/', async (req, res, next) => {
                     password: process.env.SF_PASSWORD,
                     securityToken: process.env.SF_SECURITY_TOKEN
                 });
-                // console.log("Salesforce Response: ", resp);
+                console.log("Salesforce access:", resp.access_token ? 'Successful' : 'Failure');
                 await run(resp, org, contentTypeNodes, channelId);
                 res.send('CMS Content Type is syncing in the background. Please wait..');
             } catch (error) {
@@ -196,7 +190,6 @@ app.post('/', async (req, res, next) => {
         res.send(error.message);
     }
 });
-
 
 // Initialize the app.
 var server = app.listen(process.env.PORT || 3000, function () {
