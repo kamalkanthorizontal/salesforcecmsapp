@@ -5,10 +5,7 @@
     "logo": "https://cdn.rawgit.com/heroku/node-js-getting-started/main/public/node.svg",
     "image": "heroku/nodejs",
     "env": {
-        "API_VERSION": {
-            "description": "Salesforce REST API Version.",
-            "value": "50.0"
-        },
+        "API_VERSION": "50.0",
         "CONSUMER_KEY": {
             "description": "Get it from Salesforce Connected App's Consumer Key.",
             "required": true,
