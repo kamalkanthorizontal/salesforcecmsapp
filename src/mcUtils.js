@@ -200,7 +200,7 @@ async function createMCAsset(access_token, assetBody) {
           const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value.replace(/\s+/g,"") : '';
           
           //filter only selected nodes
-          let nodes = [...managedContentNodeTypes].map(node => node.nodeLabel).filter(ele=> ele !== 'Name');
+          let nodes = [...managedContentNodeTypes].map(node => node.nodeName).filter(ele=> ele !== 'Name');
           let finalArray = [];
           console.log('managedContentNodeTypes', managedContentNodeTypes);
           console.log('contentNodes', contentNodes);
