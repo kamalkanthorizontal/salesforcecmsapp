@@ -9,7 +9,7 @@ const run = require('./src/mcUtils');
 var isLocal;
 var herokuApp;
 
-var app = express();
+let app = express();
 app.set('view engine', 'hbs');
 app.enable('trust proxy');
 app.use(express.static(__dirname + "/public"));
@@ -114,10 +114,6 @@ app.get("/", async function (req, res) {
         }]
     }];
 
-    //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&page=0&pageSize=3&showAbsoluteUrl=true`;
-    //const cmsURL = `/services/data/v48.0/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
-    //console.log('cmsURL', cmsURL);
-
     if (isSetup()) {
         //nforce setup to connect Salesforce
         let org = nforce.createConnection({
@@ -136,7 +132,7 @@ app.get("/", async function (req, res) {
                 password: process.env.SF_PASSWORD,
                 securityToken: process.env.SF_SECURITY_TOKEN
             });
-            console.log("Salesforce access:", resp.access_token ? 'Successful' : 'Failure');
+            console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
 
             await run(resp, org, contentTypeNodes, channelId);
             res.send('CMS Content Type is syncing in the background. Please wait..');
@@ -159,7 +155,7 @@ app.post('/', async (req, res, next) => {
             let { contentTypeNodes, contentType, channelId } = req.body;
             contentTypeNodes = JSON.parse(contentTypeNodes);
 
-            console.log(contentTypeNodes);
+            console.log('Request body:', contentTypeNodes);
             //nforce setup to connect Salesforce
             let org = nforce.createConnection({
                 clientId: process.env.CONSUMER_KEY,
@@ -177,8 +173,8 @@ app.post('/', async (req, res, next) => {
                     password: process.env.SF_PASSWORD,
                     securityToken: process.env.SF_SECURITY_TOKEN
                 });
-                console.log("Salesforce access:", resp.access_token ? 'Successful' : 'Failure');
-                await run(resp, org, contentTypeNodes, channelId);
+                console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
+                await run(resp, org, contentTypeNodes, channelId, res);
                 res.send('CMS Content Type is syncing in the background. Please wait..');
             } catch (error) {
                 res.send(error.message);

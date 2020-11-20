@@ -31,40 +31,37 @@ async function getMcAuth() {
         });
 }
 
-async function moveTextToMC(name, value, mcAuthResults) {
-    console.log(`Uploading text to MC: ${name} - ${value}`);
+async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults) {
+    console.log(`Uploading txt to MC: ${name} with body length ${value.length}`);
 
     let textAssetBody = {
         name: name,
         assetType: {
-            id: 196,
+            id: assetTypeId,
         },
         content: value,
         category: {
-            id: '311558'
+            id: folderId
         },
     };
-    // Create MC Asset
+    // Create Marketing Cloud Block Asset
     await createMCAsset(mcAuthResults.access_token, textAssetBody);
 }
 
-async function moveImageToMC(currentNode, mcAuthResults, cmsAuthResults) {
+async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults) {
     return new Promise(async (resolve, reject) => {
-        const imageUrl = `${currentNode.unauthenticatedUrl}`;
+        const imageUrl = `${imageNode.unauthenticatedUrl}`;
 
         const base64ImageBody = await downloadBase64FromURL(
             imageUrl,
             cmsAuthResults.access_token
         );
 
-        const fileName = Date.now() + currentNode.fileName.replace(/\s/g, "");
+        const fileName = Date.now() + imageNode.fileName.replace(/\s/g, "");
         let fileNameChunks = fileName.split('.');
         let imageExtension = fileNameChunks[fileNameChunks.length - 1];
 
-        console.log(`fileName: ${fileName}`);
-        console.log(`imageExtension: ${imageExtension}`);
-        console.log(`base64ImageBody: ${base64ImageBody.length}`);
-        console.log(`Uploading Image to MC:  - ${imageUrl}`);
+        console.log(`Uploading img to MC: ${fileName} with base64ImageBody length ${base64ImageBody.length}`);
 
         let imageAssetBody = {
             name: fileName,
@@ -77,10 +74,10 @@ async function moveImageToMC(currentNode, mcAuthResults, cmsAuthResults) {
             },
             file: base64ImageBody,
             category: {
-                id: '311558'
+                id: folderId
             },
         };
-        // Create MC Asset
+        // Create Marketing Cloud Image Asset
         await createMCAsset(mcAuthResults.access_token, imageAssetBody);
         resolve();
     });
@@ -99,7 +96,6 @@ async function downloadBase64FromURL(url, access_token, callback) {
                         imageBody += data;
                     });
                     resp.on('end', () => {
-                        console.log('end');
                         resolve(imageBody);
                     });
                 }
@@ -155,16 +151,17 @@ async function createMCAsset(access_token, assetBody) {
     });
 }
 
-workQueue.on('global:completed', (jobId, result) => {
-    console.log(`Job completed with result ${result} ${jobId}`);
+workQueue.on('global:completed', async (jobId, result) => {
+    let job = await workQueue.getJob(jobId);
+    let state = await job.getState();
+    console.log(`Job Id ${jobId} status : ${state}`);
 });
 
 let maxJobsPerWorker = 50;
 
 async function startUploadProcess() {
     let mcAuthResults = await getMcAuth();
-    // Connect to the named work queue
-    let workQueue = new Queue('work', REDIS_URL);
+    console.log("Marketing Cloud authentication :", mcAuthResults.access_token ? 'Successful' : 'Failure');
 
     workQueue.process(maxJobsPerWorker, async (job) => {
         try {
@@ -176,37 +173,40 @@ async function startUploadProcess() {
 
                 // Get name prefix
                 const contentNodes = items[0].contentNodes; // nodes 
-                const defaultNode = managedContentNodeTypes.find(mcNode => mcNode.assetTypeId == 0);
-                const nameKey = defaultNode ? defaultNode.nodeName : null;
+                const defaultNameNode = managedContentNodeTypes.find(mcNode => mcNode.assetTypeId == 0);
+                const nameKey = defaultNameNode ? defaultNameNode.nodeName : null;
                 const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value : '';
 
-                //filter only selected nodes
+                //Filter nodes except name node
                 let nodes = [...managedContentNodeTypes].map(node => node.nodeName).filter(ele => ele !== 'Name');
                 let finalArray = [];
-                //console.log('managedContentNodeTypes', managedContentNodeTypes);
-                // console.log('contentNodes', contentNodes);
-                // console.log('nodes', nodes);
+
+                //Filter nodes from the REST response as per the Salesforce CMS Content Type Node mapping
                 Object.entries(contentNodes).forEach(([key, value]) => {
-                    // console.log(value)
                     if (nodes.includes(key)) {
                         const mcNodes = managedContentNodeTypes.find(mcNode => mcNode.nodeName === key);
-                        const objItem = value.nodeType === 'Media' ? value : { nodeType: value.nodeType, name: `${namePrefix}-${mcNodes ? mcNodes.nodeLabel : ''}-${Date.now()}`, value: value.value }
+                        const nameSuffix = mcNodes ? mcNodes.nodeLabel : '';
+                        const objItem = value.nodeType === 'Media' ? value : { nodeType: value.nodeType, name: `${namePrefix}-${nameSuffix}-${Date.now()}`, value: value.value };
                         finalArray = [...finalArray, objItem];
                     }
                 });
-                //  console.log('finalArray', finalArray)
-                //upload content to MC
+
+                console.log(`Filtered no. of nodes for ${items[0].typeLabel} : ${finalArray.length}`);
+
+                //Upload CMS content to Marketing Cloud
                 await Promise.all(finalArray.map(async (ele) => {
                     if (ele.nodeType === 'Text' || ele.nodeType === 'MultilineText' || ele.nodeType === 'RichText') {
-                        // console.log('ele', ele);
                         await moveTextToMC(
-                            ele.name, //name
-                            ele.value, //value
+                            ele.name,
+                            ele.value,
+                            196,
+                            '311558',
                             mcAuthResults
                         );
                     } else if (ele.nodeType === 'Media') {
                         await moveImageToMC(
                             ele,
+                            '311558',
                             mcAuthResults,
                             content.cmsAuthResults
                         );
@@ -228,6 +228,7 @@ module.exports = async function run(cmsAuthResults, org, contentTypeNodes, chann
         let result = await org.getUrl(cmsURL);
         result.managedContentNodeTypes = managedContentNodeTypes;
         const job = await workQueue.add({ content: { result, cmsAuthResults } });
+        console.log('Hitting Connect REST URL:', cmsURL);
         console.log('Job Id:', job.id);
     }));
 

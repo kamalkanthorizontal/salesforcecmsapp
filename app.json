@@ -56,5 +56,15 @@
             "value": ""
         }
     },
-    "keywords": ["node", "express", "heroku", "nforce", "salesforce"]
+    "addons": [
+        "heroku-redis"
+    ],
+    "keywords": [
+        "node",
+        "express",
+        "heroku",
+        "nforce",
+        "salesforce",
+        "heroku-redis"
+    ]
 }
