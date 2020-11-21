@@ -155,7 +155,7 @@ app.post('/', async (req, res, next) => {
             let { contentTypeNodes, contentType, channelId } = req.body;
             contentTypeNodes = JSON.parse(contentTypeNodes);
 
-            console.log('Request body:', contentTypeNodes);
+            //console.log('Request body:', contentTypeNodes);
             //nforce setup to connect Salesforce
             let org = nforce.createConnection({
                 clientId: process.env.CONSUMER_KEY,

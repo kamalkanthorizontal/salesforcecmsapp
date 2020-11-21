@@ -2,6 +2,7 @@ const fetch = require('node-fetch');
 const https = require('https');
 var request = require('request');
 let Queue = require('bull');
+const path = require('path');
 
 const MC_ASSETS_API_PATH = '/asset/v1/content/assets';
 const MS_AUTH_PATH = '/v2/token';
@@ -57,28 +58,34 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
             cmsAuthResults.access_token
         );
 
-        const fileName = Date.now() + imageNode.fileName.replace(/\s/g, "");
-        let fileNameChunks = fileName.split('.');
-        let imageExtension = fileNameChunks[fileNameChunks.length - 1];
+        let fileName = Math.random().toString(36).substring(10) + Date.now() + path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g,"");
+        let imageExt = path.parse(imageNode.fileName).ext;
 
-        console.log(`Uploading img to MC: ${fileName} with base64ImageBody length ${base64ImageBody.length}`);
+        console.log(`Uploading img to MC: ${fileName+imageExt} with base64ImageBody length ${base64ImageBody.length}`);
 
         let imageAssetBody = {
-            name: fileName,
+            name: fileName+imageExt,
             assetType: {
-                id: getImageAssetTypeId(imageExtension),
+                id: getImageAssetTypeId(imageExt.replace('.','')),
             },
             fileProperties: {
-                fileName: fileName,
-                extension: imageExtension,
+                fileName: fileName+imageExt,
+                extension: imageExt,
             },
             file: base64ImageBody,
             category: {
                 id: folderId
             },
         };
+
+        //Marketing Cloud Regex for file fullName i.e. Developer name
+        var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i; 
         // Create Marketing Cloud Image Asset
-        await createMCAsset(mcAuthResults.access_token, imageAssetBody);
+        if(mcRegex.test(fileName)) {
+            await createMCAsset(mcAuthResults.access_token, imageAssetBody);
+        } else {
+            console.log('Upload on hold!! Please check the prohibited chars in', fileName);
+        }
         resolve();
     });
 }
@@ -198,12 +205,10 @@ async function createMCAsset(access_token, assetBody) {
         },
             (error, res, body) => {
                 if (error) {
-                    console.error(error);
-                    console.log(assetBody);
-                    reject({ error });
+                    console.log(`Error for:${assetBody.name}`, error);
+                    reject(error);
                 } else {
-                    //console.log('statusCode: ${res.statusCode}');
-                    //console.log(body);
+                    console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${body.validationErrors[0].message} - Error code: ${body.validationErrors[0].errorcode}`);
                     resolve(res);
                 }
             }
@@ -239,7 +244,7 @@ async function startUploadProcess() {
 
                 //Filter node.nodeName except node with assetTypeId = 0
                 let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName);
-                console.log(`Filtered node.nodeNames for ${items[0].typeLabel} ${nodes}`);
+                console.log(`Filtered node.nodeNames for ${items[0].typeLabel}`, nodes);
                 let finalArray = [];
 
                 //Filter nodes from the REST response as per the Salesforce CMS Content Type Node mapping
