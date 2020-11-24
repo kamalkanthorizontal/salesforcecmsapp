@@ -7,6 +7,8 @@ const path = require('path');
 const MC_ASSETS_API_PATH = '/asset/v1/content/assets';
 const MS_AUTH_PATH = '/v2/token';
 
+const MC_CONTENT_CATEGORIES_API_PATH = '/asset/v1/content/categories';
+
 let REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
 let workQueue = new Queue('work', REDIS_URL);
@@ -16,6 +18,21 @@ const getMcAuthBody = {
     client_id: process.env.MC_CLIENT_ID,
     client_secret: process.env.MC_CLIENT_SECRET,
 };
+
+async function getMcContentCategories() {
+    return await fetch(process.env.MC_REST_BASE_URI + MC_CONTENT_CATEGORIES_API_PATH, {
+        method: 'POST',
+        body: JSON.stringify(getMcAuthBody),
+        headers: {
+            'Content-Type': 'application/json'
+        },
+    })
+        .then(res => res.json())
+        .catch((err) => {
+            console.log(err);
+            reject(err);
+        });
+}
 
 async function getMcAuth() {
     return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + MS_AUTH_PATH, {

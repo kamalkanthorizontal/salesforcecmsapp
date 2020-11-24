@@ -64,6 +64,11 @@
             "description": "Get it from Marketing Cloud Installed Package's Rest Base URI.",
             "required": true,
             "value": ""
+        },
+        "MC_FOLDER_NAME": {
+            "description": "Marketing Cloud Content Builder Folder name where all the assets will be moved.",
+            "required": true,
+            "value": "CMS SFMC Sync Folder"
         }
     },
     "keywords": [

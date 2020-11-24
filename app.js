@@ -34,12 +34,13 @@ function isSetup() {
         isNotBlank(process.env.MC_CLIENT_SECRET) &&
         isNotBlank(process.env.MC_AUTHENTICATION_BASE_URI) &&
         isNotBlank(process.env.MC_REST_BASE_URI) &&
+        isNotBlank(process.env.MC_FOLDER_NAME) &&
         isNotBlank(process.env.SF_USERNAME) &&
         isNotBlank(process.env.SF_PASSWORD) &&
         isNotBlank(process.env.SF_SECURITY_TOKEN) &&
         isNotBlank(process.env.SF_API_VERSION) &&
         isNotBlank(process.env.SF_CMS_CONNECTION_ID) &&
-        isNotBlank(process.env.SF_CMS_URL) &&
+        isNotBlank(process.env.SF_CMS_URL)
     );
 }
 
@@ -162,6 +163,7 @@ app.post('/', async (req, res, next) => {
                 clientId: process.env.CONSUMER_KEY,
                 clientSecret: process.env.CONSUMER_SECRET,
                 redirectUri: oauthCallbackUrl(req), 
+                apiVersion: process.env.SF_API_VERSION,
                 mode: "single", 
                 environment: "sandbox", 
                 autoRefresh: true
@@ -187,8 +189,47 @@ app.post('/', async (req, res, next) => {
     }
 });
 
+
+async function updateCallbackUrl(){
+    console.log('req.hostname', app)
+    try{
+        let org = nforce.createConnection({
+            clientId: process.env.CONSUMER_KEY,
+            clientSecret: process.env.CONSUMER_SECRET,
+            redirectUri: process.env.SF_CMS_URL, 
+            mode: "single", 
+            environment: "sandbox", 
+            apiVersion: process.env.SF_API_VERSION,
+            autoRefresh: true
+        });
+    
+        const oauth = await org.authenticate({
+            username: process.env.SF_USERNAME,
+            password: process.env.SF_PASSWORD,
+            securityToken: process.env.SF_SECURITY_TOKEN
+        });
+    
+        const query = `SELECT Id, Heroku_Endpoint__c FROM CMS_Connection__c WHERE Id = '${process.env.SF_CMS_CONNECTION_ID}' LIMIT 1`;
+        let resQuery = await org.query({ query });
+        console.log('resQuery', resQuery);
+        if(resQuery){
+            let sobject = resQuery.records[0];
+            sobject.set('Heroku_Endpoint__c', 'localhost1'); 
+            sobject.set('Connection_Status__c', 'Active'); 
+        
+            let resUpdate = await org.update({ sobject, oauth  });
+            
+            console.log('resUpdate', resUpdate);
+        }
+       
+    }catch(error){
+        console.log(error);
+    }
+}
+
 // Initialize the app.
-var server = app.listen(process.env.PORT || 3000, function () {
+var server = app.listen(process.env.PORT || 3000, async function () {
     var port = server.address().port;
-    console.log(`App now running on port: ${port}`);
+    console.log(`App now running on port: ${port}`, server.address().address);
+    updateCallbackUrl();
 });
