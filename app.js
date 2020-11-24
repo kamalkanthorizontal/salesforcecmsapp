@@ -233,10 +233,10 @@ async function updateCallbackUrl(){
 // Initialize the app.
 var server = app.listen(process.env.PORT || 3000, async function () {
     //var host = server.address().address
-    var hostname = os.hostname();
+    var hostname =os.networkInterfaces();
     
 
 
     console.log("Example app listening at->>> ", hostname)
-    updateCallbackUrl();
+    //updateCallbackUrl();
 });
