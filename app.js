@@ -3,7 +3,7 @@ var bodyParser = require("body-parser");
 var nforce = require("nforce");
 var hbs = require('hbs');
 var dotenv = require("dotenv").config();
-var os = require("os");
+var child_process = require("child_process");
 
 const run = require('./src/mcUtils');
 
@@ -43,7 +43,7 @@ function isSetup() {
         isNotBlank(process.env.SF_CMS_CONNECTION_ID) &&
         isNotBlank(process.env.SF_CMS_URL)
     );
-} 
+}
 
 function oauthCallbackUrl(req) {
     return req.protocol + "://" + req.get("host");
@@ -123,8 +123,8 @@ app.get("/", async function (req, res) {
         let org = nforce.createConnection({
             clientId: process.env.CONSUMER_KEY,
             clientSecret: process.env.CONSUMER_SECRET,
-            redirectUri: oauthCallbackUrl(req), 
-            mode: "single", 
+            redirectUri: oauthCallbackUrl(req),
+            mode: "single",
             environment: "sandbox",
             autoRefresh: true
         });
@@ -163,10 +163,10 @@ app.post('/', async (req, res, next) => {
             let org = nforce.createConnection({
                 clientId: process.env.CONSUMER_KEY,
                 clientSecret: process.env.CONSUMER_SECRET,
-                redirectUri: oauthCallbackUrl(req), 
+                redirectUri: oauthCallbackUrl(req),
                 apiVersion: process.env.SF_API_VERSION,
-                mode: "single", 
-                environment: "sandbox", 
+                mode: "single",
+                environment: "sandbox",
                 autoRefresh: true
             });
 
@@ -191,41 +191,41 @@ app.post('/', async (req, res, next) => {
 });
 
 
-async function updateCallbackUrl(){
+async function updateCallbackUrl() {
     //console.log('req.hostname', app)
-    try{
+    try {
         let org = nforce.createConnection({
             clientId: process.env.CONSUMER_KEY,
             clientSecret: process.env.CONSUMER_SECRET,
-            redirectUri: process.env.SF_CMS_URL, 
-            mode: "single", 
-            environment: "sandbox", 
+            redirectUri: process.env.SF_CMS_URL,
+            mode: "single",
+            environment: "sandbox",
             apiVersion: process.env.SF_API_VERSION,
             autoRefresh: true
         });
-    
+
         const oauth = await org.authenticate({
             username: process.env.SF_USERNAME,
             password: process.env.SF_PASSWORD,
             securityToken: process.env.SF_SECURITY_TOKEN
         });
-    
+
         const query = `SELECT Id, Heroku_Endpoint__c FROM CMS_Connection__c WHERE Id = '${process.env.SF_CMS_CONNECTION_ID}' LIMIT 1`;
-        
+
         console.log('resQuery', query);
         let resQuery = await org.query({ query });
         console.log('resQuery', resQuery);
-        if(resQuery){
+        if (resQuery) {
             let sobject = resQuery.records[0];
-            sobject.set('Heroku_Endpoint__c', 'localhost1'); 
-            sobject.set('Connection_Status__c', 'Active'); 
-        
-            let resUpdate = await org.update({ sobject, oauth  });
-            
+            sobject.set('Heroku_Endpoint__c', 'localhost1');
+            sobject.set('Connection_Status__c', 'Active');
+
+            let resUpdate = await org.update({ sobject, oauth });
+
             console.log('resUpdate', resUpdate);
         }
-       
-    }catch(error){
+
+    } catch (error) {
         console.log(error);
     }
 }
@@ -235,8 +235,13 @@ async function updateCallbackUrl(){
 // Initialize the app.
 var server = app.listen(process.env.PORT || 3000, async function () {
     //var host = server.address().address
-   // var hostname =os.networkInterfaces();
-    
+    // var hostname =os.networkInterfaces();
+    var child_process = require("child_process");
+    child_process.exec("hostname -f", function (err, stdout, stderr) {
+        var hostname = stdout.trim();
+
+        console.log('http:', stdout);
+    });
 
 
     console.log("Example app listening at->>> ", server.address())
