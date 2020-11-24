@@ -56,9 +56,7 @@
             "value": ""
         }
     },
-    "addons": [
-        "heroku-redis"
-    ],
+    
     "keywords": [
         "node",
         "express",

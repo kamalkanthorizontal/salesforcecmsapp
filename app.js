@@ -119,10 +119,9 @@ app.get("/", async function (req, res) {
         let org = nforce.createConnection({
             clientId: process.env.CONSUMER_KEY,
             clientSecret: process.env.CONSUMER_SECRET,
-            redirectUri: oauthCallbackUrl(req), //"https://APPNAME.herokuapp.com/oauth/_callback",
-            //apiVersion: "v37.0", // optional, defaults to current salesforce API version
-            mode: "single", // optional, 'single' or 'multi' user mode, multi default
-            environment: "sandbox", // optional, salesforce 'sandbox' or 'production', production default,
+            redirectUri: oauthCallbackUrl(req), 
+            mode: "single", 
+            environment: "sandbox",
             autoRefresh: true
         });
 
@@ -160,10 +159,9 @@ app.post('/', async (req, res, next) => {
             let org = nforce.createConnection({
                 clientId: process.env.CONSUMER_KEY,
                 clientSecret: process.env.CONSUMER_SECRET,
-                redirectUri: oauthCallbackUrl(req), //"https://APPNAME.herokuapp.com/oauth/_callback",
-                //apiVersion: "v37.0", // optional, defaults to current salesforce API version
-                mode: "single", // optional, 'single' or 'multi' user mode, multi default
-                environment: "sandbox", // optional, salesforce 'sandbox' or 'production', production default,
+                redirectUri: oauthCallbackUrl(req), 
+                mode: "single", 
+                environment: "sandbox", 
                 autoRefresh: true
             });
 

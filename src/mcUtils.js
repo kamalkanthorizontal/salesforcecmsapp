@@ -58,9 +58,10 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
             cmsAuthResults.access_token
         );
 
-        let fileName = Math.random().toString(36).substring(10) + Date.now() + path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g,"");
-        let imageExt = path.parse(imageNode.fileName).ext;
+        const imageExt = path.parse(imageNode.fileName).ext;
 
+        const fileName =`${imageExt}${Date.now()}${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g,"")}`;
+        
         console.log(`Uploading img to MC: ${fileName+imageExt} with base64ImageBody length ${base64ImageBody.length}`);
 
         let imageAssetBody = {
@@ -306,7 +307,7 @@ module.exports = async function run(cmsAuthResults, org, contentTypeNodes, chann
         const cmsURL = `/services/data/v${process.env.API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
         let result = await org.getUrl(cmsURL);
         result.managedContentNodeTypes = managedContentNodeTypes;
-        const job = await workQueue.add({ content: { result, cmsAuthResults } });
+        const job = await workQueue.add(`channelId- ${channelId}`, { content: { result, cmsAuthResults } });
         console.log('Hitting Connect REST URL:', cmsURL);
         console.log('Job Id:', job.id);
     }));
