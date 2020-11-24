@@ -29,6 +29,7 @@ function isSetup() {
         require("dotenv").config();
     }*/
     return (
+        isNotBlank(process.env.process.env.APP_NAME) &&
         isNotBlank(process.env.CONSUMER_KEY) &&
         isNotBlank(process.env.CONSUMER_SECRET) &&
         isNotBlank(process.env.MC_CLIENT_ID) &&
