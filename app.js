@@ -192,7 +192,7 @@ app.post('/', async (req, res, next) => {
 });
 
 
-async function updateCallbackUrl() {
+async function updateCallbackUrl(appName) {
     //console.log('req.hostname', app)
     try {
         let org = nforce.createConnection({
@@ -218,7 +218,7 @@ async function updateCallbackUrl() {
         console.log('resQuery', resQuery);
         if (resQuery) {
             let sobject = resQuery.records[0];
-            sobject.set('Heroku_Endpoint__c', 'localhost1');
+            sobject.set('Heroku_Endpoint__c', appName);
             sobject.set('Connection_Status__c', 'Active');
 
             let resUpdate = await org.update({ sobject, oauth });
@@ -235,9 +235,9 @@ async function updateCallbackUrl() {
 
 // Initialize the app.
 var server = app.listen(process.env.PORT || 3000, async function () {
-    const appName = `${require(__dirname + '/package.json').name}.com`
+    const appName = `https://${require(__dirname + '/package.json').name}.herokuapp.com`
 
 
     console.log("Example app listening at->>> ", appName)
-    //updateCallbackUrl();
+    updateCallbackUrl(appName);
 });
