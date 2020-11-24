@@ -304,7 +304,7 @@ module.exports = async function run(cmsAuthResults, org, contentTypeNodes, chann
     await Promise.all(contentTypeNodes.map(async (ele) => {
         const managedContentType = ele.DeveloperName;
         const managedContentNodeTypes = ele.managedContentNodeTypes;
-        const cmsURL = `/services/data/v${process.env.API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
+        const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
         let result = await org.getUrl(cmsURL);
         result.managedContentNodeTypes = managedContentNodeTypes;
         const job = await workQueue.add(`channelId- ${channelId}`, { content: { result, cmsAuthResults } });

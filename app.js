@@ -28,7 +28,6 @@ function isSetup() {
         require("dotenv").config();
     }*/
     return (
-        isNotBlank(process.env.API_VERSION) &&
         isNotBlank(process.env.CONSUMER_KEY) &&
         isNotBlank(process.env.CONSUMER_SECRET) &&
         isNotBlank(process.env.MC_CLIENT_ID) &&
@@ -37,7 +36,10 @@ function isSetup() {
         isNotBlank(process.env.MC_REST_BASE_URI) &&
         isNotBlank(process.env.SF_USERNAME) &&
         isNotBlank(process.env.SF_PASSWORD) &&
-        isNotBlank(process.env.SF_SECURITY_TOKEN)
+        isNotBlank(process.env.SF_SECURITY_TOKEN) &&
+        isNotBlank(process.env.SF_API_VERSION) &&
+        isNotBlank(process.env.SF_CMS_CONNECTION_ID) &&
+        isNotBlank(process.env.SF_CMS_URL) &&
     );
 }
 
