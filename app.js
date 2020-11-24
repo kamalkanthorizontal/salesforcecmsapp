@@ -16,6 +16,7 @@ app.enable('trust proxy');
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
 
+
 function isNotBlank(val) {
     if (typeof val !== 'undefined' && val) {
         //console.log('>>> ' + val);
@@ -191,7 +192,7 @@ app.post('/', async (req, res, next) => {
 });
 
 
-async function updateCallbackUrl(){
+async function updateCallbackUrl(appName){
     //console.log('req.hostname', app)
     try{
         let org = nforce.createConnection({
@@ -217,7 +218,7 @@ async function updateCallbackUrl(){
         console.log('resQuery', resQuery);
         if(resQuery){
             let sobject = resQuery.records[0];
-            sobject.set('Heroku_Endpoint__c', 'localhost1'); 
+            sobject.set('Heroku_Endpoint__c', appName); 
             sobject.set('Connection_Status__c', 'Active'); 
         
             let resUpdate = await org.update({ sobject, oauth  });
@@ -237,8 +238,8 @@ var server = app.listen(process.env.PORT || 3000, async function () {
     //var host = server.address().address
    // var hostname =os.networkInterfaces();
     
-
-
-    console.log("Example app listening at->>> ", server.address())
-    //updateCallbackUrl();
+   
+    const appName = `${require(__dirname + '/package.json').name}.com`
+    console.log("Example app listening at->>> ", appName);
+    updateCallbackUrl(appName);
 });
