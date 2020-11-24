@@ -235,16 +235,10 @@ var server = app.listen(process.env.PORT || 3000, async function () {
 
     console.log("Example app listening at->>> ", appName)
     var child_process = require("child_process");
-    child_process.exec("heroku apps -j", function (err, stdout, stderr) {
+    child_process.exec("hostname -f", function (err, stdout, stderr) {
         var hostname = stdout.trim();
 
         console.log('stdout:', hostname);
-    });
-
-    child_process.exec("heroku apps:info -j", function (err, stdout, stderr) {
-        var hostname = stdout.trim();
-
-        console.log('hostname:', hostname);
     });
     //updateCallbackUrl(appName);
 });
