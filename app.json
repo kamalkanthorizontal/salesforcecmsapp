@@ -5,10 +5,10 @@
     "logo": "https://cdn.rawgit.com/heroku/node-js-getting-started/main/public/node.svg",
     "image": "heroku/nodejs",
     "env": {
-        "HEROKU_APP_NAME": {
-            "description": "Marketing Cloud Content Builder Folder name where all the assets will be moved.",
+        "APP_NAME": {
+            "description": "Please copy the above heroku app name here.",
             "required": true,
-            "value": "CMS SFMC Sync Folder"
+            "value": ""
         },
         "CONSUMER_KEY": {
             "description": "Get it from Salesforce Connected App's Consumer Key.",

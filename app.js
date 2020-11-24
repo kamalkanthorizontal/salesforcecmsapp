@@ -231,8 +231,7 @@ async function updateCallbackUrl(appName) {
 
 // Initialize the app.
 var server = app.listen(process.env.PORT || 3000, async function () {
-    const appName = `https://${require(__dirname + '/package.json').name}.herokuapp.com`
-    
-    console.log("Example app listening at->>> ", process.env.HEROKU_APP_NAME);
+    const appName = `https://${APP_NAME}.herokuapp.com`;
+    console.log("appName >>> ", appName);
     updateCallbackUrl(appName);
 });
