@@ -1,5 +1,5 @@
 {
-  "name": "cms-sfmc-connector",
+  "name": "cms-sfmc-sync",
   "version": "0.0.1",
   "description": "The quickest and easiest way to move CMS content to Marketing Cloud",
   "engines": {
@@ -27,13 +27,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/vinaybothra/salesforcecms"
+    "url": "https://github.com/kamalkanthorizontal/salesforcecmsapp/blob/master"
   },
   "keywords": [
     "node",
     "heroku",
     "express",
     "nforce",
-    "salesforce"
+    "salesforce",
+    "heroku-redis:hobby-dev"
   ]
 }

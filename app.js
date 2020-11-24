@@ -4,7 +4,6 @@ var nforce = require("nforce");
 var hbs = require('hbs');
 var dotenv = require("dotenv").config();
 
-
 const run = require('./src/mcUtils');
 
 var isLocal;
@@ -125,6 +124,7 @@ app.get("/", async function (req, res) {
             clientId: process.env.CONSUMER_KEY,
             clientSecret: process.env.CONSUMER_SECRET,
             redirectUri: oauthCallbackUrl(req),
+            apiVersion: process.env.SF_API_VERSION,
             mode: "single",
             environment: "sandbox",
             autoRefresh: true
@@ -193,15 +193,14 @@ app.post('/', async (req, res, next) => {
 
 
 async function updateCallbackUrl(appName) {
-    //console.log('req.hostname', app)
     try {
         let org = nforce.createConnection({
             clientId: process.env.CONSUMER_KEY,
             clientSecret: process.env.CONSUMER_SECRET,
             redirectUri: process.env.SF_CMS_URL,
+            apiVersion: process.env.SF_API_VERSION,
             mode: "single",
             environment: "sandbox",
-            apiVersion: process.env.SF_API_VERSION,
             autoRefresh: true
         });
 
@@ -212,8 +211,7 @@ async function updateCallbackUrl(appName) {
         });
 
         const query = `SELECT Id, Heroku_Endpoint__c FROM CMS_Connection__c WHERE Id = '${process.env.SF_CMS_CONNECTION_ID}' LIMIT 1`;
-
-        console.log('resQuery', query);
+        //console.log('resQuery', query);
         let resQuery = await org.query({ query });
         console.log('resQuery', resQuery);
         if (resQuery) {
@@ -231,13 +229,22 @@ async function updateCallbackUrl(appName) {
     }
 }
 
-
-
 // Initialize the app.
 var server = app.listen(process.env.PORT || 3000, async function () {
     const appName = `https://${require(__dirname + '/package.json').name}.herokuapp.com`
 
-
     console.log("Example app listening at->>> ", appName)
-    updateCallbackUrl(appName);
+    var child_process = require("child_process");
+    child_process.exec("heroku apps -j", function (err, stdout, stderr) {
+        var hostname = stdout.trim();
+
+        console.log('stdout:', hostname);
+    });
+
+    child_process.exec("heroku apps:info -j", function (err, stdout, stderr) {
+        var hostname = stdout.trim();
+
+        console.log('hostname:', hostname);
+    });
+    //updateCallbackUrl(appName);
 });
