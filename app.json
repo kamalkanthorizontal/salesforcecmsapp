@@ -72,6 +72,6 @@
         "heroku",
         "nforce",
         "salesforce",
-        "heroku-redis"
+        "heroku-redis:hobby-dev"
     ]
 }
