@@ -32,17 +32,17 @@
         },
         "SF_API_VERSION": {
             "description": "Salesforce REST API Version.",
-            "required": false,
+            "required": true,
             "value": "50.0"
         },
         "SF_CMS_CONNECTION_ID": {
             "description": "Salesforce CMS Connection Id.",
-            "required": false,
+            "required": true,
             "value": ""
         },
         "SF_CMS_URL": {
             "description": "Salesforce CMS Org URL.",
-            "required": false,
+            "required": true,
             "value": ""
         },
         "MC_CLIENT_ID": {
