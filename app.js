@@ -3,6 +3,7 @@ var bodyParser = require("body-parser");
 var nforce = require("nforce");
 var hbs = require('hbs');
 var dotenv = require("dotenv").config();
+var os = require("os");
 
 const run = require('./src/mcUtils');
 
@@ -231,7 +232,11 @@ async function updateCallbackUrl(){
 
 // Initialize the app.
 var server = app.listen(process.env.PORT || 3000, async function () {
-    var port = server.address().port;
-    console.log(`App now running on port: ${port}`, server.address().address);
+    //var host = server.address().address
+    var hostname = os.hostname();
+    
+
+
+    console.log("Example app listening at->>> ", hostname)
     updateCallbackUrl();
 });
