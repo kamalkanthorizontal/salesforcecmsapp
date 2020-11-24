@@ -66,9 +66,6 @@
             "value": ""
         }
     },
-    "addons": [
-        "heroku-redis:hobby-dev"
-    ],
     "keywords": [
         "node",
         "express",
