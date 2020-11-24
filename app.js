@@ -191,7 +191,7 @@ app.post('/', async (req, res, next) => {
 
 
 async function updateCallbackUrl(){
-    console.log('req.hostname', app)
+    //console.log('req.hostname', app)
     try{
         let org = nforce.createConnection({
             clientId: process.env.CONSUMER_KEY,
@@ -210,6 +210,8 @@ async function updateCallbackUrl(){
         });
     
         const query = `SELECT Id, Heroku_Endpoint__c FROM CMS_Connection__c WHERE Id = '${process.env.SF_CMS_CONNECTION_ID}' LIMIT 1`;
+        
+        console.log('resQuery', query);
         let resQuery = await org.query({ query });
         console.log('resQuery', resQuery);
         if(resQuery){
