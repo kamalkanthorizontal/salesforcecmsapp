@@ -42,7 +42,7 @@ function isSetup() {
         isNotBlank(process.env.SF_CMS_CONNECTION_ID) &&
         isNotBlank(process.env.SF_CMS_URL)
     );
-}
+} 
 
 function oauthCallbackUrl(req) {
     return req.protocol + "://" + req.get("host");
