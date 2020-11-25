@@ -213,8 +213,9 @@ async function updateCallbackUrl(appName = '', folderId = '') {
             securityToken: process.env.SF_SECURITY_TOKEN
         });
 
-        const query = `SELECT Id, Heroku_Endpoint__c FROM CMS_Connection__c WHERE Id = '${process.env.SF_CMS_CONNECTION_ID}' LIMIT 1`;
+        const query = `SELECT Id, Heroku_Endpoint__c, SFMC_Folder_Id__c, Connection_Status__c FROM CMS_Connection__c WHERE Id = '${process.env.SF_CMS_CONNECTION_ID}' LIMIT 1`;
         let resQuery = await org.query({ query });
+        console.log('resQuery', resQuery);
         if (resQuery && resQuery.records && resQuery.records.length) {
             let sobject = resQuery.records[0];
             sobject.set('Heroku_Endpoint__c', appName);
