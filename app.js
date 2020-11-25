@@ -4,7 +4,7 @@ var nforce = require("nforce");
 var hbs = require('hbs');
 var dotenv = require("dotenv").config();
 
-const run = require('./src/mcUtils');
+const {run, getMcFolders, createMcFolder, getMcAuth} = require('./src/mcUtils.js');
 
 var isLocal;
 var herokuApp;
@@ -230,9 +230,74 @@ async function updateCallbackUrl(appName) {
     }
 }
 
+
+
+
+async function updateCallbackUrl(appName = '', folderId = '') {
+    try {
+        let org = nforce.createConnection({
+            clientId: process.env.CONSUMER_KEY,
+            clientSecret: process.env.CONSUMER_SECRET,
+            redirectUri: process.env.SF_CMS_URL,
+            apiVersion: process.env.SF_API_VERSION,
+            mode: "single",
+            environment: "sandbox",
+            autoRefresh: true
+        });
+
+        const oauth = await org.authenticate({
+            username: process.env.SF_USERNAME,
+            password: process.env.SF_PASSWORD,
+            securityToken: process.env.SF_SECURITY_TOKEN
+        });
+
+        const query = `SELECT Id, Heroku_Endpoint__c FROM CMS_Connection__c WHERE Id = '${process.env.SF_CMS_CONNECTION_ID}' LIMIT 1`;
+        let resQuery = await org.query({ query });
+        if (resQuery && resQuery.records && resQuery.records.length) {
+            let sobject = resQuery.records[0];
+            sobject.set('Heroku_Endpoint__c', appName);
+            sobject.set('Connection_Status__c', 'Active');
+            sobject.set('SFMC_Folder_Id__c', folderId);
+            const resUpdate = await org.update({ sobject, oauth });
+
+            console.log('resUpdate', resUpdate);
+        }
+
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+async function getFolderId(){
+    const folderName = process.env.MC_FOLDER_NAME; // Env folder name
+    const mcAuthResults = await getMcAuth(); 
+    const mcFolders = await getMcFolders(mcAuthResults.access_token); // Getting all folders
+    const matchedFolder = [...mcFolders.items].find(ele => ele.name === folderName); // Check is folder already created or not
+    if(!matchedFolder){
+        //TODO create folder in mc
+        const parentFolder = [...mcFolders.items].find(ele => ele.parentId === 0);
+        if(parentFolder && parentFolder.id){
+            const createdFolder =  await createMcFolder(parentFolder.id, mcAuthResults.access_token);
+            console.log("createdFolder >>> ", createdFolder);
+            return createdFolder ? createdFolder.id :  null;
+        }
+    }else{
+        return matchedFolder.id;
+    }
+}
+
 // Initialize the app.
-var server = app.listen(process.env.PORT || 3000, async function () {
-    const appName = `https://${process.env.APP_NAME}.herokuapp.com`;
-    console.log("appName >>> ", appName);
-    updateCallbackUrl(appName);
+app.listen(process.env.PORT || 3000, async function () {
+    //Get App Ul
+    const appUrl = `https://${process.env.APP_NAME}.herokuapp.com`;
+    console.log("appName >>> ", appUrl);    
+    if(appUrl){
+        //Get MC Folder Id
+        const mcFolderId = await getFolderId();
+        console.log('getFolderId', mcFolderId);
+        if(mcFolderId){
+            //Update call back url and mc folder id
+            updateCallbackUrl(appUrl, mcFolderId);    
+        }
+    }
 });
