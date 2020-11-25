@@ -304,7 +304,7 @@ async function startUploadProcess(workQueue) {
 }
 
 module.exports = {
-    run: async function(cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
+    run: async function(cmsAuthResults, org, contentTypeNodes, channelId, res, folderId) {
         console.log('folderId', folderId);
         let workQueue = new Queue(`work`, REDIS_URL);
         await Promise.all(contentTypeNodes.map(async (ele) => {
