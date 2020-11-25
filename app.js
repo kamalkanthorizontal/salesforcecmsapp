@@ -16,6 +16,8 @@ app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
 
 
+const ALLOWED_CONNECTION_STATUS = 'Not Configured';
+
 function isNotBlank(val) {
     if (typeof val !== 'undefined' && val) {
         //console.log('>>> ' + val);
@@ -213,18 +215,19 @@ async function updateCallbackUrl(appName = '', folderId = '') {
         });
 
         const query = `SELECT Id, Heroku_Endpoint__c, SFMC_Folder_Id__c, Connection_Status__c FROM CMS_Connection__c WHERE Id = '${process.env.SF_CMS_CONNECTION_ID}' LIMIT 1`;
-        console.log('query', query);
-        let resQuery = await org.query({ query });
-        console.log('resQuery', resQuery);
+        const resQuery = await org.query({ query });
+        
         if (resQuery && resQuery.records && resQuery.records.length) {
             let sobject = resQuery.records[0];
-            sobject.set('Heroku_Endpoint__c', appName);
-            sobject.set('Connection_Status__c', 'Active');
-            sobject.set('SFMC_Folder_Id__c', folderId);
-            console.log(sobject)
-            const resUpdate = await org.update({ sobject, oauth });
-
-            console.log('resUpdate', resUpdate);
+            console.log('resQuery', sobject);
+            if(sobject._fields.connection_status__c ===  null || sobject._fields.connection_status__c === ALLOWED_CONNECTION_STATUS){
+                sobject.set('Heroku_Endpoint__c', appName);
+                sobject.set('Connection_Status__c', 'Active');
+                sobject.set('SFMC_Folder_Id__c', folderId);
+                const resUpdate = await org.update({ sobject, oauth });
+                console.log('resUpdate', resUpdate);
+            }
+            
         }
 
     } catch (error) {
