@@ -232,7 +232,7 @@ async function startUploadProcess(workQueue) {
     workQueue.process(maxJobsPerWorker, async (job, done) => {
         try {
             let { content } = job.data;
-            const { result } = content;
+            const { result, folderId } = content;
 
             if (result) {
                 const { managedContentNodeTypes, items } = result;
@@ -273,13 +273,13 @@ async function startUploadProcess(workQueue) {
                             ele.name,
                             ele.value,
                             ele.assetTypeId,
-                            '311558',
+                            folderId,
                             mcAuthResults
                         );
                     } else if (ele.assetTypeId === '8') { //image
                         await moveImageToMC(
                             ele,
-                            '311558',
+                            folderId,
                             mcAuthResults,
                             content.cmsAuthResults
                         );
@@ -304,7 +304,7 @@ async function startUploadProcess(workQueue) {
 }
 
 module.exports = {
-    run: async function(cmsAuthResults, org, contentTypeNodes, channelId) {
+    run: async function(cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
         let workQueue = new Queue(`work-${channelId}`, REDIS_URL);
         await Promise.all(contentTypeNodes.map(async (ele) => {
             try{
@@ -315,7 +315,7 @@ module.exports = {
                 let result = await org.getUrl(cmsURL);
                 result.managedContentNodeTypes = managedContentNodeTypes;
                 
-                const job = await workQueue.add({ content: { result, cmsAuthResults } });
+                const job = await workQueue.add({ content: { result, cmsAuthResults, folderId } });
                 
                 console.log('Hitting Connect REST URL:', cmsURL);
                 console.log('Job Id:', job.id);

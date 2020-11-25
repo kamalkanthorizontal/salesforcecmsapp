@@ -157,10 +157,9 @@ app.post('/', async (req, res, next) => {
         }
 
         if (isSetup()) {
-            let { contentTypeNodes, contentType, channelId } = req.body;
+            let { contentTypeNodes, contentType, channelId, mcFolderId } = req.body;
             contentTypeNodes = JSON.parse(contentTypeNodes);
-
-            //console.log('Request body:', contentTypeNodes);
+            console.log('mcFolderId:', mcFolderId);
             //nforce setup to connect Salesforce
             let org = nforce.createConnection({
                 clientId: process.env.CONSUMER_KEY,
@@ -179,7 +178,7 @@ app.post('/', async (req, res, next) => {
                     securityToken: process.env.SF_SECURITY_TOKEN
                 });
                 console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
-                await run(resp, org, contentTypeNodes, channelId, res);
+                await run(resp, org, contentTypeNodes, channelId, res, mcFolderId);
                 res.send('CMS Content Type is syncing in the background. Please wait..');
             } catch (error) {
                 res.send(error.message);
