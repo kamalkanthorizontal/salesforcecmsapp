@@ -317,13 +317,11 @@ async function startUploadProcess(workQueue) {
 
 module.exports = async function run(cmsAuthResults, org, contentTypeNodes, channelId) {
     let workQueue = new Queue(`work-${channelId}`, REDIS_URL);
-
-    console.log('contentTypeNodes', contentTypeNodes);
+    //console.log('contentTypeNodes', contentTypeNodes);
     await Promise.all(contentTypeNodes.map(async (ele) => {
         const managedContentType = ele.DeveloperName;
         const managedContentNodeTypes = ele.managedContentNodeTypes;
         const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
-        console.log('REST URL:', cmsURL);
         let result = await org.getUrl(cmsURL);
         result.managedContentNodeTypes = managedContentNodeTypes;
         const job = await workQueue.add({ content: { result, cmsAuthResults }});
