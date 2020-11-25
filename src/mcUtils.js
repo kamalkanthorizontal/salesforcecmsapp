@@ -77,7 +77,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
 
         const imageExt = path.parse(imageNode.fileName).ext;
 
-        const fileName =`${imageExt}${Date.now()}${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g,"")}`;
+        const fileName =`${imageExt.replace('.','')}${Date.now()}${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g,"")}`;
         
         console.log(`Uploading img to MC: ${fileName+imageExt} with base64ImageBody length ${base64ImageBody.length}`);
 
