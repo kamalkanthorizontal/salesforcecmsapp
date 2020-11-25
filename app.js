@@ -225,8 +225,7 @@ async function updateCallbackUrl(appName = '', folderId = '') {
                 sobject.set('Heroku_Endpoint__c', appName);
                 sobject.set('Connection_Status__c', 'Active');
                 sobject.set('SFMC_Folder_Id__c', folderId);
-                const resUpdate = await org.update({ sobject, oauth });
-                console.log('resUpdate', resUpdate);
+                await org.update({ sobject, oauth });
             }
             
         }
