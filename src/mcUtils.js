@@ -229,7 +229,7 @@ async function startUploadProcess(workQueue) {
     let mcAuthResults = await getMcAuth();
     console.log("Marketing Cloud authentication :", mcAuthResults.access_token ? 'Successful' : 'Failure');
 
-    workQueue.process(maxJobsPerWorker, async (job) => {
+    workQueue.process(maxJobsPerWorker, async (job, done) => {
         try {
             let { content } = job.data;
             const { result } = content;
