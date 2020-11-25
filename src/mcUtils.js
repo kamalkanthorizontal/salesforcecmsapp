@@ -292,6 +292,9 @@ async function startUploadProcess(workQueue) {
                         );*/
                     }
                 }));
+
+                // call done when finished
+                done();
             }
         } catch (error) {
             console.log('error', error);
