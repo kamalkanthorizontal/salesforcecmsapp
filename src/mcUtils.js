@@ -305,6 +305,7 @@ async function startUploadProcess(workQueue) {
 
 module.exports = {
     run: async function(cmsAuthResults, org, contentTypeNodes, channelId) {
+        let workQueue = new Queue(`work-${channelId}`, REDIS_URL);
         await Promise.all(contentTypeNodes.map(async (ele) => {
             try{
                 const managedContentType = ele.DeveloperName;
@@ -325,7 +326,7 @@ module.exports = {
             
         }));
     
-        startUploadProcess();
+        startUploadProcess(workQueue);
     },
     getMcFolders: async function(accessToken) {
         const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_CONTENT_CATEGORIES_API_PATH}`;
