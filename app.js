@@ -193,44 +193,6 @@ app.post('/', async (req, res, next) => {
 });
 
 
-async function updateCallbackUrl(appName) {
-    try {
-        let org = nforce.createConnection({
-            clientId: process.env.CONSUMER_KEY,
-            clientSecret: process.env.CONSUMER_SECRET,
-            redirectUri: process.env.SF_CMS_URL,
-            apiVersion: process.env.SF_API_VERSION,
-            mode: "single",
-            environment: "sandbox",
-            autoRefresh: true
-        });
-
-        const oauth = await org.authenticate({
-            username: process.env.SF_USERNAME,
-            password: process.env.SF_PASSWORD,
-            securityToken: process.env.SF_SECURITY_TOKEN
-        });
-
-        const query = `SELECT Id, Heroku_Endpoint__c FROM CMS_Connection__c WHERE Id = '${process.env.SF_CMS_CONNECTION_ID}' LIMIT 1`;
-        //console.log('resQuery', query);
-        let resQuery = await org.query({ query });
-        console.log('resQuery', resQuery);
-        if (resQuery) {
-            let sobject = resQuery.records[0];
-            sobject.set('Heroku_Endpoint__c', appName);
-            sobject.set('Connection_Status__c', 'Active');
-
-            let resUpdate = await org.update({ sobject, oauth });
-
-            console.log('resUpdate', resUpdate);
-        }
-
-    } catch (error) {
-        console.log(error);
-    }
-}
-
-
 
 
 async function updateCallbackUrl(appName = '', folderId = '') {
@@ -258,6 +220,7 @@ async function updateCallbackUrl(appName = '', folderId = '') {
             sobject.set('Heroku_Endpoint__c', appName);
             sobject.set('Connection_Status__c', 'Active');
             sobject.set('SFMC_Folder_Id__c', folderId);
+            console.log(sobject)
             const resUpdate = await org.update({ sobject, oauth });
 
             console.log('resUpdate', resUpdate);
