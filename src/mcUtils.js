@@ -294,7 +294,7 @@ async function startUploadProcess(workQueue) {
                 }));
 
                 // call done when finished
-              //  done();
+                done();
             }
         } catch (error) {
             console.log('error', error);
@@ -315,7 +315,7 @@ module.exports = {
                 let result = await org.getUrl(cmsURL);
                 result.managedContentNodeTypes = managedContentNodeTypes;
                 
-                const job = await workQueue.add(`channelId- ${channelId}`, { content: { result, cmsAuthResults } });
+                const job = await workQueue.add({ content: { result, cmsAuthResults } });
                 
                 console.log('Hitting Connect REST URL:', cmsURL);
                 console.log('Job Id:', job.id);
