@@ -11,8 +11,6 @@ const MC_CONTENT_CATEGORIES_API_PATH = '/asset/v1/content/categories';
 
 let REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
-let workQueue = new Queue('work', REDIS_URL);
-
 const getMcAuthBody = {
     grant_type: 'client_credentials',
     client_id: process.env.MC_CLIENT_ID,
@@ -234,15 +232,15 @@ async function createMCAsset(access_token, assetBody) {
     });
 }
 
-workQueue.on('global:completed', async (jobId, result) => {
-    let job = await workQueue.getJob(jobId);
-    let state = await job.getState();
-    console.log(`Job Id ${jobId} status : ${state}`);
-});
-
 let maxJobsPerWorker = 50;
 
-async function startUploadProcess() {
+async function startUploadProcess(workQueue) {
+    workQueue.on('global:completed', async (jobId, result) => {
+        let job = await workQueue.getJob(jobId);
+        let state = await job.getState();
+        console.log(`Job Id ${jobId} status : ${state}`);
+    });
+
     let mcAuthResults = await getMcAuth();
     console.log("Marketing Cloud authentication :", mcAuthResults.access_token ? 'Successful' : 'Failure');
 
@@ -318,6 +316,8 @@ async function startUploadProcess() {
 }
 
 module.exports = async function run(cmsAuthResults, org, contentTypeNodes, channelId) {
+    let workQueue = new Queue('work', REDIS_URL);
+
     console.log('contentTypeNodes', contentTypeNodes);
     await Promise.all(contentTypeNodes.map(async (ele) => {
         const managedContentType = ele.DeveloperName;
@@ -331,7 +331,7 @@ module.exports = async function run(cmsAuthResults, org, contentTypeNodes, chann
         console.log('Job Id:', job.id);
     }));
 
-    startUploadProcess();
+    startUploadProcess(workQueue);
 }
 
 
