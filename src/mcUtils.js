@@ -303,21 +303,29 @@ async function startUploadProcess(workQueue) {
 module.exports = {
     run: async function(cmsAuthResults, org, contentTypeNodes, channelId) {
         await Promise.all(contentTypeNodes.map(async (ele) => {
-            const managedContentType = ele.DeveloperName;
-            const managedContentNodeTypes = ele.managedContentNodeTypes;
-            const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
-            let result = await org.getUrl(cmsURL);
-            result.managedContentNodeTypes = managedContentNodeTypes;
-            const job = await workQueue.add(`channelId- ${channelId}`, { content: { result, cmsAuthResults } });
-            console.log('Hitting Connect REST URL:', cmsURL);
-            console.log('Job Id:', job.id);
+            try{
+                const managedContentType = ele.DeveloperName;
+                const managedContentNodeTypes = ele.managedContentNodeTypes;
+                const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
+                
+                let result = await org.getUrl(cmsURL);
+                result.managedContentNodeTypes = managedContentNodeTypes;
+                
+                const job = await workQueue.add(`channelId- ${channelId}`, { content: { result, cmsAuthResults } });
+                
+                console.log('Hitting Connect REST URL:', cmsURL);
+                console.log('Job Id:', job.id);
+
+            }catch(error){
+                console.log(error);
+            }
+            
         }));
     
         startUploadProcess();
     },
     getMcFolders: async function(accessToken) {
         const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_CONTENT_CATEGORIES_API_PATH}`;
-        console.log(serviceUrl, );
         return await fetch(serviceUrl, {
             method: 'GET',
             
@@ -325,12 +333,10 @@ module.exports = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${accessToken}`
             },
-        })
-            .then(res => res.json())
-            .catch((err) => {
+        }).then(res => res.json()).catch((err) => {
                 console.log(err);
                 reject(err);
-            });
+        });
     },
     createMcFolder: async function(ParentId, accessToken) {
         const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_CONTENT_CATEGORIES_API_PATH}`;
@@ -338,7 +344,6 @@ module.exports = {
             Name: process.env.MC_FOLDER_NAME,
             ParentId
         });
-        console.log(serviceUrl, accessToken);
         return await fetch(serviceUrl, {
             method: 'POST',
             body,
@@ -347,11 +352,11 @@ module.exports = {
                 'Authorization': `Bearer ${accessToken}`
             },
         })
-            .then(res => res.json())
-            .catch((err) => {
-                console.log(err);
-                reject(err);
-            });
+        .then(res => res.json())
+        .catch((err) => {
+            console.log(err);
+            reject(err);
+        });
     },
     getMcAuth:  async function() {
         return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + MS_AUTH_PATH, {
@@ -361,11 +366,11 @@ module.exports = {
                 'Content-Type': 'application/json'
             },
         })
-            .then(res => res.json())
-            .catch((err) => {
-                console.log(err);
-                reject(err);
-            });
+        .then(res => res.json())
+        .catch((err) => {
+            console.log(err);
+            reject(err);
+        });
     }
 };
 
