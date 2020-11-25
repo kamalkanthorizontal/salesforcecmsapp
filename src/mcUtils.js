@@ -318,13 +318,15 @@ async function startUploadProcess() {
 }
 
 module.exports = async function run(cmsAuthResults, org, contentTypeNodes, channelId) {
+    console.log('contentTypeNodes', contentTypeNodes);
     await Promise.all(contentTypeNodes.map(async (ele) => {
         const managedContentType = ele.DeveloperName;
         const managedContentNodeTypes = ele.managedContentNodeTypes;
         const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
+        console.log('REST URL:', cmsURL);
         let result = await org.getUrl(cmsURL);
         result.managedContentNodeTypes = managedContentNodeTypes;
-        const job = await workQueue.add(`channelId- ${channelId}`, { content: { result, cmsAuthResults } });
+        const job = await workQueue.add({ content: { result, cmsAuthResults }});
         console.log('Hitting Connect REST URL:', cmsURL);
         console.log('Job Id:', job.id);
     }));
