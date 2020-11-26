@@ -3,7 +3,7 @@ var bodyParser = require("body-parser");
 var nforce = require("nforce");
 var hbs = require('hbs');
 var dotenv = require("dotenv").config();
-
+var path = require('path');
 const {run, getMcFolders, createMcFolder, getMcAuth} = require('./src/mcUtils.js');
 
 var isLocal;
@@ -68,6 +68,11 @@ app.get("/setup", function (req, res) {
         herokuApp: herokuApp,
     });
 });
+
+app.get("/queue", async function (req, res) {
+    //res.render('queue');
+    res.sendFile(path.join(__dirname + '/queue.html'));
+})
 
 app.get("/", async function (req, res) {
     isLocal = req.hostname.indexOf("localhost") == 0;

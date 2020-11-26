@@ -218,6 +218,7 @@ async function createMCAsset(access_token, assetBody) {
 }
 
 let maxJobsPerWorker = 50;
+let jobWorkQueueList = [];
 
 async function startUploadProcess(workQueue) {
     workQueue.on('global:completed', async (jobId, result) => {
@@ -317,7 +318,7 @@ module.exports = {
                 result.managedContentNodeTypes = managedContentNodeTypes;
                 
                 const job = await workQueue.add({ content: { result, cmsAuthResults, folderId } });
-                
+                jobWorkQueueList = [...jobWorkQueueList, {channelId, jobId: job.id, state: "queued"}];
                 console.log('Hitting Connect REST URL:', cmsURL);
                 console.log('Job Id:', job.id);
 
@@ -376,6 +377,7 @@ module.exports = {
             console.log(err);
             reject(err);
         });
-    }
+    },
+    jobs: jobWorkQueueList
 };
 
