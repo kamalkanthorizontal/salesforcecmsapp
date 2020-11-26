@@ -5,8 +5,7 @@ let Queue = require('bull');
 const path = require('path');
 
 const MC_ASSETS_API_PATH = '/asset/v1/content/assets';
-const MS_AUTH_PATH = '/v2/token';
-
+const MS_AUTH_PATH = '/v2/token'
 const MC_CONTENT_CATEGORIES_API_PATH = '/asset/v1/content/categories';
 
 let REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
@@ -60,17 +59,17 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
 
         const imageExt = path.parse(imageNode.fileName).ext;
 
-        const fileName =`${imageExt.replace('.','')}${Date.now()}${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g,"")}`;
-        
-        console.log(`Uploading img to MC: ${fileName+imageExt} with base64ImageBody length ${base64ImageBody.length}`);
+        const fileName = `${imageExt.replace('.', '')}${Date.now()}${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}`;
+
+        console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
 
         let imageAssetBody = {
-            name: fileName+imageExt,
+            name: fileName + imageExt,
             assetType: {
-                id: getImageAssetTypeId(imageExt.replace('.','')),
+                id: getImageAssetTypeId(imageExt.replace('.', '')),
             },
             fileProperties: {
-                fileName: fileName+imageExt,
+                fileName: fileName + imageExt,
                 extension: imageExt,
             },
             file: base64ImageBody,
@@ -80,9 +79,9 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
         };
 
         //Marketing Cloud Regex for file fullName i.e. Developer name
-        var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i; 
+        var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
         // Create Marketing Cloud Image Asset
-        if(mcRegex.test(fileName)) {
+        if (mcRegex.test(fileName)) {
             await createMCAsset(mcAuthResults.access_token, imageAssetBody);
         } else {
             console.log('Upload on hold!! Please check the prohibited chars in', fileName);
@@ -293,7 +292,6 @@ async function startUploadProcess(workQueue) {
                         );*/
                     }
                 }));
-
                 // call done when finished
                 //done();
             }
@@ -305,46 +303,45 @@ async function startUploadProcess(workQueue) {
 }
 
 module.exports = {
-    run: async function(cmsAuthResults, org, contentTypeNodes, channelId, res, folderId) {
-        console.log('folderId', folderId);
+    run: async function (cmsAuthResults, org, contentTypeNodes, channelId, res, folderId) {
         let workQueue = new Queue(`work-${channelId}`, REDIS_URL);
         await Promise.all(contentTypeNodes.map(async (ele) => {
-            try{
+            try {
                 const managedContentType = ele.DeveloperName;
                 const managedContentNodeTypes = ele.managedContentNodeTypes;
                 const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
-                console.log('cmsURL', cmsURL);
                 let result = await org.getUrl(cmsURL);
                 result.managedContentNodeTypes = managedContentNodeTypes;
-                
+
                 const job = await workQueue.add({ content: { result, cmsAuthResults, folderId } });
-                jobWorkQueueList = [...jobWorkQueueList, {channelId, jobId: job.id, state: "queued"}];
+                jobWorkQueueList = [...jobWorkQueueList, { channelId, jobId: job.id, state: "queued" }];
                 console.log('Hitting Connect REST URL:', cmsURL);
                 console.log('Job Id:', job.id);
 
-            }catch(error){
+            } catch (error) {
                 console.log(error);
             }
-            
         }));
-    
+
         startUploadProcess(workQueue);
     },
-    getMcFolders: async function(accessToken) {
+
+    getMcFolders: async function (accessToken) {
         const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_CONTENT_CATEGORIES_API_PATH}`;
         return await fetch(serviceUrl, {
             method: 'GET',
-            
+
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${accessToken}`
             },
         }).then(res => res.json()).catch((err) => {
-                console.log(err);
-                reject(err);
+            console.log(err);
+            reject(err);
         });
     },
-    createMcFolder: async function(ParentId, accessToken) {
+
+    createMcFolder: async function (ParentId, accessToken) {
         const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_CONTENT_CATEGORIES_API_PATH}`;
         const body = JSON.stringify({
             Name: process.env.MC_FOLDER_NAME,
@@ -358,13 +355,14 @@ module.exports = {
                 'Authorization': `Bearer ${accessToken}`
             },
         })
-        .then(res => res.json())
-        .catch((err) => {
-            console.log(err);
-            reject(err);
-        });
+            .then(res => res.json())
+            .catch((err) => {
+                console.log(err);
+                reject(err);
+            });
     },
-    getMcAuth:  async function() {
+
+    getMcAuth: async function () {
         return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + MS_AUTH_PATH, {
             method: 'POST',
             body: JSON.stringify(getMcAuthBody),
@@ -372,11 +370,11 @@ module.exports = {
                 'Content-Type': 'application/json'
             },
         })
-        .then(res => res.json())
-        .catch((err) => {
-            console.log(err);
-            reject(err);
-        });
+            .then(res => res.json())
+            .catch((err) => {
+                console.log(err);
+                reject(err);
+            });
     },
     jobs: jobWorkQueueList
 };
