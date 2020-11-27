@@ -1,2 +1,2 @@
-web: node --expose_gc app.js
+web: npm start
 

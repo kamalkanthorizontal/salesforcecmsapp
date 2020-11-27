@@ -222,23 +222,6 @@ async function getFolderId() {
     }
 }
 
-
-function scheduleGc() {
-    if (!global.gc) {
-      console.log('Garbage collection is not exposed');
-      return;
-    }
-  
-    // schedule next gc within a random interval (e.g. 15-45 minutes)
-    // tweak this based on your app's memory usage
-    var nextMinutes = Math.random() * 30 + 15;
-  
-    setTimeout(function(){
-      global.gc();
-      console.log('Manual gc', process.memoryUsage());
-      scheduleGc();
-    }, 5000)//nextMinutes * 60 * 1000);
-  }
   
 
 // Initialize the app.
@@ -255,7 +238,4 @@ app.listen(process.env.PORT || 3000, async function () {
             updateCallbackUrl(appUrl, mcFolderId);
         }
     }
-
-    // call this in the startup script of your app (once per process)
-     scheduleGc();
 });
