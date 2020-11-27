@@ -91,6 +91,49 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
     });
 }
 
+
+async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults) {
+    return new Promise(async (resolve, reject) => {
+        const imageUrl = `${documentNode.unauthenticatedUrl}`;
+         console.log('documentNode--->', documentNode);
+        const base64ImageBody = await downloadBase64FromURL(
+            imageUrl,
+            cmsAuthResults.access_token
+        );
+
+        const imageExt = path.parse(documentNode.fileName).ext;
+        const  publishedDate =  documentNode.publishedDate ? documentNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
+
+        const fileName =  documentNode.name ? documentNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(documentNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
+        console.log('documentNode fileName--->', fileName);
+        let imageAssetBody = {
+            name: fileName + imageExt,
+            assetType: {
+                id: 127// getImageAssetTypeId(imageExt.replace('.', '')),
+            },
+            fileProperties: {
+                fileName: fileName + imageExt,
+                extension: imageExt,
+            },
+            file: base64ImageBody,
+            category: {
+                id: folderId
+            },
+        };
+
+        //Marketing Cloud Regex for file fullName i.e. Developer name
+        var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
+        // Create Marketing Cloud Image Asset
+        if (mcRegex.test(fileName)) {
+            console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
+            await createMCAsset(mcAuthResults.access_token, imageAssetBody);
+        } else {
+            console.log('Upload on hold!! Please check the prohibited chars in', fileName);
+        }
+        resolve();
+    });
+}
+
 async function downloadBase64FromURL(url, access_token, callback) {
     return new Promise((resolve, reject) => {
         https
@@ -113,6 +156,7 @@ async function downloadBase64FromURL(url, access_token, callback) {
             });
     });
 }
+
 
 function getImageAssetTypeId(imageExtension) {
     let assetTypeId = '8';
@@ -329,16 +373,18 @@ async function startUploadProcess(workQueue) {
                         job.progress({ percents, currentStep: "currently we doing another thing" });
 
                     } else if (ele.assetTypeId === '11') { //document
+                       
+                        await moveDocumentToMC(
+                            ele,
+                            folderId,
+                            mcAuthResults,
+                            content.cmsAuthResults
+                        );
+
                         counter++;
                         const percents = ((counter/totalNumer) * 100).toFixed(3);
                         job.progress({ percents, currentStep: "currently we doing another thing" });
                         
-                        /*await moveDocumentToMC(
-                            ele,
-                            '311558',
-                            mcAuthResults,
-                            content.cmsAuthResults
-                        );*/
                     }
                 }));
                 // call done when finished
