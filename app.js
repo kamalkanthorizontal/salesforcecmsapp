@@ -148,7 +148,7 @@ app.get("/", async function (req, res) {
             });
             console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
            // await run(resp, org, contentTypeNodes, channelId, res, mcFolderId);
-            await run(resp, org, contentTypeNodes, channelId, null, mcFolderId);
+            await run(resp, org, contentTypeNodes, channelId, mcFolderId);
             res.send('CMS Content Type is syncing in the background. Please wait..');
         } catch (error) {
             res.send(error.message);
@@ -188,7 +188,7 @@ app.post('/', async (req, res, next) => {
                     securityToken: process.env.SF_SECURITY_TOKEN
                 });
                 console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
-                await run(resp, org, contentTypeNodes, channelId, res, mcFolderId);
+                await run(resp, org, contentTypeNodes, channelId, mcFolderId);
                 res.send('CMS Content Type is syncing in the background. Please wait..');
             } catch (error) {
                 res.send(error.message);

@@ -322,11 +322,13 @@ async function startUploadProcess(workQueue) {
                             folderId,
                             mcAuthResults
                         );
+
                         counter++;
                         console.log(job.id, 'moveTextToMC counter', counter);
                         const percents = ((counter/totalNumer) * 100).toFixed(3);
-
                         job.progress({ percents, currentStep: "currently we doing another thing" });
+
+
                     } else if (ele.assetTypeId === '8') { //image
                         console.log('ele.assetTypeId ', ele.assetTypeId );
                         await moveImageToMC(
@@ -335,6 +337,7 @@ async function startUploadProcess(workQueue) {
                             mcAuthResults,
                             content.cmsAuthResults
                         );
+
                         counter++;
                         const percents = ((counter/totalNumer) * 100).toFixed(3);
                         console.log(job.id, 'moveTextToMC counter', counter);
@@ -365,7 +368,7 @@ async function startUploadProcess(workQueue) {
 }
 
 module.exports = {
-    run: async function (cmsAuthResults, org, contentTypeNodes, channelId, res, folderId) {
+    run: async function (cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
         let workQueue = new Queue(`work-${channelId}`, REDIS_URL);
         await Promise.all(contentTypeNodes.map(async (ele) => {
             try {
@@ -374,10 +377,8 @@ module.exports = {
                 const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=1`;
                 let result = await org.getUrl(cmsURL);
                 if(result && result.items && result.items.length ){
-                    console.log('result--->', result);
-
                     result.managedContentNodeTypes = managedContentNodeTypes;
-                    
+            
                     const job = await workQueue.add({ content: { result, cmsAuthResults, folderId } });
                     
                     jobWorkQueueList = [...jobWorkQueueList, {channelId, jobId: job.id, state: "queued", items: result.items}];
