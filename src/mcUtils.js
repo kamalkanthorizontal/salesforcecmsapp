@@ -62,8 +62,8 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
         const publishedDate = imageNode.publishedDate ? imageNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
 
         let fileName = imageNode.name ? imageNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
-        fileName = `jpg-${fileName}`; // Need to remove once testing done
-        
+        fileName = `jpg_${fileName}`; // Need to remove once testing done
+
         let imageAssetBody = {
             name: fileName + imageExt,
             assetType: {
