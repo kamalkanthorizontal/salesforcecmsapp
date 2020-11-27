@@ -531,7 +531,7 @@ async function startUploadProcess(workQueue) {
                 //await Promise.all());
                 // call done when finished
 
-                workQueue.close()
+                //workQueue.close()
                 done();
             }
         } catch (error) {
