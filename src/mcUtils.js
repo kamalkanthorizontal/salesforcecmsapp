@@ -294,7 +294,7 @@ async function startUploadProcess(workQueue) {
                 })
 
                 //console.log('finalArray->>', finalArray);
-                console.log(`Filtered no. of nodes for: ${namePrefix} ${job.id} ${finalArray.length}`);
+                console.log(`Filtered no. of nodes for: ${nameKey} ${job.id} ${finalArray.length}`);
 
                 let counter = 0;
                 const totalNumer = finalArray.length;
