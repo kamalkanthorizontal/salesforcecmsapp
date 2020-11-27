@@ -15,7 +15,7 @@ const getMcAuthBody = {
     client_id: process.env.MC_CLIENT_ID,
     client_secret: process.env.MC_CLIENT_SECRET,
 };
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 1;
 
 async function getMcAuth() {
     return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + MS_AUTH_PATH, {
@@ -42,7 +42,7 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults) {
         },
         content: value,
         category: {
-            id: folderId
+            id: 313251
         },
     };
     // Create Marketing Cloud Block Asset
@@ -74,7 +74,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
             },
             file: base64ImageBody,
             category: {
-                id: folderId
+                id: 313251
             },
         };
 
