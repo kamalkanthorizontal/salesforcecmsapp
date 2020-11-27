@@ -18,7 +18,7 @@ app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
 
 const ALLOWED_CONNECTION_STATUS = 'Not Configured';
-const MC_CONTENT_FILTER_ID_API_PATH = '/asset/v1/content/categories?$filter=Id eq ';
+const MC_CONTENT_CATEGORIES_API_PATH = '/asset/v1/content/categories/';
 
 function isNotBlank(val) {
     if (typeof val !== 'undefined' && val) {
@@ -29,9 +29,6 @@ function isNotBlank(val) {
 }
 
 function isSetup() {
-    /*if (isLocal) {
-        require("dotenv").config();
-    }*/
     return (
         isNotBlank(process.env.APP_NAME) &&
         isNotBlank(process.env.CONSUMER_KEY) &&
@@ -54,15 +51,6 @@ function oauthCallbackUrl(req) {
     return req.protocol + "://" + req.get("host");
 }
 
-// Generic error handler used by all endpoints.
-//handleError(res, "Invalid user input", "Please enter the Name.", 400); 
-function handleError(res, reason, message, code) {
-    console.log("ERROR: ", reason);
-    res.status(code || 500).json({
-        error: message
-    });
-}
-
 app.get("/setup", function (req, res) {
     res.render("setup", {
         isLocal: isLocal,
@@ -76,13 +64,11 @@ app.get('/jobs', async (req, res) => {
     res.json({ jobs: jobs() });
 });
 
-
 app.get("/queue", async function (req, res) {
     console.log('jobs', jobs());
     //res.render("queue.ejs");
     res.sendFile('./queue.html', { root: __dirname });
 })
-
 
 app.post('/', async (req, res, next) => {
     try {
@@ -93,9 +79,12 @@ app.post('/', async (req, res, next) => {
 
         if (isSetup()) {
             let { contentTypeNodes, contentType, channelId, mcFolderId } = req.body;
-            const validFolderId = await getValidFolderId(mcFolderId);
-            console.log('validFolderId--->', validFolderId);
-            if(validFolderId !== mcFolderId){
+            if(mcFolderId) {
+                const validFolderId = await getValidFolderId(mcFolderId);
+                console.log('validedFolderId--->', validFolderId);
+            }
+            
+            if (validFolderId !== mcFolderId || !validFolderId) {
                 await updateCallbackUrl(null, validFolderId);
             }
 
@@ -136,10 +125,10 @@ app.post('/', async (req, res, next) => {
 });
 
 async function getValidFolderId(folderId) {
-    try{
+    try {
         const mcAuthResults = await getMcAuth();
-        const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_CONTENT_FILTER_ID_API_PATH}${folderId}`;
-    
+        const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_CONTENT_CATEGORIES_API_PATH}${folderId}`;
+
         const res = await fetch(serviceUrl, {
             method: 'GET',
             headers: {
@@ -147,13 +136,13 @@ async function getValidFolderId(folderId) {
                 'Authorization': `Bearer ${mcAuthResults.access_token}`
             },
         });
-    
-        if(res && res.id == folderId ){
+
+        if (res && res.id == folderId) {
             return folderId;
-        }else{
-            return  await getFolderId()
+        } else {
+            return await getFolderId()
         }
-    }catch(error){
+    } catch (error) {
         console.log('Error in folder id:', error);
         return folderId;
     }
@@ -187,11 +176,12 @@ async function updateCallbackUrl(appName, folderId = '') {
                 || sobject._fields.connection_status__c === ALLOWED_CONNECTION_STATUS
                 || sobject._fields.sfmc_folder_id__c != folderId
                 || sobject._fields.heroku_endpoint__c != appName) {
-                if(appName){
+
+                if (appName) {
                     sobject.set('Heroku_Endpoint__c', appName);
                     sobject.set('Connection_Status__c', 'Active');
                 }
-                
+
                 sobject.set('SFMC_Folder_Id__c', folderId);
                 console.log('Updating Salesforce CMS Connection Details:', sobject._fields);
                 await org.update({ sobject, oauth });
@@ -202,7 +192,6 @@ async function updateCallbackUrl(appName, folderId = '') {
         console.log(error);
     }
 }
-
 
 async function getFolderId() {
     const folderName = process.env.MC_FOLDER_NAME; // Env folder name
@@ -221,8 +210,6 @@ async function getFolderId() {
         return matchedFolder.id;
     }
 }
-
-  
 
 // Initialize the app.
 app.listen(process.env.PORT || 3000, async function () {

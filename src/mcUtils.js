@@ -92,7 +92,6 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
     });
 }
 
-
 async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults) {
     return new Promise(async (resolve, reject) => {
         const doCUrl = `${documentNode.unauthenticatedUrl}`;
@@ -155,7 +154,6 @@ async function downloadBase64FromURL(url, access_token, callback) {
             });
     });
 }
-
 
 function getImageAssetTypeId(imageExtension) {
     let assetTypeId = '8';
@@ -528,7 +526,7 @@ async function startUploadProcess(workQueue) {
 
                     }
                 })
-               // )
+                // )
                 //await Promise.all());
                 // call done when finished
 
@@ -542,7 +540,7 @@ async function startUploadProcess(workQueue) {
 
 }
 
-async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId){
+async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
     await Promise.all(contentTypeNodes.map(async (ele) => {
         try {
             const managedContentType = ele.DeveloperName;
@@ -552,18 +550,16 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
             if (result && result.items && result.items.length) {
                 result.managedContentNodeTypes = managedContentNodeTypes;
 
-                const job = await workQueue.add({ content: { result, cmsAuthResults, folderId } },  {
+                const job = await workQueue.add({ content: { result, cmsAuthResults, folderId } }, {
                     attempts: 1
-                  });
+                });
 
                 jobWorkQueueList = [...jobWorkQueueList, { channelId, jobId: job.id, state: "queued", items: result.items }];
 
                 console.log('Hitting Connect REST URL:', cmsURL);
                 console.log('Job Id:', job.id);
                 //console.log('jobWorkQueueList:', jobWorkQueueList);
-
             }
-
         } catch (error) {
             console.log(error);
         }
@@ -582,7 +578,6 @@ module.exports = {
         const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_CONTENT_CATEGORIES_API_PATH}`;
         return await fetch(serviceUrl, {
             method: 'GET',
-
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${accessToken}`
@@ -629,9 +624,7 @@ module.exports = {
             });
     },
     jobs: function () {
-
         return jobWorkQueueList;
-
     }
 };
 
