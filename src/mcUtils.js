@@ -318,7 +318,7 @@ async function startUploadProcess(workQueue) {
                     } else if (ele.assetTypeId === '8') { //image
                         await moveImageToMC(
                             ele,
-                            folderId,
+                            313251,
                             mcAuthResults,
                             content.cmsAuthResults
                         );
