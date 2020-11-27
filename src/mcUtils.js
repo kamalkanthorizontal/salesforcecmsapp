@@ -224,8 +224,29 @@ async function startUploadProcess(workQueue) {
     workQueue.on('global:completed', async (jobId, result) => {
         let job = await workQueue.getJob(jobId);
         let state = await job.getState();
+        jobWorkQueueList = [...jobWorkQueueList].map(ele=>{
+            return {...ele, state: ele.jobId === jobId ? state: ele.state};
+        })
+
+        console.log(jobWorkQueueList);
         console.log(`Job Id ${jobId} status : ${state}`);
     });
+
+    workQueue.on('failed', (jobId, err) => {
+        console.log(`Job ${jobId} failed with error ${err.message}`);
+        console.log(`failed jobWorkQueueList`, jobWorkQueueList);
+
+    });
+
+    workQueue.on('progress', function(job, progress){
+        // A job's progress was updated!
+        console.log(`Job ${job.id} progress ${progress.percents}`);
+        jobWorkQueueList = [...jobWorkQueueList].map(ele=>{
+            return {...ele, progress: ele.jobId === job.id ? progress.percents: ele .progress};
+        })
+        //console.log(job);
+      })
+      
 
     let mcAuthResults = await getMcAuth();
     console.log("Marketing Cloud authentication :", mcAuthResults.access_token ? 'Successful' : 'Failure');
@@ -247,6 +268,7 @@ async function startUploadProcess(workQueue) {
                 //Filter node.nodeName except node with assetTypeId = 0
                 let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName);
                 console.log(`Filtered node.nodeNames for ${items[0].typeLabel}`, nodes);
+                console.log(job.id)
                 let finalArray = [];
 
                 //Filter nodes from the REST response as per the Salesforce CMS Content Type Node mapping
@@ -266,7 +288,9 @@ async function startUploadProcess(workQueue) {
                     }
                 });
                 console.log(`Filtered no. of nodes for ${items[0].typeLabel} : ${finalArray.length}`);
-
+                
+                let counter = 0;
+                const totalNumer = finalArray.length;
                 //Upload CMS content to Marketing Cloud
                 await Promise.all(finalArray.map(async (ele) => {
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
@@ -277,6 +301,11 @@ async function startUploadProcess(workQueue) {
                             folderId,
                             mcAuthResults
                         );
+                        counter++;
+                        console.log(job.id, 'moveTextToMC counter', counter);
+                        const percents = ((counter/totalNumer) * 100).toFixed(3);
+
+                        job.progress({ percents, currentStep: "currently we doing another thing" });
                     } else if (ele.assetTypeId === '8') { //image
                         await moveImageToMC(
                             ele,
@@ -284,7 +313,17 @@ async function startUploadProcess(workQueue) {
                             mcAuthResults,
                             content.cmsAuthResults
                         );
+                        counter++;
+                        const percents = ((counter/totalNumer) * 100).toFixed(3);
+                        console.log(job.id, 'moveTextToMC counter', counter);
+                        job.progress({ percents, currentStep: "currently we doing another thing" });
+                        
                     } else if (ele.assetTypeId === '11') { //document
+                        counter++;
+                        const percents = ((counter/totalNumer) * 100).toFixed(3);
+                        console.log(job.id, 'moveDocumentToMC counter', counter);
+                        job.progress({ percents, currentStep: "currently we doing another thing" });
+                        
                         /*await moveDocumentToMC(
                             ele,
                             '311558',
@@ -293,7 +332,6 @@ async function startUploadProcess(workQueue) {
                         );*/
                     }
                 }));
-
                 // call done when finished
                 //done();
             }
@@ -315,12 +353,21 @@ module.exports = {
                 const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true`;
                 console.log('cmsURL', cmsURL);
                 let result = await org.getUrl(cmsURL);
-                result.managedContentNodeTypes = managedContentNodeTypes;
-                
-                const job = await workQueue.add({ content: { result, cmsAuthResults, folderId } });
-                jobWorkQueueList = [...jobWorkQueueList, {channelId, jobId: job.id, state: "queued"}];
-                console.log('Hitting Connect REST URL:', cmsURL);
-                console.log('Job Id:', job.id);
+                if(result && result.items && result.items.length ){
+                    console.log('result--->', result);
+
+                    result.managedContentNodeTypes = managedContentNodeTypes;
+                    
+                    const job = await workQueue.add({ content: { result, cmsAuthResults, folderId } });
+                    
+                    jobWorkQueueList = [...jobWorkQueueList, {channelId, jobId: job.id, state: "queued", items: result.items}];
+                    
+                    console.log('Hitting Connect REST URL:', cmsURL);
+                    console.log('Job Id:', job.id);
+                    console.log('jobWorkQueueList:', jobWorkQueueList);
+                }
+
+               
 
             }catch(error){
                 console.log(error);
@@ -341,7 +388,7 @@ module.exports = {
             },
         }).then(res => res.json()).catch((err) => {
                 console.log(err);
-                reject(err);
+               // reject(err);
         });
     },
     createMcFolder: async function(ParentId, accessToken) {
@@ -361,7 +408,7 @@ module.exports = {
         .then(res => res.json())
         .catch((err) => {
             console.log(err);
-            reject(err);
+           // reject(err);
         });
     },
     getMcAuth:  async function() {
@@ -375,9 +422,13 @@ module.exports = {
         .then(res => res.json())
         .catch((err) => {
             console.log(err);
-            reject(err);
+            //reject(err);
         });
     },
-    jobs: jobWorkQueueList
+    jobs:  function() {
+        
+        return jobWorkQueueList;
+        
+    } 
 };
 

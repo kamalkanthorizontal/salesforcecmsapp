@@ -4,7 +4,7 @@ var nforce = require("nforce");
 var hbs = require('hbs');
 var dotenv = require("dotenv").config();
 var path = require('path');
-const {run, getMcFolders, createMcFolder, getMcAuth} = require('./src/mcUtils.js');
+const {run, getMcFolders, createMcFolder, getMcAuth, jobs} = require('./src/mcUtils.js');
 
 var isLocal;
 var herokuApp;
@@ -69,9 +69,24 @@ app.get("/setup", function (req, res) {
     });
 });
 
+// Kick off a new job by adding it to the work queue
+app.get('/jobs', async (req, res) => {
+    res.json({jobs: jobs()});
+  });
+  
+
 app.get("/queue", async function (req, res) {
+    console.log('jobs', jobs());
+    //res.render("queue.ejs");
+    res.sendFile('./queue.html', { root: __dirname }); 
+
+   /*const html = `<div></div>`;
+   res.writeHead(200, {'Content-Type': 'text/html'});
+   res.end(html);*/
+
     //res.render('queue');
-    res.sendFile(path.join(__dirname + '/queue.html'));
+    //res.sendFile(path.join(__dirname + '/queue.html'));
+   // res.sendFile(path.join(__dirname + '/queue.html'));
 })
 
 app.get("/", async function (req, res) {
