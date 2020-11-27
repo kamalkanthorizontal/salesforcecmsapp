@@ -230,8 +230,8 @@ async function startUploadProcess(workQueue) {
             return {...ele, state: ele.jobId === jobId ? state: ele.state};
         })
 
-        console.log(jobWorkQueueList);
-        console.log(`Job Id ${jobId} status : ${state}`);
+        //console.log(jobWorkQueueList);
+        //console.log(`Job Id ${jobId} status : ${state}`);
     });
 
     workQueue.on('failed', (jobId, err) => {
@@ -260,7 +260,7 @@ async function startUploadProcess(workQueue) {
 
             if (result) {
                 const { managedContentNodeTypes, items } = result;
-                console.log('items--->', items);
+                //console.log('items--->', items);
                 // Get name prefix
                 
                 const defaultNameNode = managedContentNodeTypes.find(mcNode => mcNode.assetTypeId == 0);
@@ -287,8 +287,8 @@ async function startUploadProcess(workQueue) {
                             const assetTypeId = mcNodes ? mcNodes.assetTypeId : '';
                             let objItem;
     
-                            console.log('key ',key);
-                            console.log('value.nodeType ', value.nodeType);
+                            //console.log('key ',key);
+                            //console.log('value.nodeType ', value.nodeType);
     
                             if (value.nodeType === 'MediaSource') { // MediaSource - cms_image and cms_document
                                 value.assetTypeId = assetTypeId;
@@ -304,7 +304,7 @@ async function startUploadProcess(workQueue) {
                     
                 })
 
-                console.log('finalArray->>', finalArray);
+                //console.log('finalArray->>', finalArray);
                 console.log(`Filtered no. of nodes for: ${finalArray.length}`);
 
 
@@ -313,7 +313,7 @@ async function startUploadProcess(workQueue) {
                 const totalNumer = finalArray.length;
                 //Upload CMS content to Marketing Cloud
                 await Promise.all(finalArray.map(async (ele) => {
-                    console.log('ele.assetTypeId ', ele.assetTypeId );
+                   // console.log('ele.assetTypeId ', ele.assetTypeId );
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
                             ele.name,
