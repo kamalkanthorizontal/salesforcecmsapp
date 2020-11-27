@@ -483,7 +483,7 @@ async function startUploadProcess(workQueue) {
                 let counter = 0;
                 const totalNumer = finalArray.length;
                 //Upload CMS content to Marketing Cloud
-                
+                await Promise.all(
                 finalArray.map(async (ele) => {
                     // console.log('ele.assetTypeId ', ele.assetTypeId );
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
@@ -528,6 +528,7 @@ async function startUploadProcess(workQueue) {
 
                     }
                 })
+                )
                 //await Promise.all());
                 // call done when finished
 
