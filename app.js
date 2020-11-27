@@ -16,6 +16,7 @@ app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
 
 const ALLOWED_CONNECTION_STATUS = 'Not Configured';
+const MC_CONTENT_FILTER_ID_API_PATH = '/asset/v1/content/categories?$filter=Id eq ';
 
 function isNotBlank(val) {
     if (typeof val !== 'undefined' && val) {
@@ -90,8 +91,8 @@ app.post('/', async (req, res, next) => {
 
         if (isSetup()) {
             let { contentTypeNodes, contentType, channelId, mcFolderId } = req.body;
-            // console.log('mcFolderId--->', mcFolderId);
-            // console.log('contentTypeNodes--->', contentTypeNodes);
+            mcFolderId = await getValidFolderId(mcFolderId);
+            console.log('mcFolderId--->', mcFolderId);
 
             contentTypeNodes = JSON.parse(contentTypeNodes);
 
@@ -125,6 +126,30 @@ app.post('/', async (req, res, next) => {
         res.send(error.message);
     }
 });
+
+async function getValidFolderId(folderId) {
+    try{
+        const mcAuthResults = await getMcAuth();
+        const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_CONTENT_FILTER_ID_API_PATH}${folderId}`;
+    
+        const res = await fetch(serviceUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${mcAuthResults.access_token}`
+            },
+        });
+    
+        if(res && res.id == folderId ){
+            return folderId;
+        }else{
+            return  await getFolderId()
+        }
+    }catch(error){
+        console.log('Error in folder id:', error);
+        return folderId;
+    }
+}
 
 async function updateCallbackUrl(appName = '', folderId = '') {
     try {
@@ -166,6 +191,7 @@ async function updateCallbackUrl(appName = '', folderId = '') {
         console.log(error);
     }
 }
+
 
 async function getFolderId() {
     const folderName = process.env.MC_FOLDER_NAME; // Env folder name
