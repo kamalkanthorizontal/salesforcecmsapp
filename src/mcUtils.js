@@ -15,7 +15,7 @@ const getMcAuthBody = {
     client_id: process.env.MC_CLIENT_ID,
     client_secret: process.env.MC_CLIENT_SECRET,
 };
-const PAGE_SIZE = 1;
+const PAGE_SIZE = process.env.PAGE_SIZE ||  5;
 
 async function getMcAuth() {
     return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + MS_AUTH_PATH, {
@@ -42,7 +42,7 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults) {
         },
         content: value,
         category: {
-            id: 313251
+            id: folderId
         },
     };
     // Create Marketing Cloud Block Asset
@@ -74,7 +74,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
             },
             file: base64ImageBody,
             category: {
-                id: 313251
+                id: folderId
             },
         };
 
@@ -294,7 +294,7 @@ async function startUploadProcess(workQueue) {
                 })
 
                 //console.log('finalArray->>', finalArray);
-                console.log(`Filtered no. of nodes for: ${finalArray.length}`);
+                console.log(`Filtered no. of nodes for: ${namePrefix} ${job.id} ${finalArray.length}`);
 
                 let counter = 0;
                 const totalNumer = finalArray.length;
