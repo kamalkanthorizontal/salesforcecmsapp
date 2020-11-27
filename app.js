@@ -15,7 +15,6 @@ app.enable('trust proxy');
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
 
-
 const ALLOWED_CONNECTION_STATUS = 'Not Configured';
 
 function isNotBlank(val) {
@@ -180,9 +179,9 @@ app.post('/', async (req, res, next) => {
 
         if (isSetup()) {
             let { contentTypeNodes, contentType, channelId, mcFolderId } = req.body;
-            console.log('contentTypeNodes:', contentTypeNodes);
+            //console.log('contentTypeNodes:', contentTypeNodes);
             contentTypeNodes = JSON.parse(contentTypeNodes);
-            console.log('mcFolderId:', mcFolderId);
+            //console.log('mcFolderId:', mcFolderId);
             //nforce setup to connect Salesforce
             let org = nforce.createConnection({
                 clientId: process.env.CONSUMER_KEY,
@@ -214,9 +213,6 @@ app.post('/', async (req, res, next) => {
     }
 });
 
-
-
-
 async function updateCallbackUrl(appName = '', folderId = '') {
     try {
         let org = nforce.createConnection({
@@ -237,38 +233,41 @@ async function updateCallbackUrl(appName = '', folderId = '') {
 
         const query = `SELECT Id, Heroku_Endpoint__c, SFMC_Folder_Id__c, Connection_Status__c FROM CMS_Connection__c WHERE Id = '${process.env.SF_CMS_CONNECTION_ID}' LIMIT 1`;
         const resQuery = await org.query({ query });
-        
+
         if (resQuery && resQuery.records && resQuery.records.length) {
             let sobject = resQuery.records[0];
-            console.log('resQuery', sobject);
-            if(sobject._fields.connection_status__c ===  null || sobject._fields.connection_status__c === ALLOWED_CONNECTION_STATUS){
+            console.log('resQuery', sobject._fields);
+            if (sobject._fields.connection_status__c === null
+                || sobject._fields.connection_status__c === ALLOWED_CONNECTION_STATUS
+                || sobject._fields.sfmc_folder_id__c != folderId
+                || sobject._fields.heroku_endpoint__c != appName) {
                 sobject.set('Heroku_Endpoint__c', appName);
                 sobject.set('Connection_Status__c', 'Active');
                 sobject.set('SFMC_Folder_Id__c', folderId);
+                console.log('Updating Salesforce CMS Connection Details:', sobject._fields);
                 await org.update({ sobject, oauth });
             }
-            
-        }
 
+        }
     } catch (error) {
         console.log(error);
     }
 }
 
-async function getFolderId(){
+async function getFolderId() {
     const folderName = process.env.MC_FOLDER_NAME; // Env folder name
-    const mcAuthResults = await getMcAuth(); 
+    const mcAuthResults = await getMcAuth();
     const mcFolders = await getMcFolders(mcAuthResults.access_token); // Getting all folders
     const matchedFolder = [...mcFolders.items].find(ele => ele.name === folderName); // Check is folder already created or not
-    if(!matchedFolder){
-        //TODO create folder in mc
+    if (!matchedFolder) {
+        //Create folder in MC
         const parentFolder = [...mcFolders.items].find(ele => ele.parentId === 0);
-        if(parentFolder && parentFolder.id){
-            const createdFolder =  await createMcFolder(parentFolder.id, mcAuthResults.access_token);
-            console.log("createdFolder >>> ", createdFolder);
-            return createdFolder ? createdFolder.id :  null;
+        if (parentFolder && parentFolder.id) {
+            console.log("Folder is being created");
+            const createdFolder = await createMcFolder(parentFolder.id, mcAuthResults.access_token);
+            return createdFolder ? createdFolder.id : null;
         }
-    }else{
+    } else {
         return matchedFolder.id;
     }
 }
@@ -277,14 +276,14 @@ async function getFolderId(){
 app.listen(process.env.PORT || 3000, async function () {
     //Get App Ul
     const appUrl = `https://${process.env.APP_NAME}.herokuapp.com`;
-    console.log("appName >>> ", appUrl);    
-    if(appUrl){
+    console.log("appName >>> ", appUrl);
+    if (appUrl) {
         //Get MC Folder Id
         const mcFolderId = await getFolderId();
-        console.log('getFolderId', mcFolderId);
-        if(mcFolderId){
+        console.log('MC Folder Id:', mcFolderId);
+        if (mcFolderId) {
             //Update call back url and mc folder id
-            updateCallbackUrl(appUrl, mcFolderId);    
+            updateCallbackUrl(appUrl, mcFolderId);
         }
     }
 });
