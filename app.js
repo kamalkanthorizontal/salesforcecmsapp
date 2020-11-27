@@ -78,85 +78,8 @@ app.get("/queue", async function (req, res) {
     console.log('jobs', jobs());
     //res.render("queue.ejs");
     res.sendFile('./queue.html', { root: __dirname }); 
-
-   /*const html = `<div></div>`;
-   res.writeHead(200, {'Content-Type': 'text/html'});
-   res.end(html);*/
-
-    //res.render('queue');
-    //res.sendFile(path.join(__dirname + '/queue.html'));
-   // res.sendFile(path.join(__dirname + '/queue.html'));
 })
 
-app.get("/", async function (req, res) {
-    isLocal = req.hostname.indexOf("localhost") == 0;
-    if (req.hostname.indexOf(".herokuapp.com") > 0) {
-        herokuApp = req.hostname.replace(".herokuapp.com", "");
-    }
-    const mcFolderId = '313256';
-    const channelId = '0apL00000004COkIAM';
-    
-    const contentTypeNodes = [{
-        "Id": "0T11H000000brYSSAY",
-        "MasterLabel": "Image",
-        "DeveloperName": "cms_image",
-        "managedContentNodeTypes": [{
-            "nodeLabel": "Title",
-            "nodeName": "title",
-            "assetTypeId": "0",
-            "rowId": 1
-        }, {
-            "nodeLabel": "Source",
-            "nodeName": "source",
-            "assetTypeId": "8",
-            "rowId": 3
-        }]
-    }, {
-        "Id": "0T1L00000004K6HKAU",
-        "MasterLabel": "Case Study Test Collection",
-        "DeveloperName": "Case_Study_Test_Collection",
-        "managedContentNodeTypes": [{
-            "nodeLabel": "Case Study Title",
-            "nodeName": "Title",
-            "assetTypeId": "0",
-            "rowId": 1
-        }, {
-            "nodeLabel": "Case Study Image",
-            "nodeName": "Case_Study_Image",
-            "assetTypeId": "8",
-            "rowId": 3
-        }]
-    }];
-
-    if (isSetup()) {
-        //nforce setup to connect Salesforce
-        let org = nforce.createConnection({
-            clientId: process.env.CONSUMER_KEY,
-            clientSecret: process.env.CONSUMER_SECRET,
-            redirectUri: oauthCallbackUrl(req),
-            apiVersion: process.env.SF_API_VERSION,
-            mode: "single",
-            environment: "sandbox",
-            autoRefresh: true
-        });
-
-        try {
-            const resp = await org.authenticate({
-                username: process.env.SF_USERNAME,
-                password: process.env.SF_PASSWORD,
-                securityToken: process.env.SF_SECURITY_TOKEN
-            });
-            console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
-           // await run(resp, org, contentTypeNodes, channelId, res, mcFolderId);
-            await run(resp, org, contentTypeNodes, channelId, mcFolderId);
-            res.send('CMS Content Type is syncing in the background. Please wait..');
-        } catch (error) {
-            res.send(error.message);
-        }
-    } else {
-        res.redirect("/setup");
-    }
-});
 
 app.post('/', async (req, res, next) => {
     try {
@@ -167,8 +90,8 @@ app.post('/', async (req, res, next) => {
 
         if (isSetup()) {
             let { contentTypeNodes, contentType, channelId, mcFolderId } = req.body;
-            console.log('mcFolderId--->', mcFolderId);
-            console.log('contentTypeNodes--->', contentTypeNodes);
+           // console.log('mcFolderId--->', mcFolderId);
+           // console.log('contentTypeNodes--->', contentTypeNodes);
             
             contentTypeNodes = JSON.parse(contentTypeNodes);
             

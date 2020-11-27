@@ -15,6 +15,7 @@ const getMcAuthBody = {
     client_id: process.env.MC_CLIENT_ID,
     client_secret: process.env.MC_CLIENT_SECRET,
 };
+const PAGE_SIZE = 5;
 
 async function getMcAuth() {
     return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + MS_AUTH_PATH, {
@@ -51,7 +52,7 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults) {
 async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults) {
     return new Promise(async (resolve, reject) => {
         const imageUrl = `${imageNode.unauthenticatedUrl}`;
-        console.log('imageNode--->', imageNode);
+        // console.log('imageNode--->', imageNode);
         const base64ImageBody = await downloadBase64FromURL(
             imageUrl,
             cmsAuthResults.access_token
@@ -61,9 +62,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
         const  publishedDate =  imageNode.publishedDate ? imageNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
 
         const fileName =  imageNode.name ? imageNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
-        console.log('fileName--->', fileName);
-        console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
-
+       
         let imageAssetBody = {
             name: fileName + imageExt,
             assetType: {
@@ -83,7 +82,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
         var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
         // Create Marketing Cloud Image Asset
         if (mcRegex.test(fileName)) {
-            console.log('createMCAsset--->', fileName)
+            console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
             await createMCAsset(mcAuthResults.access_token, imageAssetBody);
         } else {
             console.log('Upload on hold!! Please check the prohibited chars in', fileName);
@@ -233,13 +232,12 @@ async function startUploadProcess(workQueue) {
 
     workQueue.on('failed', (jobId, err) => {
         console.log(`Job ${jobId} failed with error ${err.message}`);
-        console.log(`failed jobWorkQueueList`, jobWorkQueueList);
+        // console.log(`failed jobWorkQueueList`, jobWorkQueueList);
 
     });
 
     workQueue.on('progress', function(job, progress){
         // A job's progress was updated!
-        console.log(`Job ${job.id} progress ${progress.percents}`);
         jobWorkQueueList = [...jobWorkQueueList].map(ele=>{
             return {...ele, progress: ele.jobId === job.id ? progress.percents: ele .progress};
         })
@@ -271,10 +269,7 @@ async function startUploadProcess(workQueue) {
                     const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value : '';
                     const publishedDate = item.publishedDate ? item.publishedDate : '';
                     //Filter node.nodeName except node with assetTypeId = 0
-                    let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName);
-                    console.log(`Filtered node.nodeNames for ${item.typeLabel}`, nodes);
-                    console.log(job.id)
-                    
+                    let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName); 
     
                     //Filter nodes from the REST response as per the Salesforce CMS Content Type Node mapping
                     Object.entries(contentNodes).forEach(([key, value]) => {
@@ -321,7 +316,6 @@ async function startUploadProcess(workQueue) {
 
 
                     } else if (ele.assetTypeId === '8') { //image
-                        console.log('ele.assetTypeId ', ele.assetTypeId );
                         await moveImageToMC(
                             ele,
                             folderId,
@@ -364,7 +358,7 @@ module.exports = {
             try {
                 const managedContentType = ele.DeveloperName;
                 const managedContentNodeTypes = ele.managedContentNodeTypes;
-                const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=5`;
+                const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=${PAGE_SIZE}`;
                 let result = await org.getUrl(cmsURL);
                 if(result && result.items && result.items.length ){
                     result.managedContentNodeTypes = managedContentNodeTypes;
@@ -375,7 +369,7 @@ module.exports = {
                     
                     console.log('Hitting Connect REST URL:', cmsURL);
                     console.log('Job Id:', job.id);
-                    console.log('jobWorkQueueList:', jobWorkQueueList);
+                    //console.log('jobWorkQueueList:', jobWorkQueueList);
 
                 }
 
