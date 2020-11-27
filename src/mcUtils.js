@@ -374,7 +374,7 @@ module.exports = {
             try {
                 const managedContentType = ele.DeveloperName;
                 const managedContentNodeTypes = ele.managedContentNodeTypes;
-                const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=1`;
+                const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=5`;
                 let result = await org.getUrl(cmsURL);
                 if(result && result.items && result.items.length ){
                     result.managedContentNodeTypes = managedContentNodeTypes;
