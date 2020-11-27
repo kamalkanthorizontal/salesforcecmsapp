@@ -229,9 +229,6 @@ async function startUploadProcess(workQueue) {
         jobWorkQueueList = [...jobWorkQueueList].map(ele=>{
             return {...ele, state: ele.jobId === jobId ? state: ele.state};
         })
-
-        //console.log(jobWorkQueueList);
-        //console.log(`Job Id ${jobId} status : ${state}`);
     });
 
     workQueue.on('failed', (jobId, err) => {
@@ -246,8 +243,8 @@ async function startUploadProcess(workQueue) {
         jobWorkQueueList = [...jobWorkQueueList].map(ele=>{
             return {...ele, progress: ele.jobId === job.id ? progress.percents: ele .progress};
         })
-        //console.log(job);
-      })
+        
+    })
       
 
     let mcAuthResults = await getMcAuth();
@@ -260,7 +257,7 @@ async function startUploadProcess(workQueue) {
 
             if (result) {
                 const { managedContentNodeTypes, items } = result;
-                //console.log('items--->', items);
+
                 // Get name prefix
                 
                 const defaultNameNode = managedContentNodeTypes.find(mcNode => mcNode.assetTypeId == 0);
@@ -287,9 +284,6 @@ async function startUploadProcess(workQueue) {
                             const assetTypeId = mcNodes ? mcNodes.assetTypeId : '';
                             let objItem;
     
-                            //console.log('key ',key);
-                            //console.log('value.nodeType ', value.nodeType);
-    
                             if (value.nodeType === 'MediaSource') { // MediaSource - cms_image and cms_document
                                 value.assetTypeId = assetTypeId;
                                 objItem = {...value, publishedDate};
@@ -307,8 +301,6 @@ async function startUploadProcess(workQueue) {
                 //console.log('finalArray->>', finalArray);
                 console.log(`Filtered no. of nodes for: ${finalArray.length}`);
 
-
-
                 let counter = 0;
                 const totalNumer = finalArray.length;
                 //Upload CMS content to Marketing Cloud
@@ -324,7 +316,6 @@ async function startUploadProcess(workQueue) {
                         );
 
                         counter++;
-                        console.log(job.id, 'moveTextToMC counter', counter);
                         const percents = ((counter/totalNumer) * 100).toFixed(3);
                         job.progress({ percents, currentStep: "currently we doing another thing" });
 
@@ -338,15 +329,14 @@ async function startUploadProcess(workQueue) {
                             content.cmsAuthResults
                         );
 
+                        
                         counter++;
                         const percents = ((counter/totalNumer) * 100).toFixed(3);
-                        console.log(job.id, 'moveTextToMC counter', counter);
                         job.progress({ percents, currentStep: "currently we doing another thing" });
-                        
+
                     } else if (ele.assetTypeId === '11') { //document
                         counter++;
                         const percents = ((counter/totalNumer) * 100).toFixed(3);
-                        console.log(job.id, 'moveDocumentToMC counter', counter);
                         job.progress({ percents, currentStep: "currently we doing another thing" });
                         
                         /*await moveDocumentToMC(
@@ -386,9 +376,8 @@ module.exports = {
                     console.log('Hitting Connect REST URL:', cmsURL);
                     console.log('Job Id:', job.id);
                     console.log('jobWorkQueueList:', jobWorkQueueList);
-                }
 
-               
+                }
 
             } catch (error) {
                 console.log(error);
