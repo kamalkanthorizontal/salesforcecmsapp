@@ -413,6 +413,8 @@ workQueue.on('global:completed', async (jobId, result) => {
     jobWorkQueueList = [...jobWorkQueueList].map(ele => {
         return { ...ele, state: ele.jobId === jobId ? state : ele.state };
     })
+
+    console.log(`Job ${jobId} is ${state}`);
 });
 
 workQueue.on('failed', (jobId, err) => {
