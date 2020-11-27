@@ -79,12 +79,17 @@ app.post('/', async (req, res, next) => {
 
         if (isSetup()) {
             let { contentTypeNodes, contentType, channelId, mcFolderId } = req.body;
-            if(mcFolderId) {
-                const validFolderId = await getValidFolderId(mcFolderId);
+            let validFolderId;
+            if (mcFolderId) {
+                validFolderId = await getValidFolderId(mcFolderId);
                 console.log('validedFolderId--->', validFolderId);
             }
-            
-            if (validFolderId !== mcFolderId || !validFolderId) {
+
+            if (!validFolderId) {
+                validFolderId = await getFolderId();
+            }
+
+            if (validFolderId !== mcFolderId) {
                 await updateCallbackUrl(null, validFolderId);
             }
 
