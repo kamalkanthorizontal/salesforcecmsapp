@@ -167,9 +167,11 @@ app.post('/', async (req, res, next) => {
 
         if (isSetup()) {
             let { contentTypeNodes, contentType, channelId, mcFolderId } = req.body;
-            //console.log('contentTypeNodes:', contentTypeNodes);
+            console.log('mcFolderId--->', mcFolderId);
+            console.log('contentTypeNodes--->', contentTypeNodes);
+            
             contentTypeNodes = JSON.parse(contentTypeNodes);
-            //console.log('mcFolderId:', mcFolderId);
+            
             //nforce setup to connect Salesforce
             let org = nforce.createConnection({
                 clientId: process.env.CONSUMER_KEY,
