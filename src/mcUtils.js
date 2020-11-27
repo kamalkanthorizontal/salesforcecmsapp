@@ -551,7 +551,9 @@ module.exports = {
                 if (result && result.items && result.items.length) {
                     result.managedContentNodeTypes = managedContentNodeTypes;
 
-                    const job = await workQueue.add({ content: { result, cmsAuthResults, folderId } });
+                    const job = await workQueue.add({ content: { result, cmsAuthResults, folderId } },  {
+                        attempts: 1
+                      });
 
                     jobWorkQueueList = [...jobWorkQueueList, { channelId, jobId: job.id, state: "queued", items: result.items }];
 
