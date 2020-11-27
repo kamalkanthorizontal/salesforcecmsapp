@@ -390,8 +390,6 @@ async function createMCAsset(access_token, assetBody) {
                     console.log(`Error for:${assetBody.name}`, error);
                     reject(error);
                 } else {
-                    console.log(body.validationErrors[0].message)
-
                     console.log('validationErrors--->', body.validationErrors); 
                     const msg = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].message : '';
                     const errorCode = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].errorcode : '';
