@@ -405,34 +405,29 @@ async function createMCAsset(access_token, assetBody) {
 let maxJobsPerWorker = 150;
 let jobWorkQueueList = [];
 
-let workQueue = new Queue(`work`, REDIS_URL);
+async function startUploadProcess(workQueue) {
+    workQueue.on('global:completed', async (jobId, result) => {
+        let job = await workQueue.getJob(jobId);
+        let state = await job.getState();
+        jobWorkQueueList = [...jobWorkQueueList].map(ele => {
+            return { ...ele, state: ele.jobId === jobId ? state : ele.state };
+        })
+    });
 
-workQueue.on('global:completed', async (jobId, result) => {
-    let job = await workQueue.getJob(jobId);
-    let state = await job.getState();
-    jobWorkQueueList = [...jobWorkQueueList].map(ele => {
-        return { ...ele, state: ele.jobId === jobId ? state : ele.state };
+    workQueue.on('failed', (jobId, err) => {
+        console.log(`Job ${jobId} failed with error ${err.message}`);
+        // console.log(`failed jobWorkQueueList`, jobWorkQueueList);
+
+    });
+
+    workQueue.on('progress', function (job, progress) {
+        // A job's progress was updated!
+        jobWorkQueueList = [...jobWorkQueueList].map(ele => {
+            return { ...ele, progress: ele.jobId === job.id ? progress.percents : ele.progress };
+        })
+
     })
 
-    console.log(`Job ${jobId} is ${state}`);
-});
-
-workQueue.on('failed', (jobId, err) => {
-    console.log(`Job ${jobId} failed with error ${err.message}`);
-    // console.log(`failed jobWorkQueueList`, jobWorkQueueList);
-
-});
-
-workQueue.on('progress', function (job, progress) {
-    // A job's progress was updated!
-    jobWorkQueueList = [...jobWorkQueueList].map(ele => {
-        return { ...ele, progress: ele.jobId === job.id ? progress.percents : ele.progress };
-    })
-
-})
-
-async function startUploadProcess() {
-  
 
     let mcAuthResults = await getMcAuth();
     console.log("Marketing Cloud authentication :", mcAuthResults.access_token ? 'Successful' : 'Failure');
@@ -544,11 +539,9 @@ async function startUploadProcess() {
 
 }
 
-
-
 module.exports = {
     run: async function (cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
-        
+        let workQueue = new Queue(`work-${channelId}`, REDIS_URL);
         await Promise.all(contentTypeNodes.map(async (ele) => {
             try {
                 const managedContentType = ele.DeveloperName;
@@ -573,7 +566,7 @@ module.exports = {
             }
         }));
 
-        startUploadProcess();
+        startUploadProcess(workQueue);
     },
 
     getMcFolders: async function (accessToken) {
