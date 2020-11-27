@@ -252,7 +252,7 @@ async function startUploadProcess(workQueue) {
         try {
             let { content } = job.data;
             const { result, folderId } = content;
-
+            console.log('folderId--->', folderId);
             if (result) {
                 const { managedContentNodeTypes, items } = result;
 
