@@ -539,36 +539,40 @@ async function startUploadProcess(workQueue) {
 
 }
 
-module.exports = {
-    run: async function (cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
-        let workQueue = new Queue(`work-${channelId}`, REDIS_URL);
-        await Promise.all(contentTypeNodes.map(async (ele) => {
-            try {
-                const managedContentType = ele.DeveloperName;
-                const managedContentNodeTypes = ele.managedContentNodeTypes;
-                const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=${PAGE_SIZE}`;
-                let result = await org.getUrl(cmsURL);
-                if (result && result.items && result.items.length) {
-                    result.managedContentNodeTypes = managedContentNodeTypes;
+async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId){
+    await Promise.all(contentTypeNodes.map(async (ele) => {
+        try {
+            const managedContentType = ele.DeveloperName;
+            const managedContentNodeTypes = ele.managedContentNodeTypes;
+            const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=${PAGE_SIZE}`;
+            let result = await org.getUrl(cmsURL);
+            if (result && result.items && result.items.length) {
+                result.managedContentNodeTypes = managedContentNodeTypes;
 
-                    const job = await workQueue.add({ content: { result, cmsAuthResults, folderId } },  {
-                        attempts: 1
-                      });
+                const job = await workQueue.add({ content: { result, cmsAuthResults, folderId } },  {
+                    attempts: 1
+                  });
 
-                    jobWorkQueueList = [...jobWorkQueueList, { channelId, jobId: job.id, state: "queued", items: result.items }];
+                jobWorkQueueList = [...jobWorkQueueList, { channelId, jobId: job.id, state: "queued", items: result.items }];
 
-                    console.log('Hitting Connect REST URL:', cmsURL);
-                    console.log('Job Id:', job.id);
-                    //console.log('jobWorkQueueList:', jobWorkQueueList);
+                console.log('Hitting Connect REST URL:', cmsURL);
+                console.log('Job Id:', job.id);
+                //console.log('jobWorkQueueList:', jobWorkQueueList);
 
-                }
-
-            } catch (error) {
-                console.log(error);
             }
-        }));
 
-        startUploadProcess(workQueue);
+        } catch (error) {
+            console.log(error);
+        }
+    }));
+
+    startUploadProcess(workQueue);
+}
+
+module.exports = {
+    run: function (cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
+        let workQueue = new Queue(`work-${channelId}`, REDIS_URL);
+        addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId)
     },
 
     getMcFolders: async function (accessToken) {
