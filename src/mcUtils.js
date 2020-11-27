@@ -123,7 +123,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
         // Create Marketing Cloud Image Asset
         if (mcRegex.test(fileName)) {
-            console.log(`Uploading doc to MC: ${fileName + imageExt} with base64DocBody length ${base64DocBody.length}`);
+            console.log(`Uploading doc to MC: ${fileName + docExt} with base64DocBody length ${base64DocBody.length}`);
             await createMCAsset(mcAuthResults.access_token, docAssetBody);
         } else {
             console.log('Upload on hold!! Please check the prohibited chars in', fileName);

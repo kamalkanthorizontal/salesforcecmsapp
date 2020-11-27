@@ -1,9 +1,11 @@
 var express = require("express");
 var bodyParser = require("body-parser");
 var nforce = require("nforce");
+const fetch = require('node-fetch');
 var hbs = require('hbs');
 var dotenv = require("dotenv").config();
 var path = require('path');
+
 const { run, getMcFolders, createMcFolder, getMcAuth, jobs } = require('./src/mcUtils.js');
 
 var isLocal;
@@ -91,7 +93,13 @@ app.post('/', async (req, res, next) => {
 
         if (isSetup()) {
             let { contentTypeNodes, contentType, channelId, mcFolderId } = req.body;
-            mcFolderId = await getValidFolderId(mcFolderId);
+            const validFolderId = await getValidFolderId(mcFolderId);
+            console.log('validFolderId--->', validFolderId);
+            if(validFolderId !== mcFolderId){
+                await updateCallbackUrl(null, validFolderId);
+            }
+
+            mcFolderId = validFolderId;
             console.log('mcFolderId--->', mcFolderId);
 
             contentTypeNodes = JSON.parse(contentTypeNodes);
@@ -151,7 +159,7 @@ async function getValidFolderId(folderId) {
     }
 }
 
-async function updateCallbackUrl(appName = '', folderId = '') {
+async function updateCallbackUrl(appName, folderId = '') {
     try {
         let org = nforce.createConnection({
             clientId: process.env.CONSUMER_KEY,
@@ -179,8 +187,11 @@ async function updateCallbackUrl(appName = '', folderId = '') {
                 || sobject._fields.connection_status__c === ALLOWED_CONNECTION_STATUS
                 || sobject._fields.sfmc_folder_id__c != folderId
                 || sobject._fields.heroku_endpoint__c != appName) {
-                sobject.set('Heroku_Endpoint__c', appName);
-                sobject.set('Connection_Status__c', 'Active');
+                if(appName){
+                    sobject.set('Heroku_Endpoint__c', appName);
+                    sobject.set('Connection_Status__c', 'Active');
+                }
+                
                 sobject.set('SFMC_Folder_Id__c', folderId);
                 console.log('Updating Salesforce CMS Connection Details:', sobject._fields);
                 await org.update({ sobject, oauth });
