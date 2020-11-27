@@ -105,38 +105,34 @@ app.get("/", async function (req, res) {
         "DeveloperName": "Case_Study_Test_Collection"
     }];
     const contentTypeNodes = [{
-        "Id": "0T1L00000004K6vKAE",
-        "MasterLabel": "Content Block",
-        "DeveloperName": "ContentBlock",
+        "Id": "0T11H000000brYRSAY",
+        "MasterLabel": "Document",
+        "DeveloperName": "cms_document",
         "managedContentNodeTypes": [{
-            "nodeLabel": "Name",
-            "nodeName": "Name",
-            "assetTypeId": "0"
+            "nodeLabel": "Title",
+            "nodeName": "title",
+            "assetTypeId": "0",
+            "rowId": 1
         }, {
-            "nodeLabel": "Headline",
-            "nodeName": "Headline",
-            "assetTypeId": "196"
-        }, {
-            "nodeLabel": "Subheadline",
-            "nodeName": "Subheadline",
-            "assetTypeId": "196"
-        }, {
-            "nodeLabel": "Image",
-            "nodeName": "Image",
-            "assetType": "8"
+            "nodeLabel": "Source",
+            "nodeName": "source",
+            "assetTypeId": "11",
+            "rowId": 3
         }]
     }, {
-        "Id": "0T1L00000004K6HKAU",
-        "MasterLabel": "Case Study Test Collection",
-        "DeveloperName": "Case_Study_Test_Collection",
+        "Id": "0T11H000000brYSSAY",
+        "MasterLabel": "Image",
+        "DeveloperName": "cms_image",
         "managedContentNodeTypes": [{
-            "nodeLabel": "Case Study Title",
-            "nodeName": "Title",
-            "assetType": "0"
+            "nodeLabel": "Title",
+            "nodeName": "title",
+            "assetTypeId": "0",
+            "rowId": 1
         }, {
-            "nodeLabel": "Case Study Description",
-            "nodeName": "Case_Study_Description",
-            "assetType": "196"
+            "nodeLabel": "Source",
+            "nodeName": "source",
+            "assetTypeId": "8",
+            "rowId": 3
         }]
     }];
 
