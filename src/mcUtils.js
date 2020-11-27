@@ -15,7 +15,7 @@ const getMcAuthBody = {
     client_id: process.env.MC_CLIENT_ID,
     client_secret: process.env.MC_CLIENT_SECRET,
 };
-const PAGE_SIZE = process.env.PAGE_SIZE ||  5;
+const PAGE_SIZE = process.env.PAGE_SIZE || 5;
 
 async function getMcAuth() {
     return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + MS_AUTH_PATH, {
@@ -59,10 +59,10 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
         );
 
         const imageExt = path.parse(imageNode.fileName).ext;
-        const  publishedDate =  imageNode.publishedDate ? imageNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
+        const publishedDate = imageNode.publishedDate ? imageNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
 
-        const fileName =  imageNode.name ? imageNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
-       
+        const fileName = imageNode.name ? imageNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
+
         let imageAssetBody = {
             name: fileName + imageExt,
             assetType: {
@@ -94,28 +94,26 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
 
 async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults) {
     return new Promise(async (resolve, reject) => {
-        const imageUrl = `${documentNode.unauthenticatedUrl}`;
-         console.log('documentNode--->', documentNode);
-        const base64ImageBody = await downloadBase64FromURL(
-            imageUrl,
+        const doCUrl = `${documentNode.unauthenticatedUrl}`;
+        const base64DocBody = await downloadBase64FromURL(
+            doCUrl,
             cmsAuthResults.access_token
         );
 
-        const imageExt = path.parse(documentNode.fileName).ext;
-        const  publishedDate =  documentNode.publishedDate ? documentNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
+        const docExt = path.parse(documentNode.fileName).ext;
+        const publishedDate = documentNode.publishedDate ? documentNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
 
-        const fileName =  documentNode.name ? documentNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(documentNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
-        console.log('documentNode fileName--->', fileName);
-        let imageAssetBody = {
-            name: fileName + imageExt,
+        const fileName = documentNode.name ? documentNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(documentNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
+        let docAssetBody = {
+            name: fileName + docExt,
             assetType: {
-                id: 127// getImageAssetTypeId(imageExt.replace('.', '')),
+                id: getDocumentAssetTypeId(docExt.replace('.', '')),
             },
             fileProperties: {
-                fileName: fileName + imageExt,
-                extension: imageExt,
+                fileName: fileName + docExt,
+                extension: docExt,
             },
-            file: base64ImageBody,
+            file: base64DocBody,
             category: {
                 id: folderId
             },
@@ -125,8 +123,8 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
         // Create Marketing Cloud Image Asset
         if (mcRegex.test(fileName)) {
-            console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
-            await createMCAsset(mcAuthResults.access_token, imageAssetBody);
+            console.log(`Uploading doc to MC: ${fileName + imageExt} with base64DocBody length ${base64DocBody.length}`);
+            await createMCAsset(mcAuthResults.access_token, docAssetBody);
         } else {
             console.log('Upload on hold!! Please check the prohibited chars in', fileName);
         }
@@ -240,6 +238,145 @@ function getImageAssetTypeId(imageExtension) {
     return assetTypeId;
 }
 
+function getDocumentAssetTypeId(docExtension) {
+    let assetTypeId = '11';
+
+    switch (docExtension.toLowerCase()) {
+        case 'indd':
+            assetTypeId = '101';
+            break;
+        case 'indt':
+            assetTypeId = '102';
+            break;
+        case 'incx':
+            assetTypeId = '103';
+            break;
+        case 'wwcx':
+            assetTypeId = '104';
+            break;
+        case 'doc':
+            assetTypeId = '105';
+            break;
+        case 'docx':
+            assetTypeId = '106';
+            break;
+        case 'dot':
+            assetTypeId = '107';
+            break;
+        case 'dotx':
+            assetTypeId = '108';
+            break;
+        case 'mdb':
+            assetTypeId = '109';
+            break;
+        case 'mpp':
+            assetTypeId = '110';
+            break;
+        case 'ics':
+            assetTypeId = '111';
+            break;
+        case 'xls':
+            assetTypeId = '112';
+            break;
+        case 'xlsx':
+            assetTypeId = '113';
+            break;
+        case 'xlk':
+            assetTypeId = '114';
+            break;
+        case 'xlsm':
+            assetTypeId = '115';
+            break;
+        case 'xlt':
+            assetTypeId = '116';
+            break;
+        case 'xltm':
+            assetTypeId = '117';
+            break;
+        case 'csv':
+            assetTypeId = '118';
+            break;
+        case 'tsv':
+            assetTypeId = '119';
+            break;
+        case 'tab':
+            assetTypeId = '120';
+            break;
+        case 'pps':
+            assetTypeId = '121';
+            break;
+        case 'ppsx':
+            assetTypeId = '122';
+            break;
+        case 'ppt':
+            assetTypeId = '123';
+            break;
+        case 'pptx':
+            assetTypeId = '124';
+            break;
+        case 'pot':
+            assetTypeId = '125';
+            break;
+        case 'thmx':
+            assetTypeId = '126';
+            break;
+        case 'pdf':
+            assetTypeId = '127';
+            break;
+        case 'ps':
+            assetTypeId = '128';
+            break;
+        case 'qxd':
+            assetTypeId = '129';
+            break;
+        case 'rtf':
+            assetTypeId = '130';
+            break;
+        case 'sxc':
+            assetTypeId = '131';
+            break;
+        case 'sxi':
+            assetTypeId = '132';
+            break;
+        case 'sxw':
+            assetTypeId = '133';
+            break;
+        case 'odt':
+            assetTypeId = '134';
+            break;
+        case 'ods':
+            assetTypeId = '135';
+            break;
+        case 'ots':
+            assetTypeId = '136';
+            break;
+        case 'odp':
+            assetTypeId = '137';
+            break;
+        case 'otp':
+            assetTypeId = '138';
+            break;
+        case 'epub':
+            assetTypeId = '139';
+            break;
+        case 'dvi':
+            assetTypeId = '140';
+            break;
+        case 'key':
+            assetTypeId = '141';
+            break;
+        case 'keynote':
+            assetTypeId = '142';
+            break;
+        case 'pez':
+            assetTypeId = '143';
+            break;
+        default:
+            break;
+    }
+    return assetTypeId;
+}
+
 async function createMCAsset(access_token, assetBody) {
     return new Promise((resolve, reject) => {
         request.post(process.env.MC_REST_BASE_URI + MC_ASSETS_API_PATH, {
@@ -253,7 +390,6 @@ async function createMCAsset(access_token, assetBody) {
                     console.log(`Error for:${assetBody.name}`, error);
                     reject(error);
                 } else {
-                   // console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode}`)
                     console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${body.validationErrors[0].message} - Error code: ${body.validationErrors[0].errorcode}`);
                     resolve(res);
                 }
@@ -269,8 +405,8 @@ async function startUploadProcess(workQueue) {
     workQueue.on('global:completed', async (jobId, result) => {
         let job = await workQueue.getJob(jobId);
         let state = await job.getState();
-        jobWorkQueueList = [...jobWorkQueueList].map(ele=>{
-            return {...ele, state: ele.jobId === jobId ? state: ele.state};
+        jobWorkQueueList = [...jobWorkQueueList].map(ele => {
+            return { ...ele, state: ele.jobId === jobId ? state : ele.state };
         })
     });
 
@@ -280,14 +416,14 @@ async function startUploadProcess(workQueue) {
 
     });
 
-    workQueue.on('progress', function(job, progress){
+    workQueue.on('progress', function (job, progress) {
         // A job's progress was updated!
-        jobWorkQueueList = [...jobWorkQueueList].map(ele=>{
-            return {...ele, progress: ele.jobId === job.id ? progress.percents: ele .progress};
+        jobWorkQueueList = [...jobWorkQueueList].map(ele => {
+            return { ...ele, progress: ele.jobId === job.id ? progress.percents : ele.progress };
         })
-        
+
     })
-      
+
 
     let mcAuthResults = await getMcAuth();
     console.log("Marketing Cloud authentication :", mcAuthResults.access_token ? 'Successful' : 'Failure');
@@ -301,20 +437,20 @@ async function startUploadProcess(workQueue) {
                 const { managedContentNodeTypes, items } = result;
 
                 // Get name prefix
-                
+
                 const defaultNameNode = managedContentNodeTypes.find(mcNode => mcNode.assetTypeId == 0);
                 const nameKey = defaultNameNode ? defaultNameNode.nodeName : null;
-                
-                
+
+
                 let finalArray = [];
 
-                items.forEach(item =>{
+                items.forEach(item => {
                     const contentNodes = item.contentNodes; // nodes 
                     const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value : '';
                     const publishedDate = item.publishedDate ? item.publishedDate : '';
                     //Filter node.nodeName except node with assetTypeId = 0
-                    let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName); 
-    
+                    let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName);
+
                     //Filter nodes from the REST response as per the Salesforce CMS Content Type Node mapping
                     Object.entries(contentNodes).forEach(([key, value]) => {
                         if (nodes.includes(key)) {
@@ -322,10 +458,10 @@ async function startUploadProcess(workQueue) {
                             const nameSuffix = mcNodes ? mcNodes.nodeLabel : '';
                             const assetTypeId = mcNodes ? mcNodes.assetTypeId : '';
                             let objItem;
-    
+
                             if (value.nodeType === 'MediaSource') { // MediaSource - cms_image and cms_document
                                 value.assetTypeId = assetTypeId;
-                                objItem = {...value, publishedDate};
+                                objItem = { ...value, publishedDate };
                             } else if (value.nodeType === 'Media') { // Image Node
                                 objItem = { ...value, assetTypeId: assetTypeId, name: `${namePrefix}-${nameSuffix}-${publishedDate}` };
                             } else {
@@ -334,7 +470,7 @@ async function startUploadProcess(workQueue) {
                             finalArray = [...finalArray, objItem];
                         }
                     });
-                    
+
                 })
 
                 //console.log('finalArray->>', finalArray);
@@ -344,7 +480,7 @@ async function startUploadProcess(workQueue) {
                 const totalNumer = finalArray.length;
                 //Upload CMS content to Marketing Cloud
                 await Promise.all(finalArray.map(async (ele) => {
-                   // console.log('ele.assetTypeId ', ele.assetTypeId );
+                    // console.log('ele.assetTypeId ', ele.assetTypeId );
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
                             ele.name,
@@ -355,7 +491,7 @@ async function startUploadProcess(workQueue) {
                         );
 
                         counter++;
-                        const percents = ((counter/totalNumer) * 100).toFixed(3);
+                        const percents = ((counter / totalNumer) * 100).toFixed(3);
                         job.progress({ percents, currentStep: "currently we doing another thing" });
 
 
@@ -367,13 +503,13 @@ async function startUploadProcess(workQueue) {
                             content.cmsAuthResults
                         );
 
-                        
+
                         counter++;
-                        const percents = ((counter/totalNumer) * 100).toFixed(3);
+                        const percents = ((counter / totalNumer) * 100).toFixed(3);
                         job.progress({ percents, currentStep: "currently we doing another thing" });
 
                     } else if (ele.assetTypeId === '11') { //document
-                       
+
                         await moveDocumentToMC(
                             ele,
                             folderId,
@@ -382,9 +518,9 @@ async function startUploadProcess(workQueue) {
                         );
 
                         counter++;
-                        const percents = ((counter/totalNumer) * 100).toFixed(3);
+                        const percents = ((counter / totalNumer) * 100).toFixed(3);
                         job.progress({ percents, currentStep: "currently we doing another thing" });
-                        
+
                     }
                 }));
                 // call done when finished
@@ -406,13 +542,13 @@ module.exports = {
                 const managedContentNodeTypes = ele.managedContentNodeTypes;
                 const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=${PAGE_SIZE}`;
                 let result = await org.getUrl(cmsURL);
-                if(result && result.items && result.items.length ){
+                if (result && result.items && result.items.length) {
                     result.managedContentNodeTypes = managedContentNodeTypes;
-            
+
                     const job = await workQueue.add({ content: { result, cmsAuthResults, folderId } });
-                    
-                    jobWorkQueueList = [...jobWorkQueueList, {channelId, jobId: job.id, state: "queued", items: result.items}];
-                    
+
+                    jobWorkQueueList = [...jobWorkQueueList, { channelId, jobId: job.id, state: "queued", items: result.items }];
+
                     console.log('Hitting Connect REST URL:', cmsURL);
                     console.log('Job Id:', job.id);
                     //console.log('jobWorkQueueList:', jobWorkQueueList);
@@ -437,8 +573,8 @@ module.exports = {
                 'Authorization': `Bearer ${accessToken}`
             },
         }).then(res => res.json()).catch((err) => {
-                console.log(err);
-               // reject(err);
+            console.log(err);
+            // reject(err);
         });
     },
 
@@ -456,11 +592,11 @@ module.exports = {
                 'Authorization': `Bearer ${accessToken}`
             },
         })
-        .then(res => res.json())
-        .catch((err) => {
-            console.log(err);
-           // reject(err);
-        });
+            .then(res => res.json())
+            .catch((err) => {
+                console.log(err);
+                // reject(err);
+            });
     },
 
     getMcAuth: async function () {
@@ -471,16 +607,16 @@ module.exports = {
                 'Content-Type': 'application/json'
             },
         })
-        .then(res => res.json())
-        .catch((err) => {
-            console.log(err);
-            //reject(err);
-        });
+            .then(res => res.json())
+            .catch((err) => {
+                console.log(err);
+                //reject(err);
+            });
     },
-    jobs:  function() {
-        
+    jobs: function () {
+
         return jobWorkQueueList;
-        
-    } 
+
+    }
 };
 
