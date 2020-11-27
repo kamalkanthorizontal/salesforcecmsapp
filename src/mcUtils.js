@@ -51,16 +51,17 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults) {
 async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults) {
     return new Promise(async (resolve, reject) => {
         const imageUrl = `${imageNode.unauthenticatedUrl}`;
-
+        console.log('imageNode--->', imageNode);
         const base64ImageBody = await downloadBase64FromURL(
             imageUrl,
             cmsAuthResults.access_token
         );
 
         const imageExt = path.parse(imageNode.fileName).ext;
+        const  publishedDate =  imageNode.publishedDate ? imageNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
 
-        const fileName = `${imageExt.replace('.', '')}${Date.now()}${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}`;
-
+        const fileName =  imageNode.name ? imageNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
+        console.log('fileName--->', fileName);
         console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
 
         let imageAssetBody = {
@@ -82,6 +83,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
         var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
         // Create Marketing Cloud Image Asset
         if (mcRegex.test(fileName)) {
+            console.log('createMCAsset--->', fileName)
             await createMCAsset(mcAuthResults.access_token, imageAssetBody);
         } else {
             console.log('Upload on hold!! Please check the prohibited chars in', fileName);
@@ -208,6 +210,7 @@ async function createMCAsset(access_token, assetBody) {
                     console.log(`Error for:${assetBody.name}`, error);
                     reject(error);
                 } else {
+                   // console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode}`)
                     console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${body.validationErrors[0].message} - Error code: ${body.validationErrors[0].errorcode}`);
                     resolve(res);
                 }
@@ -216,7 +219,7 @@ async function createMCAsset(access_token, assetBody) {
     });
 }
 
-let maxJobsPerWorker = 50;
+let maxJobsPerWorker = 150;
 let jobWorkQueueList = [];
 
 async function startUploadProcess(workQueue) {
@@ -257,41 +260,60 @@ async function startUploadProcess(workQueue) {
 
             if (result) {
                 const { managedContentNodeTypes, items } = result;
-
+                console.log('items--->', items);
                 // Get name prefix
-                const contentNodes = items[0].contentNodes; // nodes 
+                
                 const defaultNameNode = managedContentNodeTypes.find(mcNode => mcNode.assetTypeId == 0);
                 const nameKey = defaultNameNode ? defaultNameNode.nodeName : null;
-                const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value : '';
-
-                //Filter node.nodeName except node with assetTypeId = 0
-                let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName);
-                console.log(`Filtered node.nodeNames for ${items[0].typeLabel}`, nodes);
-                console.log(job.id)
+                
+                
                 let finalArray = [];
 
-                //Filter nodes from the REST response as per the Salesforce CMS Content Type Node mapping
-                Object.entries(contentNodes).forEach(([key, value]) => {
-                    if (nodes.includes(key)) {
-                        const mcNodes = managedContentNodeTypes.find(mcNode => mcNode.nodeName === key);
-                        const nameSuffix = mcNodes ? mcNodes.nodeLabel : '';
-                        const assetTypeId = mcNodes ? mcNodes.assetTypeId : '';
-                        let objItem;
-                        if (value.nodeType === 'Media' || value.nodeType === 'MediaSource') { // MediaSource - cms_image and cms_document
-                            value.assetTypeId = assetTypeId;
-                            objItem = value;
-                        } else {
-                            objItem = { assetTypeId: assetTypeId, nodeType: value.nodeType, name: `${namePrefix}-${nameSuffix}-${Date.now()}`, value: value.value };
+                items.forEach(item =>{
+                    const contentNodes = item.contentNodes; // nodes 
+                    const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value : '';
+                    const publishedDate = item.publishedDate ? item.publishedDate : '';
+                    //Filter node.nodeName except node with assetTypeId = 0
+                    let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName);
+                    console.log(`Filtered node.nodeNames for ${item.typeLabel}`, nodes);
+                    console.log(job.id)
+                    
+    
+                    //Filter nodes from the REST response as per the Salesforce CMS Content Type Node mapping
+                    Object.entries(contentNodes).forEach(([key, value]) => {
+                        if (nodes.includes(key)) {
+                            const mcNodes = managedContentNodeTypes.find(mcNode => mcNode.nodeName === key);
+                            const nameSuffix = mcNodes ? mcNodes.nodeLabel : '';
+                            const assetTypeId = mcNodes ? mcNodes.assetTypeId : '';
+                            let objItem;
+    
+                            console.log('key ',key);
+                            console.log('value.nodeType ', value.nodeType);
+    
+                            if (value.nodeType === 'MediaSource') { // MediaSource - cms_image and cms_document
+                                value.assetTypeId = assetTypeId;
+                                objItem = {...value, publishedDate};
+                            } else if (value.nodeType === 'Media') { // Image Node
+                                objItem = { ...value, assetTypeId: assetTypeId, name: `${namePrefix}-${nameSuffix}-${publishedDate}` };
+                            } else {
+                                objItem = { assetTypeId: assetTypeId, nodeType: value.nodeType, name: `${namePrefix}-${nameSuffix}-${publishedDate}`, value: value.value };
+                            }
+                            finalArray = [...finalArray, objItem];
                         }
-                        finalArray = [...finalArray, objItem];
-                    }
-                });
-                console.log(`Filtered no. of nodes for ${items[0].typeLabel} : ${finalArray.length}`);
-                
+                    });
+                    
+                })
+
+                console.log('finalArray->>', finalArray);
+                console.log(`Filtered no. of nodes for: ${finalArray.length}`);
+
+
+
                 let counter = 0;
                 const totalNumer = finalArray.length;
                 //Upload CMS content to Marketing Cloud
                 await Promise.all(finalArray.map(async (ele) => {
+                    console.log('ele.assetTypeId ', ele.assetTypeId );
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
                             ele.name,
@@ -306,6 +328,7 @@ async function startUploadProcess(workQueue) {
 
                         job.progress({ percents, currentStep: "currently we doing another thing" });
                     } else if (ele.assetTypeId === '8') { //image
+                        console.log('ele.assetTypeId ', ele.assetTypeId );
                         await moveImageToMC(
                             ele,
                             folderId,

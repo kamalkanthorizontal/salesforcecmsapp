@@ -93,33 +93,10 @@ app.get("/", async function (req, res) {
     if (req.hostname.indexOf(".herokuapp.com") > 0) {
         herokuApp = req.hostname.replace(".herokuapp.com", "");
     }
-
+    const mcFolderId = '313256';
     const channelId = '0apL00000004COkIAM';
-    const contentType = [{
-        "Id": "0T1L00000004K6vKAE",
-        "MasterLabel": "Content Block",
-        "DeveloperName": "ContentBlock"
-    }, {
-        "Id": "0T1L00000004K6HKAU",
-        "MasterLabel": "Case Study Test Collection",
-        "DeveloperName": "Case_Study_Test_Collection"
-    }];
+    
     const contentTypeNodes = [{
-        "Id": "0T11H000000brYRSAY",
-        "MasterLabel": "Document",
-        "DeveloperName": "cms_document",
-        "managedContentNodeTypes": [{
-            "nodeLabel": "Title",
-            "nodeName": "title",
-            "assetTypeId": "0",
-            "rowId": 1
-        }, {
-            "nodeLabel": "Source",
-            "nodeName": "source",
-            "assetTypeId": "11",
-            "rowId": 3
-        }]
-    }, {
         "Id": "0T11H000000brYSSAY",
         "MasterLabel": "Image",
         "DeveloperName": "cms_image",
@@ -131,6 +108,21 @@ app.get("/", async function (req, res) {
         }, {
             "nodeLabel": "Source",
             "nodeName": "source",
+            "assetTypeId": "8",
+            "rowId": 3
+        }]
+    }, {
+        "Id": "0T1L00000004K6HKAU",
+        "MasterLabel": "Case Study Test Collection",
+        "DeveloperName": "Case_Study_Test_Collection",
+        "managedContentNodeTypes": [{
+            "nodeLabel": "Case Study Title",
+            "nodeName": "Title",
+            "assetTypeId": "0",
+            "rowId": 1
+        }, {
+            "nodeLabel": "Case Study Image",
+            "nodeName": "Case_Study_Image",
             "assetTypeId": "8",
             "rowId": 3
         }]
@@ -155,8 +147,8 @@ app.get("/", async function (req, res) {
                 securityToken: process.env.SF_SECURITY_TOKEN
             });
             console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
-
-            await run(resp, org, contentTypeNodes, channelId);
+           // await run(resp, org, contentTypeNodes, channelId, res, mcFolderId);
+            await run(resp, org, contentTypeNodes, channelId, null, mcFolderId);
             res.send('CMS Content Type is syncing in the background. Please wait..');
         } catch (error) {
             res.send(error.message);
