@@ -237,7 +237,7 @@ function scheduleGc() {
       global.gc();
       console.log('Manual gc', process.memoryUsage());
       scheduleGc();
-    }, 50000)//nextMinutes * 60 * 1000);
+    }, 5000)//nextMinutes * 60 * 1000);
   }
   
 
