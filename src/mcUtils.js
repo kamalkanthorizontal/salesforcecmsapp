@@ -32,7 +32,7 @@ async function getMcAuth() {
         });
 }
 
-async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults) {
+async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  job) {
     console.log(`Uploading txt to MC: ${name} with body length ${value.length}`);
 
     let textAssetBody = {
@@ -46,7 +46,7 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults) {
         },
     };
     // Create Marketing Cloud Block Asset
-    await createMCAsset(mcAuthResults.access_token, textAssetBody);
+    await createMCAsset(mcAuthResults.access_token, textAssetBody, job);
 }
 
 async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults) {
@@ -92,7 +92,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
     });
 }
 
-async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults) {
+async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults,  job) {
     return new Promise(async (resolve, reject) => {
         const doCUrl = `${documentNode.unauthenticatedUrl}`;
         const base64DocBody = await downloadBase64FromURL(
@@ -124,7 +124,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         // Create Marketing Cloud Image Asset
         if (mcRegex.test(fileName)) {
             console.log(`Uploading doc to MC: ${fileName + docExt} with base64DocBody length ${base64DocBody.length}`);
-            await createMCAsset(mcAuthResults.access_token, docAssetBody);
+            await createMCAsset(mcAuthResults.access_token, docAssetBody, job);
         } else {
             console.log('Upload on hold!! Please check the prohibited chars in', fileName);
         }
@@ -393,6 +393,11 @@ async function createMCAsset(access_token, assetBody) {
                     const msg = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].message : '';
                     const errorCode = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].errorcode : '';
                     console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);
+                    
+                    //updateJobProgress( job);
+
+                    // job.progress({ percents, currentStep:   `${assetBody.name} uploaded with status code: ${res.statusCode}`});
+                    
                     resolve(res);
                 }
             }
@@ -406,10 +411,11 @@ let jobWorkQueueList = [];
 async function startUploadProcess(workQueue) {
     workQueue.on('global:completed', async (jobId, result) => {
         let job = await workQueue.getJob(jobId);
-        //let state = await job.getState();
+        console.log(`Job ${job} compleated`);
+        /*let state = await job.getState();
         jobWorkQueueList = [...jobWorkQueueList].map(ele => {
             return { ...ele, state: ele.jobId === jobId ? state : ele.state };
-        })
+        })*/
     });
 
     workQueue.on('failed', (jobId, err) => {
@@ -419,9 +425,21 @@ async function startUploadProcess(workQueue) {
     });
 
     workQueue.on('progress', function (job, progress) {
+        console.log('progress', job.currentStep, progress);
+
+        /*
+         counter = counter+1;  
+                        const percents = ((counter / totalNumer) * 100).toFixed(3);
+                        
+                       
+        */
+        //const { content: { totalItems } } = job.data;
+        //console.log('totalItems--->', totalItems);
         // A job's progress was updated!
         jobWorkQueueList = [...jobWorkQueueList].map(ele => {
-            return { ...ele, progress: ele.jobId === job.id ? progress.percents : ele.progress };
+            const counter = 0;
+
+            return { ...ele, progress: ele.jobId === job.id ? progress.percents : ele.progress, counter};
         })
 
     })
@@ -433,56 +451,15 @@ async function startUploadProcess(workQueue) {
     workQueue.process(maxJobsPerWorker, async (job, done) => {
         try {
             let { content } = job.data;
-            const { result, folderId } = content;
-            console.log('folderId--->', folderId);
-            if (result) {
-                const { managedContentNodeTypes, items } = result;
-
-                // Get name prefix
-
-                const defaultNameNode = managedContentNodeTypes.find(mcNode => mcNode.assetTypeId == 0);
-                const nameKey = defaultNameNode ? defaultNameNode.nodeName : null;
-
-
-                let finalArray = [];
-
-                items.forEach(item => {
-                    const contentNodes = item.contentNodes; // nodes 
-                    const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value : '';
-                    const publishedDate = item.publishedDate ? item.publishedDate : '';
-                    //Filter node.nodeName except node with assetTypeId = 0
-                    let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName);
-
-                    //Filter nodes from the REST response as per the Salesforce CMS Content Type Node mapping
-                    Object.entries(contentNodes).forEach(([key, value]) => {
-                        if (nodes.includes(key)) {
-                            const mcNodes = managedContentNodeTypes.find(mcNode => mcNode.nodeName === key);
-                            const nameSuffix = mcNodes ? mcNodes.nodeLabel : '';
-                            const assetTypeId = mcNodes ? mcNodes.assetTypeId : '';
-                            let objItem;
-
-                            if (value.nodeType === 'MediaSource') { // MediaSource - cms_image and cms_document
-                                value.assetTypeId = assetTypeId;
-                                objItem = { ...value, publishedDate };
-                            } else if (value.nodeType === 'Media') { // Image Node
-                                objItem = { ...value, assetTypeId: assetTypeId, name: `${namePrefix}-${nameSuffix}-${publishedDate}` };
-                            } else {
-                                objItem = { assetTypeId: assetTypeId, nodeType: value.nodeType, name: `${namePrefix}-${nameSuffix}-${publishedDate}`, value: value.value };
-                            }
-                            finalArray = [...finalArray, objItem];
-                        }
-                    });
-
-                })
-
-                //console.log('finalArray->>', finalArray);
-                console.log(`Filtered no. of nodes for Job ID ${job.id} : ${finalArray.length}`);
-
-                let counter = 0;
-                const totalNumer = finalArray.length;
+            const { items, folderId } = content;
+            if (items) {
+                console.log(`Filtered no. of nodes for Job ID ${job.id} : ${items.length}`);
+                
+              //  console.log('job process-->', job)
                 //Upload CMS content to Marketing Cloud
                 //await Promise.all(
-                finalArray.map(async (ele) => {
+                items.map(async (ele) => {
+                       
                     // console.log('ele.assetTypeId ', ele.assetTypeId );
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
@@ -491,13 +468,7 @@ async function startUploadProcess(workQueue) {
                             ele.assetTypeId,
                             folderId,
                             mcAuthResults
-                        );
-
-                        counter++;
-                        const percents = ((counter / totalNumer) * 100).toFixed(3);
-                        job.progress({ percents, currentStep: "currently we doing another thing" });
-
-
+                        );  
                     } else if (ele.assetTypeId === '8') { //image
                         await moveImageToMC(
                             ele,
@@ -506,31 +477,23 @@ async function startUploadProcess(workQueue) {
                             content.cmsAuthResults
                         );
 
-
-                        counter++;
-                        const percents = ((counter / totalNumer) * 100).toFixed(3);
-                        job.progress({ percents, currentStep: "currently we doing another thing" });
-
                     } else if (ele.assetTypeId === '11') { //document
-
                         await moveDocumentToMC(
                             ele,
                             folderId,
                             mcAuthResults,
-                            content.cmsAuthResults
+                            content.cmsAuthResults,
                         );
-
-                        counter++;
-                        const percents = ((counter / totalNumer) * 100).toFixed(3);
-                        job.progress({ percents, currentStep: "currently we doing another thing" });
-
                     }
+
+                    
                 })
                 // )
                 //await Promise.all());
                 // call done when finished
+                workQueue.getJobCounts().then(res => console.log('Job Count:\n',res));
 
-                //workQueue.close()
+                workQueue.close()
                 done();
             }
         } catch (error) {
@@ -550,7 +513,9 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
             if (result && result.items && result.items.length) {
                 result.managedContentNodeTypes = managedContentNodeTypes;
 
-                const job = await workQueue.add({ content: { result, cmsAuthResults, folderId } }, {
+
+                const items = await getAssestsWithProperNaming(result);
+                const job = await workQueue.add({ content: { items, cmsAuthResults, folderId, totalItems: items.length } }, {
                     attempts: 1
                 });
 
@@ -567,6 +532,50 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
 
     startUploadProcess(workQueue);
 }
+
+function getAssestsWithProperNaming(result){
+    const { managedContentNodeTypes, items } = result;
+
+    // Get name prefix
+
+    const defaultNameNode = managedContentNodeTypes.find(mcNode => mcNode.assetTypeId == 0);
+    const nameKey = defaultNameNode ? defaultNameNode.nodeName : null;
+
+
+    let finalArray = [];
+
+    items.forEach(item => {
+        const contentNodes = item.contentNodes; // nodes 
+        const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value : '';
+        const publishedDate = item.publishedDate ? item.publishedDate : '';
+        //Filter node.nodeName except node with assetTypeId = 0
+        let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName);
+
+        //Filter nodes from the REST response as per the Salesforce CMS Content Type Node mapping
+        Object.entries(contentNodes).forEach(([key, value]) => {
+            if (nodes.includes(key)) {
+                const mcNodes = managedContentNodeTypes.find(mcNode => mcNode.nodeName === key);
+                const nameSuffix = mcNodes ? mcNodes.nodeLabel : '';
+                const assetTypeId = mcNodes ? mcNodes.assetTypeId : '';
+                let objItem;
+
+                if (value.nodeType === 'MediaSource') { // MediaSource - cms_image and cms_document
+                    value.assetTypeId = assetTypeId;
+                    objItem = { ...value, publishedDate };
+                } else if (value.nodeType === 'Media') { // Image Node
+                    objItem = { ...value, assetTypeId: assetTypeId, name: `${namePrefix}-${nameSuffix}-${publishedDate}` };
+                } else {
+                    objItem = { assetTypeId: assetTypeId, nodeType: value.nodeType, name: `${namePrefix}-${nameSuffix}-${publishedDate}`, value: value.value };
+                }
+                finalArray = [...finalArray, objItem];
+            }
+        });
+
+    });
+    return finalArray;
+}
+
+
 
 module.exports = {
     run: function (cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
