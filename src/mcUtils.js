@@ -406,11 +406,10 @@ let jobWorkQueueList = [];
 async function startUploadProcess(workQueue) {
     workQueue.on('global:completed', async (jobId, result) => {
         let job = await workQueue.getJob(jobId);
-        console.log('job--->', job);
         //let state = await job.getState();
-        /*jobWorkQueueList = [...jobWorkQueueList].map(ele => {
+        jobWorkQueueList = [...jobWorkQueueList].map(ele => {
             return { ...ele, state: ele.jobId === jobId ? state : ele.state };
-        })*/
+        })
     });
 
     workQueue.on('failed', (jobId, err) => {
@@ -531,7 +530,7 @@ async function startUploadProcess(workQueue) {
                 //await Promise.all());
                 // call done when finished
 
-                workQueue.close()
+                //workQueue.close()
                 done();
             }
         } catch (error) {
