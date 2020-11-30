@@ -46,8 +46,11 @@ function renderJob(job) {
         const html = `<div class="flex justify-between mb2">
         <div class='mt2 mb1'><span class="hk-label">Title:</span> ${item.title}</div>
         <div class='mt2 mb1'><span class="hk-label">Type:</span> ${item.type}</div>
-        <div class='mt2 mb1'><span class="hk-label">Status:</span> ${item.type}</div>
-      </div>`
+        <div class='mt2 mb1'><span class="hk-label">Status:</span> <b>${item.status}</b></div>
+      </div>
+      <div  class='tl mt2 mb1'><span class="hk-label">Respone Message:</span> ${item.response}</div>
+      <hr />
+      `
       items = items+html;
 
     })
@@ -58,6 +61,8 @@ function renderJob(job) {
       .replace('{{state}}', job.state)
       .replace('{{color}}', color)
       .replace('{{progress}}', progress)
+      .replace('{{total}}', job.items.length)
+      .replace('{{uploaded}}', job.counter)
       .replace('{{items}}', items);
   }
   

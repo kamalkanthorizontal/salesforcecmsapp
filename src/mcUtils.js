@@ -32,7 +32,7 @@ async function getMcAuth() {
         });
 }
 
-async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  job) {
+async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  jobId, referenceId) {
     console.log(`Uploading txt to MC: ${name} with body length ${value.length}`);
 
     let textAssetBody = {
@@ -46,13 +46,14 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  
         },
     };
     // Create Marketing Cloud Block Asset
-    await createMCAsset(mcAuthResults.access_token, textAssetBody, job);
+    await createMCAsset(mcAuthResults.access_token, textAssetBody, jobId, referenceId);
 }
 
-async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults) {
+async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults, jobId) {
     return new Promise(async (resolve, reject) => {
         const imageUrl = `${imageNode.unauthenticatedUrl}`;
-        // console.log('imageNode--->', imageNode);
+        const referenceId =  imageNode.referenceId;
+         
         const base64ImageBody = await downloadBase64FromURL(
             imageUrl,
             cmsAuthResults.access_token
@@ -84,7 +85,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
         // Create Marketing Cloud Image Asset
         if (mcRegex.test(fileName)) {
             console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
-            await createMCAsset(mcAuthResults.access_token, imageAssetBody);
+            await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId);
         } else {
             console.log('Upload on hold!! Please check the prohibited chars in', fileName);
         }
@@ -92,9 +93,11 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults)
     });
 }
 
-async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults,  job) {
+async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults,  jobId) {
     return new Promise(async (resolve, reject) => {
         const doCUrl = `${documentNode.unauthenticatedUrl}`;
+        const referenceId =  documentNode.referenceId;
+
         const base64DocBody = await downloadBase64FromURL(
             doCUrl,
             cmsAuthResults.access_token
@@ -124,7 +127,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         // Create Marketing Cloud Image Asset
         if (mcRegex.test(fileName)) {
             console.log(`Uploading doc to MC: ${fileName + docExt} with base64DocBody length ${base64DocBody.length}`);
-            await createMCAsset(mcAuthResults.access_token, docAssetBody, job);
+            await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId);
         } else {
             console.log('Upload on hold!! Please check the prohibited chars in', fileName);
         }
@@ -376,7 +379,7 @@ function getDocumentAssetTypeId(docExtension) {
     return assetTypeId;
 }
 
-async function createMCAsset(access_token, assetBody) {
+async function createMCAsset(access_token, assetBody, jobId, referenceId) {
     return new Promise((resolve, reject) => {
         request.post(process.env.MC_REST_BASE_URI + MC_ASSETS_API_PATH, {
             headers: {
@@ -389,12 +392,16 @@ async function createMCAsset(access_token, assetBody) {
                     console.log(`Error for:${assetBody.name}`, error);
                     reject(error);
                 } else {
-                    //console.log('validationErrors--->', body.validationErrors); 
+                    
                     const msg = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].message : '';
                     const errorCode = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].errorcode : '';
+
+                    const response = body.id ? `Uploaded with Asset id: ${body.id}`: `failed with Error code: ${errorCode} - Error message: ${msg} `; 
+                    const uploadStatus = body.id ? 'Uploaded' : 'Failed';
+
                     console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);
                     
-                    
+                    // Memory status
                     const formatMemmoryUsage = (data) => `${Math.round(data / 1024 / 1024 * 100) / 100} MB`
 
                     const memoryData = process.memoryUsage()
@@ -407,7 +414,11 @@ async function createMCAsset(access_token, assetBody) {
                     
                     console.log(memmoryUsage);
 
-                    // job.progress({ percents, currentStep:   `${assetBody.name} uploaded with status code: ${res.statusCode}`});
+                    // update job status
+                    if(jobId && referenceId && referenceId){
+                        updateJobProgress(jobId, response, referenceId, uploadStatus);
+                    }
+                    
                     
                     resolve(res);
                 }
@@ -420,40 +431,10 @@ let maxJobsPerWorker = 150;
 let jobWorkQueueList = [];
 
 async function startUploadProcess(workQueue) {
-    workQueue.on('global:completed', async (jobId, result) => {
-        let job = await workQueue.getJob(jobId);
-        console.log(`Job ${job} compleated`);
-        /*let state = await job.getState();
-        jobWorkQueueList = [...jobWorkQueueList].map(ele => {
-            return { ...ele, state: ele.jobId === jobId ? state : ele.state };
-        })*/
-    });
-
+  
     workQueue.on('failed', (jobId, err) => {
         console.log(`Job ${jobId} failed with error ${err.message}`);
-        // console.log(`failed jobWorkQueueList`, jobWorkQueueList);
-
     });
-
-    workQueue.on('progress', function (job, progress) {
-        console.log('progress', job.currentStep, progress);
-
-        /*
-         counter = counter+1;  
-                        const percents = ((counter / totalNumer) * 100).toFixed(3);
-                        
-                       
-        */
-        //const { content: { totalItems } } = job.data;
-        //console.log('totalItems--->', totalItems);
-        // A job's progress was updated!
-        jobWorkQueueList = [...jobWorkQueueList].map(ele => {
-            const counter = 0;
-
-            return { ...ele, progress: ele.jobId === job.id ? progress.percents : ele.progress, counter};
-        })
-
-    })
 
 
     let mcAuthResults = await getMcAuth();
@@ -465,12 +446,10 @@ async function startUploadProcess(workQueue) {
             const { items, folderId } = content;
             if (items) {
                 console.log(`Filtered no. of nodes for Job ID ${job.id} : ${items.length}`);
-                
-              //  console.log('job process-->', job)
+
                 //Upload CMS content to Marketing Cloud
                 //await Promise.all(
-                items.map(async (ele) => {
-                       
+                items.map(async (ele) => { 
                     // console.log('ele.assetTypeId ', ele.assetTypeId );
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
@@ -478,14 +457,17 @@ async function startUploadProcess(workQueue) {
                             ele.value,
                             ele.assetTypeId,
                             folderId,
-                            mcAuthResults
+                            mcAuthResults,
+                            job.id,
+                            ele.referenceId
                         );  
                     } else if (ele.assetTypeId === '8') { //image
                         await moveImageToMC(
                             ele,
                             folderId,
                             mcAuthResults,
-                            content.cmsAuthResults
+                            content.cmsAuthResults,
+                            job.id
                         );
 
                     } else if (ele.assetTypeId === '11') { //document
@@ -494,6 +476,7 @@ async function startUploadProcess(workQueue) {
                             folderId,
                             mcAuthResults,
                             content.cmsAuthResults,
+                            job.id
                         );
                     }
 
@@ -524,13 +507,13 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
             if (result && result.items && result.items.length) {
                 result.managedContentNodeTypes = managedContentNodeTypes;
 
+                const items = getAssestsWithProperNaming(result);
 
-                const items = await getAssestsWithProperNaming(result);
                 const job = await workQueue.add({ content: { items, cmsAuthResults, folderId, totalItems: items.length } }, {
                     attempts: 1
                 });
 
-                jobWorkQueueList = [...jobWorkQueueList, { channelId, jobId: job.id, state: "queued", items: result.items }];
+                jobWorkQueueList = [...jobWorkQueueList, { channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0 }];
 
                 console.log('Hitting Connect REST URL:', cmsURL);
                 console.log('Job Id:', job.id);
@@ -556,9 +539,13 @@ function getAssestsWithProperNaming(result){
     let finalArray = [];
 
     items.forEach(item => {
+        //console.log('item.--->', item);
+        const title = item.title;
+        const type = item.type;
         const contentNodes = item.contentNodes; // nodes 
         const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value : '';
         const publishedDate = item.publishedDate ? item.publishedDate : '';
+
         //Filter node.nodeName except node with assetTypeId = 0
         let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName);
 
@@ -572,11 +559,11 @@ function getAssestsWithProperNaming(result){
 
                 if (value.nodeType === 'MediaSource') { // MediaSource - cms_image and cms_document
                     value.assetTypeId = assetTypeId;
-                    objItem = { ...value, publishedDate };
+                    objItem = { ...value, publishedDate, title, type, status: 'Queued', response: '' };
                 } else if (value.nodeType === 'Media') { // Image Node
-                    objItem = { ...value, assetTypeId: assetTypeId, name: `${namePrefix}-${nameSuffix}-${publishedDate}` };
+                    objItem = { ...value, assetTypeId: assetTypeId, name: `${namePrefix}-${nameSuffix}-${publishedDate}` , title, type, status: 'Queued', response: ''};
                 } else {
-                    objItem = { assetTypeId: assetTypeId, nodeType: value.nodeType, name: `${namePrefix}-${nameSuffix}-${publishedDate}`, value: value.value };
+                    objItem = { assetTypeId: assetTypeId, nodeType: value.nodeType, name: `${namePrefix}-${nameSuffix}-${publishedDate}`, value: value.value , title, type, status: 'Queued', response: ''};
                 }
                 finalArray = [...finalArray, objItem];
             }
@@ -586,7 +573,25 @@ function getAssestsWithProperNaming(result){
     return finalArray;
 }
 
+function updateJobProgress(jobId, response, referenceId, status){
+    jobWorkQueueList = [...jobWorkQueueList].map(ele => {
+        let percents = ele.progress;
+        let counter = ele.counter || 0;
+        const totalItems = ele.items.length;
+        let items = ele.items;
 
+        if(ele.jobId === jobId){
+            counter = counter+1;  
+            percents = ((counter / totalItems) * 100).toFixed(1);
+
+            items = [...ele.items].map(item =>{
+                return {...item, response: item.referenceId === referenceId ? response :  item.response, status:  item.referenceId === referenceId ? status :  item.status }
+            })
+        }
+        const state = percents == 100.0 ? 'completed' : 'In-Progress';
+        return { ...ele, progress: percents, counter, state, items ,counter };
+    })
+}
 
 module.exports = {
     run: function (cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
