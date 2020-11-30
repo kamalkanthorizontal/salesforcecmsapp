@@ -394,7 +394,18 @@ async function createMCAsset(access_token, assetBody) {
                     const errorCode = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].errorcode : '';
                     console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);
                     
-                    //updateJobProgress( job);
+                    
+                    const formatMemmoryUsage = (data) => `${Math.round(data / 1024 / 1024 * 100) / 100} MB`
+
+                    const memoryData = process.memoryUsage()
+                    
+                    const memmoryUsage= { 'rss': `${formatMemmoryUsage(memoryData.rss)} -> Resident Set Size - total memory allocated for the process execution`,
+                                heapTotal: `${formatMemmoryUsage(memoryData.heapTotal)} -> total size of the allocated heap`,
+                                heapUsed: `${formatMemmoryUsage(memoryData.heapUsed)} -> actual memory used during the execution`,
+                                external: `${formatMemmoryUsage(memoryData.external)} -> V8 external memory`,
+                            }
+                    
+                    console.log(memmoryUsage);
 
                     // job.progress({ percents, currentStep:   `${assetBody.name} uploaded with status code: ${res.statusCode}`});
                     
