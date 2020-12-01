@@ -65,8 +65,6 @@ app.get('/jobs', async (req, res) => {
 });
 
 app.get("/queue", async function (req, res) {
-    console.log('jobs', jobs());
-    //res.render("queue.ejs");
     res.sendFile('./queue.html', { root: __dirname });
 })
 

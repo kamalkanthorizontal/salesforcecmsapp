@@ -46,7 +46,7 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  
         },
     };
     // Create Marketing Cloud Block Asset
-    await createMCAsset(mcAuthResults.access_token, textAssetBody, jobId, referenceId);
+    await createMCAsset(mcAuthResults.access_token, textAssetBody, jobId, referenceId,name);
 }
 
 
@@ -54,6 +54,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
     return new Promise(async (resolve, reject) => {
         const imageUrl = `${imageNode.unauthenticatedUrl}`;
         const referenceId =  imageNode.referenceId;
+        const name =  imageNode.name;
          
         const base64ImageBody = await downloadBase64FromURL(
             imageUrl,
@@ -85,7 +86,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
         // Create Marketing Cloud Image Asset
         if (mcRegex.test(fileName)) {
             console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
-            await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId);
+            await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name);
         } else {
             console.log('Upload on hold!! Please check the prohibited chars in', fileName);
         }
@@ -97,7 +98,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
     return new Promise(async (resolve, reject) => {
         const doCUrl = `${documentNode.unauthenticatedUrl}`;
         const referenceId =  documentNode.referenceId;
-
+        const name =  documentNode.name;
         const base64DocBody = await downloadBase64FromURL(
             doCUrl,
             cmsAuthResults.access_token
@@ -129,7 +130,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         // Create Marketing Cloud Image Asset
         if (mcRegex.test(fileName)) {
             console.log(`Uploading doc to MC: ${fileName + docExt} with base64DocBody length ${base64DocBody.length}`);
-            await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId);
+            await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId, name);
         } else {
             console.log('Upload on hold!! Please check the prohibited chars in', fileName);
         }
@@ -139,7 +140,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
 
 
 
-async function createMCAsset(access_token, assetBody, jobId, referenceId) {
+async function createMCAsset(access_token, assetBody, jobId, referenceId, name) {
     return new Promise((resolve, reject) => {
         request.post(process.env.MC_REST_BASE_URI + MC_ASSETS_API_PATH, {
             headers: {
@@ -171,12 +172,12 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId) {
                                 heapUsed: `${formatMemmoryUsage(memoryData.heapUsed)} -> actual memory used during the execution`,
                                 external: `${formatMemmoryUsage(memoryData.external)} -> V8 external memory`,
                             }
-                    
-                    console.log(memmoryUsage);
+                
+                            
 
                     // update job status
-                    if(jobId && referenceId && referenceId){
-                        updateJobProgress(jobId, response, referenceId, uploadStatus);
+                    if(jobId && response){
+                        updateJobProgress(jobId, response, name, uploadStatus, referenceId);
                     }
                     
                     
@@ -264,7 +265,7 @@ function getAssestsWithProperNaming(result){
     return finalArray;
 }
 
-function updateJobProgress(jobId, response, referenceId, status){
+function updateJobProgress(jobId, serverResponse, name, serverStatus, referenceId){
     jobWorkQueueList = [...jobWorkQueueList].map(ele => {
         let percents = ele.progress;
         let counter = ele.counter || 0;
@@ -276,7 +277,18 @@ function updateJobProgress(jobId, response, referenceId, status){
             percents = ((counter / totalItems) * 100).toFixed(1);
 
             items = [...ele.items].map(item =>{
-                return {...item, response: item.referenceId === referenceId ? response :  item.response, status:  item.referenceId === referenceId ? status :  item.status }
+                // response
+                let response = item.response;
+                let status = item.status;
+                if(name && item.name === name ){
+                    response = serverResponse;
+                    status = serverStatus;
+                }else if(referenceId && item.referenceId === referenceId ){
+                    response = serverResponse;
+                    status = serverStatus;
+                }
+
+                return {...item, response, status }
             })
         }
         const state = percents == 100.0 ? 'completed' : 'In-Progress';
@@ -305,7 +317,6 @@ async function startUploadProcess(workQueue) {
                 //Upload CMS content to Marketing Cloud
                 //await Promise.all(
                 items.map(async (ele) => { 
-                    // console.log('ele.assetTypeId ', ele.assetTypeId );
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
                             ele.name,

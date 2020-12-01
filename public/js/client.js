@@ -28,7 +28,6 @@ async function getJobs() {
 
 // Renders the HTML for each job object
 function renderJob(job) {
-    console.log('job', job.items);
     let progress = job.progress || 0;
     let color = "bg-light-purple";
   
@@ -45,6 +44,7 @@ function renderJob(job) {
     job.items.forEach(item => {
         const html = `<div class="flex justify-between mb2">
         <div class='mt2 mb1'><span class="hk-label">Title:</span> ${item.title}</div>
+        <div class='mt2 mb1'><span class="hk-label">Title:</span> ${item.name}</div>
         <div class='mt2 mb1'><span class="hk-label">Type:</span> ${item.type}</div>
         <div class='mt2 mb1'><span class="hk-label">Status:</span> <b>${item.status}</b></div>
       </div>
@@ -65,9 +65,12 @@ function renderJob(job) {
       .replace('{{uploaded}}', job.counter)
       .replace('{{items}}', items);
   }
+
   
   // Attach click handlers and kick off background processes
   window.onload = function() {
+
+    document.querySelector("#refresh").addEventListener("click", getJobs);
     getJobs();
     //refreshIntervalId = setInterval(getJobs, 5000);
   };

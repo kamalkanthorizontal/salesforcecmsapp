@@ -1,5 +1,4 @@
 module.exports = {
-
     MC_ASSETS_API_PATH :'/asset/v1/content/assets',
     MS_AUTH_PATH : '/v2/token',
     MC_CONTENT_CATEGORIES_API_PATH : '/asset/v1/content/categories',
