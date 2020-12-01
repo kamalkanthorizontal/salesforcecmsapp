@@ -64,7 +64,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
         const publishedDate = imageNode.publishedDate ? imageNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
 
         let fileName = imageNode.name ? imageNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
-        //fileName = `${process.env.IMG_PREFIX}_${fileName}`; // Need to remove once testing done
+      //  fileName = `${process.env.IMG_PREFIX}_${fileName}`; // Need to remove once testing done
         let imageAssetBody = {
             name: fileName + imageExt,
             assetType: {
@@ -106,7 +106,9 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         const docExt = path.parse(documentNode.fileName).ext;
         const publishedDate = documentNode.publishedDate ? documentNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
 
-        const fileName = documentNode.name ? documentNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(documentNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
+        let fileName = documentNode.name ? documentNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(documentNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
+      //  fileName = `${process.env.IMG_PREFIX}_${fileName}`; // Need to remove once testing done
+
         let docAssetBody = {
             name: fileName + docExt,
             assetType: {
