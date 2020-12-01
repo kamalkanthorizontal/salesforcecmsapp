@@ -1,14 +1,14 @@
 const fetch = require('node-fetch');
-const https = require('https');
 var request = require('request');
 let Queue = require('bull');
 const path = require('path');
 
-const MC_ASSETS_API_PATH = '/asset/v1/content/assets';
-const MS_AUTH_PATH = '/v2/token'
-const MC_CONTENT_CATEGORIES_API_PATH = '/asset/v1/content/categories';
+const { getImageAssetTypeId, getDocumentAssetTypeId, downloadBase64FromURL } = require('./utils.js');
+const { MC_ASSETS_API_PATH, MS_AUTH_PATH, MC_CONTENT_CATEGORIES_API_PATH, REDIS_URL } = require('./constants');
 
-let REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+
+let maxJobsPerWorker = 150;
+let jobWorkQueueList = [];
 
 const getMcAuthBody = {
     grant_type: 'client_credentials',
@@ -18,7 +18,7 @@ const getMcAuthBody = {
 const PAGE_SIZE = process.env.PAGE_SIZE || 5;
 
 async function getMcAuth() {
-    return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + MS_AUTH_PATH, {
+    return await fetch(`${process.env.MC_AUTHENTICATION_BASE_URI}${MS_AUTH_PATH}`, {
         method: 'POST',
         body: JSON.stringify(getMcAuthBody),
         headers: {
@@ -49,6 +49,7 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  
     await createMCAsset(mcAuthResults.access_token, textAssetBody, jobId, referenceId);
 }
 
+
 async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults, jobId) {
     return new Promise(async (resolve, reject) => {
         const imageUrl = `${imageNode.unauthenticatedUrl}`;
@@ -58,13 +59,12 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
             imageUrl,
             cmsAuthResults.access_token
         );
-
+        
         const imageExt = path.parse(imageNode.fileName).ext;
         const publishedDate = imageNode.publishedDate ? imageNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
 
         let fileName = imageNode.name ? imageNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
         //fileName = `${process.env.IMG_PREFIX}_${fileName}`; // Need to remove once testing done
-
         let imageAssetBody = {
             name: fileName + imageExt,
             assetType: {
@@ -135,249 +135,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
     });
 }
 
-async function downloadBase64FromURL(url, access_token, callback) {
-    return new Promise((resolve, reject) => {
-        https
-            .get(
-                url,
-                { headers: { Authorization: 'Bearer ' + access_token } },
-                (resp) => {
-                    resp.setEncoding('base64');
-                    let imageBody = '';
-                    resp.on('data', (data) => {
-                        imageBody += data;
-                    });
-                    resp.on('end', () => {
-                        resolve(imageBody);
-                    });
-                }
-            )
-            .on('error', (e) => {
-                reject(`Got error: ${e.message}`);
-            });
-    });
-}
 
-function getImageAssetTypeId(imageExtension) {
-    let assetTypeId = '8';
-
-    switch (imageExtension.toLowerCase()) {
-        case 'ai':
-            assetTypeId = '16';
-            break;
-        case 'psd':
-            assetTypeId = '17';
-            break;
-        case 'pdd':
-            assetTypeId = '18';
-            break;
-        case 'eps':
-            assetTypeId = '19';
-            break;
-        case 'gif':
-            assetTypeId = '20';
-            break;
-        case 'jpe':
-            assetTypeId = '21';
-            break;
-        case 'jpeg':
-            assetTypeId = '22';
-            break;
-        case 'jpg':
-            assetTypeId = '23';
-            break;
-        case 'jp2':
-            assetTypeId = '24';
-            break;
-        case 'jpx':
-            assetTypeId = '25';
-            break;
-        case 'pict':
-            assetTypeId = '26';
-            break;
-        case 'pct':
-            assetTypeId = '27';
-            break;
-        case 'png':
-            assetTypeId = '28';
-            break;
-        case 'tif':
-            assetTypeId = '29';
-            break;
-        case 'tiff':
-            assetTypeId = '30';
-            break;
-        case 'tga':
-            assetTypeId = '31';
-            break;
-        case 'bmp':
-            assetTypeId = '32';
-            break;
-        case 'wmf':
-            assetTypeId = '33';
-            break;
-        case 'vsd':
-            assetTypeId = '34';
-            break;
-        case 'pnm':
-            assetTypeId = '35';
-            break;
-        case 'pgm':
-            assetTypeId = '36';
-            break;
-        case 'pbm':
-            assetTypeId = '37';
-            break;
-        case 'ppm':
-            assetTypeId = '38';
-            break;
-        case 'svg':
-            assetTypeId = '39';
-            break;
-        default:
-            break;
-    }
-    return assetTypeId;
-}
-
-function getDocumentAssetTypeId(docExtension) {
-    let assetTypeId = '11';
-
-    switch (docExtension.toLowerCase()) {
-        case 'indd':
-            assetTypeId = '101';
-            break;
-        case 'indt':
-            assetTypeId = '102';
-            break;
-        case 'incx':
-            assetTypeId = '103';
-            break;
-        case 'wwcx':
-            assetTypeId = '104';
-            break;
-        case 'doc':
-            assetTypeId = '105';
-            break;
-        case 'docx':
-            assetTypeId = '106';
-            break;
-        case 'dot':
-            assetTypeId = '107';
-            break;
-        case 'dotx':
-            assetTypeId = '108';
-            break;
-        case 'mdb':
-            assetTypeId = '109';
-            break;
-        case 'mpp':
-            assetTypeId = '110';
-            break;
-        case 'ics':
-            assetTypeId = '111';
-            break;
-        case 'xls':
-            assetTypeId = '112';
-            break;
-        case 'xlsx':
-            assetTypeId = '113';
-            break;
-        case 'xlk':
-            assetTypeId = '114';
-            break;
-        case 'xlsm':
-            assetTypeId = '115';
-            break;
-        case 'xlt':
-            assetTypeId = '116';
-            break;
-        case 'xltm':
-            assetTypeId = '117';
-            break;
-        case 'csv':
-            assetTypeId = '118';
-            break;
-        case 'tsv':
-            assetTypeId = '119';
-            break;
-        case 'tab':
-            assetTypeId = '120';
-            break;
-        case 'pps':
-            assetTypeId = '121';
-            break;
-        case 'ppsx':
-            assetTypeId = '122';
-            break;
-        case 'ppt':
-            assetTypeId = '123';
-            break;
-        case 'pptx':
-            assetTypeId = '124';
-            break;
-        case 'pot':
-            assetTypeId = '125';
-            break;
-        case 'thmx':
-            assetTypeId = '126';
-            break;
-        case 'pdf':
-            assetTypeId = '127';
-            break;
-        case 'ps':
-            assetTypeId = '128';
-            break;
-        case 'qxd':
-            assetTypeId = '129';
-            break;
-        case 'rtf':
-            assetTypeId = '130';
-            break;
-        case 'sxc':
-            assetTypeId = '131';
-            break;
-        case 'sxi':
-            assetTypeId = '132';
-            break;
-        case 'sxw':
-            assetTypeId = '133';
-            break;
-        case 'odt':
-            assetTypeId = '134';
-            break;
-        case 'ods':
-            assetTypeId = '135';
-            break;
-        case 'ots':
-            assetTypeId = '136';
-            break;
-        case 'odp':
-            assetTypeId = '137';
-            break;
-        case 'otp':
-            assetTypeId = '138';
-            break;
-        case 'epub':
-            assetTypeId = '139';
-            break;
-        case 'dvi':
-            assetTypeId = '140';
-            break;
-        case 'key':
-            assetTypeId = '141';
-            break;
-        case 'keynote':
-            assetTypeId = '142';
-            break;
-        case 'pez':
-            assetTypeId = '143';
-            break;
-        default:
-            break;
-    }
-    return assetTypeId;
-}
 
 async function createMCAsset(access_token, assetBody, jobId, referenceId) {
     return new Promise((resolve, reject) => {
@@ -427,75 +185,6 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId) {
     });
 }
 
-let maxJobsPerWorker = 150;
-let jobWorkQueueList = [];
-
-async function startUploadProcess(workQueue) {
-  
-    workQueue.on('failed', (jobId, err) => {
-        console.log(`Job ${jobId} failed with error ${err.message}`);
-    });
-
-
-    let mcAuthResults = await getMcAuth();
-    console.log("Marketing Cloud authentication :", mcAuthResults.access_token ? 'Successful' : 'Failure');
-
-    workQueue.process(maxJobsPerWorker, async (job, done) => {
-        try {
-            let { content } = job.data;
-            const { items, folderId } = content;
-            if (items) {
-                console.log(`Filtered no. of nodes for Job ID ${job.id} : ${items.length}`);
-
-                //Upload CMS content to Marketing Cloud
-                //await Promise.all(
-                items.map(async (ele) => { 
-                    // console.log('ele.assetTypeId ', ele.assetTypeId );
-                    if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
-                        await moveTextToMC(
-                            ele.name,
-                            ele.value,
-                            ele.assetTypeId,
-                            folderId,
-                            mcAuthResults,
-                            job.id,
-                            ele.referenceId
-                        );  
-                    } else if (ele.assetTypeId === '8') { //image
-                        await moveImageToMC(
-                            ele,
-                            folderId,
-                            mcAuthResults,
-                            content.cmsAuthResults,
-                            job.id
-                        );
-
-                    } else if (ele.assetTypeId === '11') { //document
-                        await moveDocumentToMC(
-                            ele,
-                            folderId,
-                            mcAuthResults,
-                            content.cmsAuthResults,
-                            job.id
-                        );
-                    }
-
-                    
-                })
-                // )
-                //await Promise.all());
-                // call done when finished
-                workQueue.getJobCounts().then(res => console.log('Job Count:\n',res));
-
-                workQueue.close()
-                done();
-            }
-        } catch (error) {
-            console.log('error', error);
-        }
-    });
-
-}
 
 async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
     await Promise.all(contentTypeNodes.map(async (ele) => {
@@ -517,7 +206,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
 
                 console.log('Hitting Connect REST URL:', cmsURL);
                 console.log('Job Id:', job.id);
-                //console.log('jobWorkQueueList:', jobWorkQueueList);
+
             }
         } catch (error) {
             console.log(error);
@@ -593,6 +282,72 @@ function updateJobProgress(jobId, response, referenceId, status){
     })
 }
 
+
+async function startUploadProcess(workQueue) {
+  
+    workQueue.on('failed', (jobId, err) => {
+        console.log(`Job ${jobId} failed with error ${err.message}`);
+    });
+
+
+    let mcAuthResults = await getMcAuth();
+    console.log("Marketing Cloud authentication :", mcAuthResults.access_token ? 'Successful' : 'Failure');
+
+    workQueue.process(maxJobsPerWorker, async (job, done) => {
+        try {
+            let { content } = job.data;
+            const { items, folderId } = content;
+            if (items) {
+                console.log(`Filtered no. of nodes for Job ID ${job.id} : ${items.length}`);
+
+                //Upload CMS content to Marketing Cloud
+                //await Promise.all(
+                items.map(async (ele) => { 
+                    // console.log('ele.assetTypeId ', ele.assetTypeId );
+                    if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
+                        await moveTextToMC(
+                            ele.name,
+                            ele.value,
+                            ele.assetTypeId,
+                            folderId,
+                            mcAuthResults,
+                            job.id,
+                            ele.referenceId
+                        );  
+                    } else if (ele.assetTypeId === '8') { //image
+                        await moveImageToMC(
+                            ele,
+                            folderId,
+                            mcAuthResults,
+                            content.cmsAuthResults,
+                            job.id
+                        );
+
+                    } else if (ele.assetTypeId === '11') { //document
+                        await moveDocumentToMC(
+                            ele,
+                            folderId,
+                            mcAuthResults,
+                            content.cmsAuthResults,
+                            job.id
+                        );
+                    }
+                })
+                // )
+                //await Promise.all());
+                // call done when finished
+                // workQueue.getJobCounts().then(res => console.log('Job Count:\n',res));
+
+                workQueue.close()
+                done();
+            }
+        } catch (error) {
+            console.log('error', error);
+        }
+    });
+
+}
+
 module.exports = {
     run: function (cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
         let workQueue = new Queue(`work-${channelId}`, REDIS_URL);
@@ -609,7 +364,6 @@ module.exports = {
             },
         }).then(res => res.json()).catch((err) => {
             console.log(err);
-            // reject(err);
         });
     },
 
@@ -630,7 +384,6 @@ module.exports = {
             .then(res => res.json())
             .catch((err) => {
                 console.log(err);
-                // reject(err);
             });
     },
 
@@ -645,7 +398,6 @@ module.exports = {
             .then(res => res.json())
             .catch((err) => {
                 console.log(err);
-                //reject(err);
             });
     },
     jobs: function () {

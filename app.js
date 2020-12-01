@@ -8,6 +8,8 @@ var path = require('path');
 
 const { run, getMcFolders, createMcFolder, getMcAuth, jobs } = require('./src/mcUtils.js');
 
+const { ALLOWED_CONNECTION_STATUS, MC_CONTENT_CATEGORIES_API_PATH, FETCH_CMS_FOLDER_DETAIL_QUERY,CONNETION_STATUS } = require('./src/constants');
+
 var isLocal;
 var herokuApp;
 
@@ -17,8 +19,6 @@ app.enable('trust proxy');
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
 
-const ALLOWED_CONNECTION_STATUS = 'Not Configured';
-const MC_CONTENT_CATEGORIES_API_PATH = '/asset/v1/content/categories/';
 
 function isNotBlank(val) {
     if (typeof val !== 'undefined' && val) {
@@ -82,7 +82,6 @@ app.post('/', async (req, res, next) => {
             let validFolderId;
             if (mcFolderId) {
                 validFolderId = await getValidFolderId(mcFolderId);
-                console.log('validedFolderId--->', validFolderId);
             }
 
             if (!validFolderId) {
@@ -94,7 +93,6 @@ app.post('/', async (req, res, next) => {
             }
 
             mcFolderId = validFolderId;
-            console.log('mcFolderId--->', mcFolderId);
 
             contentTypeNodes = JSON.parse(contentTypeNodes);
 
@@ -171,8 +169,8 @@ async function updateCallbackUrl(appName, folderId = '') {
             securityToken: process.env.SF_SECURITY_TOKEN
         });
 
-        const query = `SELECT Id, Heroku_Endpoint__c, SFMC_Folder_Id__c, Connection_Status__c FROM CMS_Connection__c WHERE Id = '${process.env.SF_CMS_CONNECTION_ID}' LIMIT 1`;
-        const resQuery = await org.query({ query });
+
+        const resQuery = await org.query({ query: FETCH_CMS_FOLDER_DETAIL_QUERY });
 
         if (resQuery && resQuery.records && resQuery.records.length) {
             let sobject = resQuery.records[0];
@@ -184,7 +182,7 @@ async function updateCallbackUrl(appName, folderId = '') {
 
                 if (appName) {
                     sobject.set('Heroku_Endpoint__c', appName);
-                    sobject.set('Connection_Status__c', 'Active');
+                    sobject.set('Connection_Status__c', CONNETION_STATUS);
                 }
 
                 sobject.set('SFMC_Folder_Id__c', folderId);
