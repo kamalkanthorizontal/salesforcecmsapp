@@ -69,5 +69,5 @@ function renderJob(job) {
   // Attach click handlers and kick off background processes
   window.onload = function() {
     getJobs();
-    refreshIntervalId = setInterval(getJobs, 5000);
+    //refreshIntervalId = setInterval(getJobs, 5000);
   };
