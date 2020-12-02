@@ -10,24 +10,27 @@
 </head>
 <body class="bg-near-white">
   <script type="text/template" id="job-template">
-    <div class="bg-lightest-silver bw1 flex flex-column ma2 ">
 
-      <div class="w-100 br1 shadow-inner-1">
-        <span class="db h1 br1 {{color}}" style="width: {{progress}}%;"></span>
-      </div>
-
-      <div class="flex justify-between mb2">
-        <div class='mt2 mb1'><span class="hk-label"><b>Job ID:</span> {{id}}</b></div>
-        <div class='mt2 mb1'><span class="hk-label"><b>Total Contents:</span> {{total}}</b></div>
-        <div class='mt2 mb1'><span class="hk-label"><b>Uploaded Contents:</span> {{uploaded}}</b></div>
-        <div class='mt2 mb1'><span class="hk-label"><b>State:</span> {{state}}</b></div>
-      </div>
-      <div class="hk-well">
-        {{items}}
-      </div>
-          
-
+    <div class="hk-well" style="margin-top: 10px">
+      <div  class='tl mt2 mb1'><u><b>Channel ID:</span></b></u></div>
       
+      <div class="bg-lightest-silver bw1 flex flex-column ma2 hk-well">
+
+        <div class="w-100 br1 shadow-inner-1">
+          <span class="db h1 br1 {{color}}" style="width: {{progress}}%;"></span>
+        </div>
+  
+        <div class="flex justify-between mb2">
+          <div class='mt2 mb1'><span class="hk-label"><b>Job ID:</span> {{id}}</b></div>
+          <div class='mt2 mb1'><span class="hk-label"><b>Name:</span> {{name}}</b></div>
+          <div class='mt2 mb1'><span class="hk-label"><b>Total Contents:</span> {{total}}</b></div>
+          <div class='mt2 mb1'><span class="hk-label"><b>Uploaded Contents:</span> {{uploaded}}</b></div>
+          <div class='mt2 mb1'><span class="hk-label"><b>State:</span> {{state}}</b></div>
+        </div>
+        <div>
+          {{items}}
+        </div>
+      </div>
     </div>
   </script>
   <div class="main-content flex flex-column justify-center items-center w-100 mt4">

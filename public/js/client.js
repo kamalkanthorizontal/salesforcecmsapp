@@ -5,6 +5,14 @@ async function updateJobs() {
     console.log('updateJobs')
 }
 
+function groupByKey(array, key) {
+  return array
+    .reduce((hash, obj) => {
+      if(obj[key] === undefined) return hash; 
+      return Object.assign(hash, { [obj[key]]:( hash[obj[key]] || [] ).concat(obj)})
+    }, {})
+}
+
 
 // Kick off a new job by POST-ing to the server
 async function getJobs() {
@@ -19,10 +27,28 @@ async function getJobs() {
         }
     }
 
+
     let s = "";
-    jobs.forEach(job => {
-        s += renderJob(job);
+    const groupedJobs = groupByKey(jobs, 'channelId');
+    Object.entries(groupedJobs).forEach(([key, value]) => {
+      console.log('groupedJobs--->', key);
+      console.log('groupedJobs--->', value)
+
+      let jobsHtml = "";
+      value.forEach(job => {
+        jobsHtml += renderJob(job);
+      });
+
+      s +=`
+      <div style="margin-top: 10px">
+        <div  class='tl mt2 mb1'><u><b>Channel ID:</span></b>  ${key}</u></div>
+        <div class="hk-well" style="margin-top: 10px">  
+          ${jobsHtml}
+        </div>
+      </div>
+      `;
     });
+
     document.querySelector("#job-summary").innerHTML = s;
   }
 
@@ -54,16 +80,30 @@ function renderJob(job) {
       items = items+html;
 
     })
+
+
+   const jobHtml = `
+   <div>
+    <div class='tl mt2 mb1' style="margin-left: 10px" ><span class="hk-label"><b><u>Content Name:</span> ${job.queueName}</b></u></div>
+    <div class="bg-lightest-silver bw1 flex flex-column ma2 hk-well">
+
+      <div class="w-100 br1 shadow-inner-1">
+        <span class="db h1 br1 ${color}" style="width: ${progress}%;"></span>
+      </div>
+
+      <div class="flex justify-between mb2">
+        <div class='mt2 mb1'><span class="hk-label"><b>Job ID:</span> ${job.jobId}</b></div>
+        <div class='mt2 mb1'><span class="hk-label"><b>Total Contents:</span> ${job.items.length}</b></div>
+        <div class='mt2 mb1'><span class="hk-label"><b>Uploaded Contents:</span> ${job.counter}</b></div>
+        <div class='mt2 mb1'><span class="hk-label"><b>State:</span> ${job.state}</b></div>
+      </div>
+      <div>
+        ${items}
+      </div>
+      </div>
+      </div>`; 
     
-    return document.querySelector('#job-template')
-      .innerHTML
-      .replace('{{id}}', job.jobId)
-      .replace('{{state}}', job.state)
-      .replace('{{color}}', color)
-      .replace('{{progress}}', progress)
-      .replace('{{total}}', job.items.length)
-      .replace('{{uploaded}}', job.counter)
-      .replace('{{items}}', items);
+    return jobHtml;
   }
 
   

@@ -161,19 +161,19 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name) 
                     const uploadStatus = body.id ? 'Uploaded' : 'Failed';
 
                     console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);
-                    
-                    // Memory status
-                    const formatMemmoryUsage = (data) => `${Math.round(data / 1024 / 1024 * 100) / 100} MB`
+                    /*
+                        // Memory status
+                        const formatMemmoryUsage = (data) => `${Math.round(data / 1024 / 1024 * 100) / 100} MB`
 
-                    const memoryData = process.memoryUsage()
-                    
-                    const memmoryUsage= { 'rss': `${formatMemmoryUsage(memoryData.rss)} -> Resident Set Size - total memory allocated for the process execution`,
-                                heapTotal: `${formatMemmoryUsage(memoryData.heapTotal)} -> total size of the allocated heap`,
-                                heapUsed: `${formatMemmoryUsage(memoryData.heapUsed)} -> actual memory used during the execution`,
-                                external: `${formatMemmoryUsage(memoryData.external)} -> V8 external memory`,
-                            }
-                
-                            
+                        const memoryData = process.memoryUsage()
+                        
+                        const memmoryUsage= { 'rss': `${formatMemmoryUsage(memoryData.rss)} -> Resident Set Size - total memory allocated for the process execution`,
+                                    heapTotal: `${formatMemmoryUsage(memoryData.heapTotal)} -> total size of the allocated heap`,
+                                    heapUsed: `${formatMemmoryUsage(memoryData.heapUsed)} -> actual memory used during the execution`,
+                                    external: `${formatMemmoryUsage(memoryData.external)} -> V8 external memory`,
+                                }
+                    */
+
 
                     // update job status
                     if(jobId && response){
@@ -192,6 +192,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name) 
 async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
     await Promise.all(contentTypeNodes.map(async (ele) => {
         try {
+            console.log('addProcessInQueue--->', ele)
             const managedContentType = ele.DeveloperName;
             const managedContentNodeTypes = ele.managedContentNodeTypes;
             const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=${PAGE_SIZE}`;
@@ -205,7 +206,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                     attempts: 1
                 });
 
-                jobWorkQueueList = [...jobWorkQueueList, { channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0 }];
+                jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0 }];
 
                 console.log('Hitting Connect REST URL:', cmsURL);
                 console.log('Job Id:', job.id);
@@ -293,7 +294,9 @@ function updateJobProgress(jobId, serverResponse, name, serverStatus, referenceI
         }
         const state = percents == 100.0 ? 'completed' : 'In-Progress';
         return { ...ele, progress: percents, counter, state, items ,counter };
-    })
+    });
+
+    // console.log('jobWorkQueueList--->', jobWorkQueueList);
 }
 
 
