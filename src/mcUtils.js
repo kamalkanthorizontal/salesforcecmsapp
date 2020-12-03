@@ -132,7 +132,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
             console.log(`Uploading doc to MC: ${fileName + docExt} with base64DocBody length ${base64DocBody.length}`);
             await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId, name);
         } else {
-            console.log('Upload on hold!! Please check the prohibited chars in', fileName);
+            console.log('FileProperties.fileName contains prohibited characters.', fileName);
         }
         resolve();
     });
