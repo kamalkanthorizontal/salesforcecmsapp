@@ -81,7 +81,7 @@
         "express",
         "heroku",
         "nforce",
-        "salesforce"
-      
+        "salesforce",
+        "heroku-redis:hobby-dev"
     ]
 }
