@@ -76,6 +76,11 @@
             "value": "CMS SFMC Sync Folder"
         }
     },
+    "addons": [
+        {
+          "plan": "heroku-redis:hobby-dev"
+        }
+    ],
     "keywords": [
         "node",
         "express",
