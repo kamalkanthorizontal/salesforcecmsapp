@@ -82,7 +82,7 @@
     "keywords": [
         "node",
         "express",
-        "heroku:hobby-dev",
+        "heroku",
         "nforce",
         "salesforce",
         "heroku-redis:hobby-dev"
