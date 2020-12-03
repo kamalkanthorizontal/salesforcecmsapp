@@ -76,15 +76,12 @@
             "value": "CMS SFMC Sync Folder"
         }
     },
-    "addons": [
-        "heroku-redis:hobby-dev"
-    ],
     "keywords": [
         "node",
         "express",
         "heroku",
         "nforce",
-        "salesforce",
-        "heroku-redis:hobby-dev"
+        "salesforce"
+      
     ]
 }
