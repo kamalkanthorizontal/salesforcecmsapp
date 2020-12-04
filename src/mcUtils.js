@@ -125,6 +125,13 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                 console.log('Upload on hold!! Please check the prohibited chars in', fileName);
             }
         }else{
+            const response = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${fileName}`; 
+            const uploadStatus = 'Failed';
+
+            // update job status
+            if(jobId && response){
+                updateJobProgress(jobId, response, name, uploadStatus, referenceId);
+            }
             console.log(' notInMC failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ', fileName);
         }
         
@@ -180,6 +187,14 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
             console.log('FileProperties.fileName contains prohibited characters.', fileName);
         }
       }else{
+        const response = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${fileName}`; 
+        const uploadStatus = 'Failed';
+
+        // update job status
+        if(jobId && response){
+            updateJobProgress(jobId, response, name, uploadStatus, referenceId);
+        }
+
         console.log(' notInMC failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ', fileName);
       }
         
@@ -253,7 +268,6 @@ async function getAllContent(org, cmsURL, items=[]){
 }
 
 async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
-    console.log('contentTypeNodes--->', contentTypeNodes.length);
     await Promise.all(contentTypeNodes.map(async (ele) => {
         try {
             const managedContentType = ele.DeveloperName;
@@ -263,8 +277,8 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
             const serviceResults = await getAllContent(org, cmsURL);
             
             if (serviceResults && serviceResults.length) {
-                 const result = {items: serviceResults, managedContentNodeTypes};
-                 const items = getAssestsWithProperNaming(result);
+                const result = {items: serviceResults, managedContentNodeTypes};
+                const items = getAssestsWithProperNaming(result);
                  //console.log('serviceResults--->', items);
                 const job = await workQueue.add({ content: { items, cmsAuthResults, folderId, totalItems: items.length } }, {
                     attempts: 1
