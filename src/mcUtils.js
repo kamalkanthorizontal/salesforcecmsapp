@@ -23,8 +23,9 @@ const PAGE_SIZE = process.env.PAGE_SIZE || 5;
 async function getValidFileName(fileName) {
     try {
         const mcAuthResults = await getMcAuth();
-        const serviceUrl = `https://mcyl0bsfb6nnjg5v3n6gbh9v6gc0.rest.marketingcloudapis.com/asset/v1/content/assets?$filter=Name%20like%20'TestContentBlock1Image20201201T131502000Z.png'`;
-        console.log('serviceUrl', mcAuthResults.access_token);
+        const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_ASSETS_API_PATH}?$filter=Name%20like%20'${fileName}'`;
+        
+        console.log('serviceUrl---->', serviceUrl);
         const res = await fetch(serviceUrl, {
             method: 'GET',
             headers: {
@@ -33,8 +34,11 @@ async function getValidFileName(fileName) {
             },
         });
 
-        //console.log('getValidFileName--->', res.items);
-        return true;
+        const response = await res.json();
+        const notInMc = response.count === 0 ? true : false;
+        console.log('response for file name---->', fileName, response.count, notInMc);
+
+        return notInMc;
     } catch (error) {
         console.log('Error in file Name:', error);
         return false;
@@ -86,7 +90,8 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
 
         let fileName = imageNode.name ? imageNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
         
-        const notInMC = true;//await getValidFileName(fileName + imageExt);
+
+        const notInMC = await getValidFileName(fileName + imageExt);
 
         if(notInMC){
             const base64ImageBody = await downloadBase64FromURL(
@@ -95,8 +100,6 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
             );
             
             base64Count = base64Count+1;
-            
-          //  fileName = `${process.env.IMG_PREFIX}_${fileName}`; // Need to remove once testing done
             let imageAssetBody = {
                 name: fileName + imageExt,
                 assetType: {
@@ -116,13 +119,13 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
             var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
             // Create Marketing Cloud Image Asset
             if (mcRegex.test(fileName)) {
-                console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
+                //console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
                 await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name);
             } else {
                 console.log('Upload on hold!! Please check the prohibited chars in', fileName);
             }
         }else{
-            console.log('failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ', fileName);
+            console.log(' notInMC failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ', fileName);
         }
         
         resolve();
@@ -131,13 +134,10 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
 
 async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults,  jobId) {
     return new Promise(async (resolve, reject) => {
-        const doCUrl = `${documentNode.unauthenticatedUrl}`;
+        const docUrl = `${documentNode.unauthenticatedUrl}`;
         const referenceId =  documentNode.referenceId;
         const name =  documentNode.name;
-        const base64DocBody = await downloadBase64FromURL(
-            doCUrl,
-            cmsAuthResults.access_token
-        );
+       
 
         const docExt = path.parse(documentNode.fileName).ext;
         const publishedDate = documentNode.publishedDate ? documentNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
@@ -145,6 +145,16 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         let fileName = documentNode.name ? documentNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(documentNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
       //  fileName = `${process.env.IMG_PREFIX}_${fileName}`; // Need to remove once testing done
 
+
+      const notInMC = await getValidFileName(fileName + docExt);
+
+      if(notInMC){
+        const base64DocBody = await downloadBase64FromURL(
+            docUrl,
+            cmsAuthResults.access_token
+        );
+
+        base64Count = base64Count+1;
         let docAssetBody = {
             name: fileName + docExt,
             assetType: {
@@ -164,11 +174,15 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
         // Create Marketing Cloud Image Asset
         if (mcRegex.test(fileName)) {
-            console.log(`Uploading doc to MC: ${fileName + docExt} with base64DocBody length ${base64DocBody.length}`);
+          //  console.log(`Uploading doc to MC: ${fileName + docExt} with base64DocBody length ${base64DocBody.length}`);
             await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId, name);
         } else {
             console.log('FileProperties.fileName contains prohibited characters.', fileName);
         }
+      }else{
+        console.log(' notInMC failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ', fileName);
+      }
+        
         resolve();
     });
 }
@@ -244,7 +258,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         try {
             const managedContentType = ele.DeveloperName;
             const managedContentNodeTypes = ele.managedContentNodeTypes;
-            const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=100`;
+            const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=250`;
            
             const serviceResults = await getAllContent(org, cmsURL);
             
@@ -370,6 +384,7 @@ async function startUploadProcess(workQueue) {
                 //Upload CMS content to Marketing Cloud
                 //await Promise.all(
 
+
                 items.map(async (ele) => { 
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
@@ -382,8 +397,7 @@ async function startUploadProcess(workQueue) {
                             ele.referenceId
                         );  
                     } else if (ele.assetTypeId === '8') { //image
-
-                        if(base64Count <  50){
+                        if(base64Count <=  50){
                             await moveImageToMC(
                                 ele,
                                 folderId,
@@ -392,12 +406,12 @@ async function startUploadProcess(workQueue) {
                                 job.id
                             );
                         }else{
-                            console.log('50 Iages synced');
+                            console.log('50 base64 synced');
                         }
                        
 
                     } else if (ele.assetTypeId === '11') { //document
-                        if(base64Count <  50){
+                        if(base64Count <=  50){
                             await moveDocumentToMC(
                                 ele,
                                 folderId,
@@ -406,7 +420,7 @@ async function startUploadProcess(workQueue) {
                                 job.id
                             );
                         }else{
-                            console.log('50 Iages synced');
+                            console.log('50 base64 synced');
                         }
                         
                     }
