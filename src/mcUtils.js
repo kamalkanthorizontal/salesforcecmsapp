@@ -194,7 +194,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name) 
 
                     const response = body.id ? `Uploaded with Asset id: ${body.id}`: `failed with Error code: ${errorCode} - Error message: ${msg} `; 
                     const uploadStatus = body.id ? 'Uploaded' : 'Failed';
-                    
+
                     console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);
                     /*
                         // Memory status
@@ -251,7 +251,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
             if (serviceResults && serviceResults.length) {
                  const result = {items: serviceResults, managedContentNodeTypes};
                  const items = getAssestsWithProperNaming(result);
-                 console.log('serviceResults--->', items);
+                 //console.log('serviceResults--->', items);
                 const job = await workQueue.add({ content: { items, cmsAuthResults, folderId, totalItems: items.length } }, {
                     attempts: 1
                 });
