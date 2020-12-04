@@ -112,7 +112,7 @@ app.post('/', async (req, res, next) => {
                     securityToken: process.env.SF_SECURITY_TOKEN
                 });
                 console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
-                run(resp, org, contentTypeNodes, channelId, mcFolderId);
+               // run(resp, org, contentTypeNodes, channelId, mcFolderId);
                 res.send('CMS Content Type is syncing in the background. Please wait..');
             } catch (error) {
                 res.send(error.message);
