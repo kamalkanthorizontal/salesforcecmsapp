@@ -112,7 +112,7 @@ app.post('/', async (req, res, next) => {
                     securityToken: process.env.SF_SECURITY_TOKEN
                 });
                 console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
-                await run(resp, org, contentTypeNodes, channelId, mcFolderId);
+                run(resp, org, contentTypeNodes, channelId, mcFolderId);
                 res.send('CMS Content Type is syncing in the background. Please wait..');
             } catch (error) {
                 res.send(error.message);
@@ -137,7 +137,8 @@ async function getValidFolderId(folderId) {
                 'Authorization': `Bearer ${mcAuthResults.access_token}`
             },
         });
-
+        console.log('getValidFolderId--->', JSON.stringify(res), res.id);
+        await getValidFileName();
         if (res && res.id == folderId) {
             return folderId;
         } else {
@@ -211,6 +212,28 @@ async function getFolderId() {
         return matchedFolder.id;
     }
 }
+
+async function getValidFileName(fileName) {
+    try {
+        const mcAuthResults = await getMcAuth();
+        const url = `https://mcyl0bsfb6nnjg5v3n6gbh9v6gc0.rest.marketingcloudapis.com/asset/v1/content/assets?$filter=Name eq Content1BannerImage20201203T050526000Z.jpg`;
+        //console.log('serviceUrl', mcAuthResults.access_token);
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${mcAuthResults.access_token}`
+            },
+        });
+
+        console.log('getValidFileName--->', JSON.stringify(response));
+        return true;
+    } catch (error) {
+        console.log('Error in file Name:', error);
+        return false;
+    }
+}
+
 
 // Initialize the app.
 app.listen(process.env.PORT || 3000, async function () {

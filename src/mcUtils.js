@@ -9,6 +9,8 @@ const { MC_ASSETS_API_PATH, MS_AUTH_PATH, MC_CONTENT_CATEGORIES_API_PATH, REDIS_
 
 let maxJobsPerWorker = 150;
 let jobWorkQueueList = [];
+let base64Count = 0;
+
 
 const getMcAuthBody = {
     grant_type: 'client_credentials',
@@ -16,6 +18,28 @@ const getMcAuthBody = {
     client_secret: process.env.MC_CLIENT_SECRET,
 };
 const PAGE_SIZE = process.env.PAGE_SIZE || 5;
+
+
+async function getValidFileName(fileName) {
+    try {
+        const mcAuthResults = await getMcAuth();
+        const serviceUrl = `https://mcyl0bsfb6nnjg5v3n6gbh9v6gc0.rest.marketingcloudapis.com/asset/v1/content/assets?$filter=Name%20like%20'TestContentBlock1Image20201201T131502000Z.png'`;
+        console.log('serviceUrl', mcAuthResults.access_token);
+        const res = await fetch(serviceUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${mcAuthResults.access_token}`
+            },
+        });
+
+        //console.log('getValidFileName--->', res.items);
+        return true;
+    } catch (error) {
+        console.log('Error in file Name:', error);
+        return false;
+    }
+}
 
 async function getMcAuth() {
     return await fetch(`${process.env.MC_AUTHENTICATION_BASE_URI}${MS_AUTH_PATH}`, {
@@ -55,41 +79,52 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
         const imageUrl = `${imageNode.unauthenticatedUrl}`;
         const referenceId =  imageNode.referenceId;
         const name =  imageNode.name;
-         
-        const base64ImageBody = await downloadBase64FromURL(
-            imageUrl,
-            cmsAuthResults.access_token
-        );
+        
         
         const imageExt = path.parse(imageNode.fileName).ext;
         const publishedDate = imageNode.publishedDate ? imageNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
 
         let fileName = imageNode.name ? imageNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
-      //  fileName = `${process.env.IMG_PREFIX}_${fileName}`; // Need to remove once testing done
-        let imageAssetBody = {
-            name: fileName + imageExt,
-            assetType: {
-                id: getImageAssetTypeId(imageExt.replace('.', '')),
-            },
-            fileProperties: {
-                fileName: fileName + imageExt,
-                extension: imageExt,
-            },
-            file: base64ImageBody,
-            category: {
-                id: folderId
-            },
-        };
+        
+        const notInMC = true;//await getValidFileName(fileName + imageExt);
 
-        //Marketing Cloud Regex for file fullName i.e. Developer name
-        var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
-        // Create Marketing Cloud Image Asset
-        if (mcRegex.test(fileName)) {
-            console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
-            await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name);
-        } else {
-            console.log('Upload on hold!! Please check the prohibited chars in', fileName);
+        if(notInMC){
+            const base64ImageBody = await downloadBase64FromURL(
+                imageUrl,
+                cmsAuthResults.access_token
+            );
+            
+            base64Count = base64Count+1;
+            
+          //  fileName = `${process.env.IMG_PREFIX}_${fileName}`; // Need to remove once testing done
+            let imageAssetBody = {
+                name: fileName + imageExt,
+                assetType: {
+                    id: getImageAssetTypeId(imageExt.replace('.', '')),
+                },
+                fileProperties: {
+                    fileName: fileName + imageExt,
+                    extension: imageExt,
+                },
+                file: base64ImageBody,
+                category: {
+                    id: folderId
+                },
+            };
+    
+            //Marketing Cloud Regex for file fullName i.e. Developer name
+            var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
+            // Create Marketing Cloud Image Asset
+            if (mcRegex.test(fileName)) {
+                console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
+                await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name);
+            } else {
+                console.log('Upload on hold!! Please check the prohibited chars in', fileName);
+            }
+        }else{
+            console.log('failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ', fileName);
         }
+        
         resolve();
     });
 }
@@ -159,7 +194,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name) 
 
                     const response = body.id ? `Uploaded with Asset id: ${body.id}`: `failed with Error code: ${errorCode} - Error message: ${msg} `; 
                     const uploadStatus = body.id ? 'Uploaded' : 'Failed';
-
+                    
                     console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);
                     /*
                         // Memory status
@@ -189,26 +224,41 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name) 
 }
 
 
+async function getAllContent(org, cmsURL, items=[]){
+    let result = await org.getUrl(cmsURL);
+    if(result){
+        items = result.items || [];
+        if(result.nextPageUrl){
+           const recursiveItems = await getAllContent(org, result.nextPageUrl, result.items);
+           items = [...items, ...recursiveItems];
+    
+        }
+        return items;    
+    }
+    return [];
+}
+
 async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
+    console.log('contentTypeNodes--->', contentTypeNodes.length);
     await Promise.all(contentTypeNodes.map(async (ele) => {
         try {
-            console.log('addProcessInQueue--->', ele)
             const managedContentType = ele.DeveloperName;
             const managedContentNodeTypes = ele.managedContentNodeTypes;
-            const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=${PAGE_SIZE}`;
-            let result = await org.getUrl(cmsURL);
-            if (result && result.items && result.items.length) {
-                result.managedContentNodeTypes = managedContentNodeTypes;
-
-                const items = getAssestsWithProperNaming(result);
-
+            const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=100`;
+           
+            const serviceResults = await getAllContent(org, cmsURL);
+            
+            if (serviceResults && serviceResults.length) {
+                 const result = {items: serviceResults, managedContentNodeTypes};
+                 const items = getAssestsWithProperNaming(result);
+                 console.log('serviceResults--->', items);
                 const job = await workQueue.add({ content: { items, cmsAuthResults, folderId, totalItems: items.length } }, {
                     attempts: 1
                 });
 
                 jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0 }];
 
-                console.log('Hitting Connect REST URL:', cmsURL);
+                //console.log('Hitting Connect REST URL:', cmsURL);
                 console.log('Job Id:', job.id);
 
             }
@@ -232,7 +282,6 @@ function getAssestsWithProperNaming(result){
     let finalArray = [];
 
     items.forEach(item => {
-        //console.log('item.--->', item);
         const title = item.title;
         const type = item.type;
         const contentNodes = item.contentNodes; // nodes 
@@ -311,6 +360,7 @@ async function startUploadProcess(workQueue) {
     console.log("Marketing Cloud authentication :", mcAuthResults.access_token ? 'Successful' : 'Failure');
 
     workQueue.process(maxJobsPerWorker, async (job, done) => {
+        //console.log('base64Count--->', base64Count);
         try {
             let { content } = job.data;
             const { items, folderId } = content;
@@ -319,6 +369,7 @@ async function startUploadProcess(workQueue) {
 
                 //Upload CMS content to Marketing Cloud
                 //await Promise.all(
+
                 items.map(async (ele) => { 
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
@@ -331,22 +382,33 @@ async function startUploadProcess(workQueue) {
                             ele.referenceId
                         );  
                     } else if (ele.assetTypeId === '8') { //image
-                        await moveImageToMC(
-                            ele,
-                            folderId,
-                            mcAuthResults,
-                            content.cmsAuthResults,
-                            job.id
-                        );
+
+                        if(base64Count <  50){
+                            await moveImageToMC(
+                                ele,
+                                folderId,
+                                mcAuthResults,
+                                content.cmsAuthResults,
+                                job.id
+                            );
+                        }else{
+                            console.log('50 Iages synced');
+                        }
+                       
 
                     } else if (ele.assetTypeId === '11') { //document
-                        await moveDocumentToMC(
-                            ele,
-                            folderId,
-                            mcAuthResults,
-                            content.cmsAuthResults,
-                            job.id
-                        );
+                        if(base64Count <  50){
+                            await moveDocumentToMC(
+                                ele,
+                                folderId,
+                                mcAuthResults,
+                                content.cmsAuthResults,
+                                job.id
+                            );
+                        }else{
+                            console.log('50 Iages synced');
+                        }
+                        
                     }
                 })
                 // )
@@ -366,6 +428,8 @@ async function startUploadProcess(workQueue) {
 
 module.exports = {
     run: function (cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
+        base64Count = 0;
+
         let workQueue = new Queue(`work-${channelId}`, REDIS_URL);
         addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId)
     },

@@ -77,9 +77,7 @@
         }
     },
     "addons": [
-        {
-          "plan": "heroku-redis:hobby-dev"
-        }
+        "heroku-redis:hobby-dev"
     ],
     "keywords": [
         "node",
