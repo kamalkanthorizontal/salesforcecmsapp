@@ -76,8 +76,8 @@ async function uploadAllBase64(accessToken) {
             "cmsConnectionId":   "a2IL0000001MIYfMAO"
          }
         const url = `${process.env.SF_CMS_URL}/services/apexrest/CMSSFMC/callHeroku`;
-        const resQuery = await org.postUrl({ oauth, url, body });
-        console.log('resQuery', resQuery);
+        //const resQuery = await org.postUrl({ oauth, url, body });
+        //console.log('resQuery', resQuery);
        // 
         
        /* console.log('serviceUrl---->', serviceUrl);
