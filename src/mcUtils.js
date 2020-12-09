@@ -109,7 +109,7 @@ async function getMcAuth() {
     })
         .then(res => res.json())
         .catch((err) => {
-            console.log(err);
+            //console.log(err);
             reject(err);
         });
 }
@@ -353,6 +353,12 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
             if (serviceResults && serviceResults.length) {
                 const result = {items: serviceResults, managedContentNodeTypes};
                 const items = getAssestsWithProperNaming(result);
+
+                const mediaCount = items.filter(ele => ele.assetTypeId === '8' || ele.assetTypeId === '11').length;
+
+                totalBase64Items = totalBase64Items+mediaCount;
+                totalUploadItems = totalUploadItems + items.length;
+                
                 const job = await workQueue.add({ content: { items, cmsAuthResults, folderId, totalItems: items.length, sfToken } }, {
                     attempts: 1
                 });
@@ -464,9 +470,9 @@ async function startUploadProcess(workQueue) {
             if (items) {
                 console.log(`Filtered no. of nodes for Job ID ${job.id} : ${items.length}`);
                 
-                totalBase64Items = items.filter(ele => ele.assetTypeId === '8' || ele.assetTypeId === '11').length;
+                // totalBase64Items = items.filter(ele => ele.assetTypeId === '8' || ele.assetTypeId === '11').length;
                 
-                totalUploadItems = items.length;//items.filter(ele => ele.assetTypeId === '196' || ele.assetTypeId === '197').length +totalBase64Count;
+                // totalUploadItems = items.length;//items.filter(ele => ele.assetTypeId === '196' || ele.assetTypeId === '197').length +totalBase64Count;
                 
                 //Upload CMS content to Marketing Cloud
                 //await Promise.all(
