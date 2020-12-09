@@ -55,7 +55,7 @@ async function updateBase64Status(sfToken){
 async function uploadAllBase64(accessToken) {
     try {
 
-        /*let org = nforce.createConnection({
+        let org = nforce.createConnection({
             clientId: process.env.CONSUMER_KEY,
             clientSecret: process.env.CONSUMER_SECRET,
             redirectUri: process.env.SF_CMS_URL,
@@ -69,12 +69,18 @@ async function uploadAllBase64(accessToken) {
             username: process.env.SF_USERNAME,
             password: process.env.SF_PASSWORD,
             securityToken: process.env.SF_SECURITY_TOKEN
-        });*/
+        });
 
 
-        const serviceUrl = `${process.env.SF_CMS_URL}/services/apexrest/CMSSFMC/callHeroku`;
+       const body = {  
+            "cmsConnectionId":   "a2IL0000001MIYfMAO"
+         }
+        const url = `${process.env.SF_CMS_URL}/services/apexrest/CMSSFMC/callHeroku`;
+        const resQuery = await org.postUrl({ oauth, url, body });
+        console.log('resQuery', resQuery);
+       // 
         
-        console.log('serviceUrl---->', serviceUrl);
+       /* console.log('serviceUrl---->', serviceUrl);
         const res = await fetch(serviceUrl, {
             method: 'POST',
             headers: {
@@ -85,7 +91,7 @@ async function uploadAllBase64(accessToken) {
 
         const response = await res.json();
         
-        console.log('uploadAllBase64---->', response);
+        console.log('uploadAllBase64---->', response);*/
 
        // return notInMc;
     } catch (error) {
