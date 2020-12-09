@@ -116,7 +116,7 @@ app.post('/', async (req, res, next) => {
                 }
                 
                 console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
-                run(resp, org, contentTypeNodes, channelId, mcFolderId);
+                run(resp, org, contentTypeNodes, channelId, mcFolderId, resp.access_token);
                 res.send('CMS Content Type is syncing in the background. Please wait..');
             } catch (error) {
                 res.send(error.message);
@@ -213,16 +213,20 @@ async function getFolderId() {
                 if (parentFolder && parentFolder.id) {
                     console.log("Folder is being created");
                     const createdFolder = await createMcFolder(parentFolder.id, mcAuthResults.access_token);
-                    return createdFolder ? createdFolder.id : null;
+                    const id = createdFolder ? createdFolder.id : null;
+                    const status = 200;
+                    return { id, status };
                 }
             } else {
-                return matchedFolder.id;
+                const id = matchedFolder.id ? matchedFolder.id : null;
+                const status = 200;
+                return { id, status };
             }
         }else{
-            return null;
+            return { status: 500, errorMsg: 'Marketing cloud folder creation failed.' };
         }
     }else{
-        return null;
+        return { status: 500, errorMsg: 'Marketing cloud authentication failed.' };
     }
    
 }
@@ -235,11 +239,14 @@ app.listen(process.env.PORT || 3000, async function () {
     console.log("appName >>> ", appUrl);
     if (appUrl) {
         //Get MC Folder Id
-        const mcFolderId = await getFolderId();
-        console.log('MC Folder Id:', mcFolderId);
-        if (mcFolderId) {
+        const mcFolderRes = await getFolderId();
+
+        console.log('MC Folder Id:', mcFolderRes);
+        if (mcFolderRes && mcFolderRes.id ) {
             //Update call back url and mc folder id
-            updateCallbackUrl(appUrl, mcFolderId);
+            updateCallbackUrl(appUrl, mcFolderRes.id);
+        }else if(mcFolderRes && mcFolderRes.errorMsg){
+            console.log('Error msg:', mcFolderRes.errorMsg);
         }
     }
 });

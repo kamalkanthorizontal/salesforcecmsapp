@@ -254,5 +254,8 @@ module.exports = {
     },
     downloadBase64FromURL: async function (url, access_token, callback) {
         return await downloadBase64FromURL(url, access_token, callback)
+    },
+    oauthCallbackUrl : function (request) {
+        return request.protocol + "://" + request.get("host");
     }
 }
