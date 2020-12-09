@@ -28,6 +28,30 @@ const PAGE_SIZE = process.env.PAGE_SIZE || 5;
 
 
 
+async function updateBase64Status(){
+    const totalUploadedBase65Count = base64SkipedItems+base64Count; //50
+    console.log('totalUploadItems--->', totalUploadItems);
+
+    console.log('totalBase64Items--->', totalBase64Items);
+    console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
+
+
+    if( totalUploadItems === 0 && totalBase64Items > 0 && totalUploadedBase65Count < totalBase64Items ){
+                   
+        // call the service that hit service again
+        console.log('base64SkipedItems--->', base64SkipedItems);
+        console.log('base64Count--->', base64Count);                        
+        console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
+        console.log('totalBase64Items--->', totalBase64Items);
+
+
+        // Call the next service hit after all process close
+        setTimeout(async() => {
+            await uploadAllBase64(sfToken);
+        }, 10000);
+    }
+}
+
 async function uploadAllBase64(accessToken) {
     try {
         const serviceUrl = `${process.env.SF_CMS_URL}/services/apexrest/CMSSFMC/callHeroku`;
@@ -157,9 +181,12 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                 console.log('Upload on hold!! Please check the prohibited chars in', fileName);
             }
         }else{
-            base64SkipedItems = base64SkipedItems+1;
             const response = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${fileName}`; 
             const uploadStatus = 'Failed';
+
+            base64SkipedItems = base64SkipedItems+1;
+            totalUploadItems = totalUploadItems-1;
+            await updateBase64Status();
 
             // update job status
             if(jobId && response){
@@ -227,6 +254,8 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         const uploadStatus = 'Failed';
 
         base64SkipedItems = base64SkipedItems+1;
+        totalUploadItems = totalUploadItems-1;
+        await updateBase64Status();
 
         // update job status
         if(jobId && response){
@@ -268,25 +297,12 @@ async function createMCAsset(accessToken, assetBody, jobId, referenceId, name, s
 
                     // base64skipedItems = totalFailed64Count
 
-                    const totalUploadedBase65Count = base64SkipedItems+base64Count; //50
-                    console.log('totalUploadItems--->', totalUploadItems);
-                    console.log('base64SkipedItems--->', base64SkipedItems);
-                    if( totalUploadItems === 0 && totalBase64Items > 0 && totalUploadedBase65Count < totalBase64Items ){
-                   
-                        // call the service that hit service again
-                        console.log('base64SkipedItems--->', base64SkipedItems);
-                        console.log('base64Count--->', base64Count);                        
-                        console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
-                        console.log('totalBase64Items--->', totalBase64Items);
+                    //const totalUploadedBase65Count = base64SkipedItems+base64Count; //50
+                    //console.log('totalUploadItems--->', totalUploadItems);
+                    //console.log('base64SkipedItems--->', base64SkipedItems);
+                    
 
-
-                        // Call the next service hit after all process close
-                        setTimeout(async() => {
-                            await uploadAllBase64(sfToken);
-                        }, 10000);
-                    }
-
-
+                    await updateBase64Status();
 
                     
                     /*
@@ -306,6 +322,8 @@ async function createMCAsset(accessToken, assetBody, jobId, referenceId, name, s
         );
     });
 }
+
+
 
 
 async function getAllContent(org, cmsURL, items=[]){
