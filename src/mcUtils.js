@@ -274,7 +274,9 @@ async function createMCAsset(accessToken, assetBody, jobId, referenceId, name, s
 
                     if(totalBase64Items > 0 && totalUploadedBase65Count < totalBase64Items ){
                    
-                    console.log('totalBase64Items--->', totalUploadedBase65Count);
+                        console.log('base64SkipedItems--->', base64SkipedItems);
+                        console.log('base64Count--->', base64Count);                        
+                    console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
                     console.log('totalBase64Items--->', totalBase64Items);
 
                         // call the service that hit service again
@@ -309,6 +311,7 @@ async function createMCAsset(accessToken, assetBody, jobId, referenceId, name, s
 
 async function getAllContent(org, cmsURL, items=[]){
     let result = await org.getUrl(cmsURL);
+    
     if(result){
         items = result.items || [];
         if(result.nextPageUrl){
