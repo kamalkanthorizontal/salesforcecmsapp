@@ -322,7 +322,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name) 
                     const response = body.id ? `Uploaded with Asset id: ${body.id}`: `failed with Error code: ${errorCode} - Error message: ${msg} `; 
                     const uploadStatus = body.id ? 'Uploaded' : 'Failed';
 
-                   // console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);        
+                    console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);        
 
                     totalUploadItems = totalUploadItems-1; 
 
