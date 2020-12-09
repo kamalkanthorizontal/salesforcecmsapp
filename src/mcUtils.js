@@ -36,7 +36,7 @@ async function updateBase64Status(sfToken){
     console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
 
 
-    if( totalUploadItems === 0 && totalBase64Items > 0 && totalUploadedBase65Count < totalBase64Items ){
+    if( totalUploadItems === 0 && totalBase64Items > 0 && totalUploadedBase65Count === totalBase64Items ){
                    
         // call the service that hit service again
         console.log('base64SkipedItems--->', base64SkipedItems);
