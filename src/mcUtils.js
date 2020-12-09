@@ -135,7 +135,7 @@ async function getMcAuth() {
         });
 }
 
-async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  jobId, referenceId, sfToken) {
+async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  jobId, referenceId) {
     //console.log(`Uploading txt to MC: ${name} with body length ${value.length}`);
     let textAssetBody = {
         name: name,
@@ -176,7 +176,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
             );
             
             base64Count = base64Count+1;
-
+            console.log('base64Count--->', base64Count);
             let imageAssetBody = {
                 name: fileName + imageExt,
                 assetType: {
@@ -207,7 +207,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
 
             base64SkipedItems = base64SkipedItems+1;
             totalUploadItems = totalUploadItems-1;
-            await updateBase64Status(sfToken);
+            await updateBase64Status();
 
             // update job status
             if(jobId && response){
@@ -235,56 +235,54 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         const imagePreFix = process.env.IMG_PREFIX || '';
         fileName = `${imagePreFix}${fileName}`;
 
+        const notInMC = await getValidFileName(fileName + docExt);
 
+        if(notInMC){
+            const base64DocBody = await downloadBase64FromURL(
+                docUrl,
+                cmsAuthResults.access_token
+            );
 
-      const notInMC = await getValidFileName(fileName + docExt);
+            base64Count = base64Count+1;
+            let docAssetBody = {
+                name: fileName + docExt,
+                assetType: {
+                    id: getDocumentAssetTypeId(docExt.replace('.', '')),
+                },
+                fileProperties: {
+                    fileName: fileName + docExt,
+                    extension: docExt,
+                },
+                file: base64DocBody,
+                category: {
+                    id: folderId
+                },
+            };
 
-      if(notInMC){
-        const base64DocBody = await downloadBase64FromURL(
-            docUrl,
-            cmsAuthResults.access_token
-        );
+            //Marketing Cloud Regex for file fullName i.e. Developer name
+            var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
+            // Create Marketing Cloud Image Asset
+            if (mcRegex.test(fileName)) {
+            //  console.log(`Uploading doc to MC: ${fileName + docExt} with base64DocBody length ${base64DocBody.length}`);
+                await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId, name);
+            } else {
+                console.log('FileProperties.fileName contains prohibited characters.', fileName);
+            }
+        }else{
+            const response = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${fileName}`; 
+            const uploadStatus = 'Failed';
 
-        base64Count = base64Count+1;
-        let docAssetBody = {
-            name: fileName + docExt,
-            assetType: {
-                id: getDocumentAssetTypeId(docExt.replace('.', '')),
-            },
-            fileProperties: {
-                fileName: fileName + docExt,
-                extension: docExt,
-            },
-            file: base64DocBody,
-            category: {
-                id: folderId
-            },
-        };
+            base64SkipedItems = base64SkipedItems+1;
+            totalUploadItems = totalUploadItems-1;
+            await updateBase64Status();
 
-        //Marketing Cloud Regex for file fullName i.e. Developer name
-        var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
-        // Create Marketing Cloud Image Asset
-        if (mcRegex.test(fileName)) {
-          //  console.log(`Uploading doc to MC: ${fileName + docExt} with base64DocBody length ${base64DocBody.length}`);
-            await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId, name);
-        } else {
-            console.log('FileProperties.fileName contains prohibited characters.', fileName);
+            // update job status
+            if(jobId && response){
+                updateJobProgress(jobId, response, name, uploadStatus, referenceId);
+            }
+
+            console.log(' notInMC failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ', fileName);
         }
-      }else{
-        const response = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${fileName}`; 
-        const uploadStatus = 'Failed';
-
-        base64SkipedItems = base64SkipedItems+1;
-        totalUploadItems = totalUploadItems-1;
-        await updateBase64Status();
-
-        // update job status
-        if(jobId && response){
-            updateJobProgress(jobId, response, name, uploadStatus, referenceId);
-        }
-
-        console.log(' notInMC failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ', fileName);
-      }
         
         resolve();
     });
@@ -313,7 +311,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name) 
                     const response = body.id ? `Uploaded with Asset id: ${body.id}`: `failed with Error code: ${errorCode} - Error message: ${msg} `; 
                     const uploadStatus = body.id ? 'Uploaded' : 'Failed';
 
-                    console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);        
+                   // console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);        
 
                     totalUploadItems = totalUploadItems-1; 
 
