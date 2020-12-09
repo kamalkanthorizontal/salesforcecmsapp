@@ -28,7 +28,7 @@ const PAGE_SIZE = process.env.PAGE_SIZE || 5;
 
 
 
-async function updateBase64Status(){
+async function updateBase64Status(sfToken){
     const totalUploadedBase65Count = base64SkipedItems+base64Count; //50
     console.log('totalUploadItems--->', totalUploadItems);
 
@@ -54,6 +54,24 @@ async function updateBase64Status(){
 
 async function uploadAllBase64(accessToken) {
     try {
+
+        /*let org = nforce.createConnection({
+            clientId: process.env.CONSUMER_KEY,
+            clientSecret: process.env.CONSUMER_SECRET,
+            redirectUri: process.env.SF_CMS_URL,
+            apiVersion: process.env.SF_API_VERSION,
+            mode: "single",
+            environment: "sandbox",
+            autoRefresh: true
+        });
+
+        const oauth = await org.authenticate({
+            username: process.env.SF_USERNAME,
+            password: process.env.SF_PASSWORD,
+            securityToken: process.env.SF_SECURITY_TOKEN
+        });*/
+
+
         const serviceUrl = `${process.env.SF_CMS_URL}/services/apexrest/CMSSFMC/callHeroku`;
         
         console.log('serviceUrl---->', serviceUrl);
@@ -61,7 +79,7 @@ async function uploadAllBase64(accessToken) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken.access_token}`
+                'Authorization': `Bearer ${accessToken}`
             },
         });
 
@@ -186,7 +204,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
 
             base64SkipedItems = base64SkipedItems+1;
             totalUploadItems = totalUploadItems-1;
-            await updateBase64Status();
+            await updateBase64Status(sfToken);
 
             // update job status
             if(jobId && response){
@@ -476,9 +494,7 @@ async function startUploadProcess(workQueue) {
                 
                 //Upload CMS content to Marketing Cloud
                 //await Promise.all(
-               console.log('Total item to uploaded--->', totalUploadItems);
-               console.log('Total base 64 items to upload--->', totalBase64Items);
-
+            
                 items.map(async (ele) => { 
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
