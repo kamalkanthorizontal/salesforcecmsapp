@@ -56,8 +56,7 @@ async function getValidFileName(fileName) {
     try {
         const mcAuthResults = await getMcAuth();
         const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_ASSETS_API_PATH}?$filter=Name%20like%20'${fileName}'`;
-        
-        console.log('serviceUrl---->', serviceUrl);
+    
         const res = await fetch(serviceUrl, {
             method: 'GET',
             headers: {
@@ -68,7 +67,6 @@ async function getValidFileName(fileName) {
 
         const response = await res.json();
         const notInMc = response.count === 0 ? true : false;
-        console.log('response for file name---->', fileName, response.count, notInMc);
 
         return notInMc;
     } catch (error) {
@@ -264,7 +262,7 @@ async function createMCAsset(accessToken, assetBody, jobId, referenceId, name, s
                     const response = body.id ? `Uploaded with Asset id: ${body.id}`: `failed with Error code: ${errorCode} - Error message: ${msg} `; 
                     const uploadStatus = body.id ? 'Uploaded' : 'Failed';
 
-                    //console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);        
+                    console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);        
 
                     totalUploadItems = totalUploadItems-1; 
 
@@ -280,7 +278,7 @@ async function createMCAsset(accessToken, assetBody, jobId, referenceId, name, s
                     console.log('totalBase64Items--->', totalBase64Items);
 
                         // call the service that hit service again
-                        console.log('sfToken-->', sfToken)
+                    
                         // Call the next service hit after all process close
                         setTimeout(async() => {
                             await uploadAllBase64(sfToken);
@@ -452,8 +450,8 @@ async function startUploadProcess(workQueue) {
                 
                 //Upload CMS content to Marketing Cloud
                 //await Promise.all(
-               console.log('totalUploadItems--->', totalUploadItems);
-               console.log('totalBase64Items--->', totalBase64Items);
+               console.log('Total item to uploaded--->', totalUploadItems);
+               console.log('Total base 64 items to upload--->', totalBase64Items);
 
                 items.map(async (ele) => { 
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
@@ -469,7 +467,6 @@ async function startUploadProcess(workQueue) {
                         );  
                         
                     } else if (ele.assetTypeId === '8') { //image
-                        console.log('base64Count--->', base64Count);
                         if(base64Count <=  allowedBase64Count){
                             await moveImageToMC(
                                 ele,
@@ -483,7 +480,6 @@ async function startUploadProcess(workQueue) {
                             console.log('50 base64 synced');
                         }
                     } else if (ele.assetTypeId === '11') { //document
-                        console.log('base64Count--->', base64Count);
                         if(base64Count <=  allowedBase64Count){
                             await moveDocumentToMC(
                                 ele,
