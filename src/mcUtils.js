@@ -39,7 +39,7 @@ async function updateBase64Status(sfToken){
                     console.log('totalBase64Items--->', totalBase64Items);
             
                     console.log('Total Base 64 Count--->', totalBase64Items);
-                   }
+                   
         // call the service that hit service again
         
         // Call the next service hit after all process close
