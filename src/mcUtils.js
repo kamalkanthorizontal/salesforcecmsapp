@@ -9,7 +9,13 @@ const { MC_ASSETS_API_PATH, MS_AUTH_PATH, MC_CONTENT_CATEGORIES_API_PATH, REDIS_
 
 let maxJobsPerWorker = 150;
 let jobWorkQueueList = [];
+
+
+const allowedBase64Count = 50;
 let base64Count = 0;
+let totalBase64Count = 0;
+let totalUploadCount = 0;
+let totalFailed64Count = 0;
 
 
 const getMcAuthBody = {
@@ -62,7 +68,6 @@ async function getMcAuth() {
 
 async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  jobId, referenceId) {
     console.log(`Uploading txt to MC: ${name} with body length ${value.length}`);
-
     let textAssetBody = {
         name: name,
         assetType: {
@@ -90,6 +95,8 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
 
         let fileName = imageNode.name ? imageNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
         
+        const imagePreFix = process.env.IMG_PREFIX || '';
+        fileName = `${imagePreFix}${fileName}`;
 
         const notInMC = await getValidFileName(fileName + imageExt);
 
@@ -100,6 +107,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
             );
             
             base64Count = base64Count+1;
+
             let imageAssetBody = {
                 name: fileName + imageExt,
                 assetType: {
@@ -125,6 +133,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                 console.log('Upload on hold!! Please check the prohibited chars in', fileName);
             }
         }else{
+            totalFailed64Count = totalFailed64Count+1;
             const response = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${fileName}`; 
             const uploadStatus = 'Failed';
 
@@ -150,7 +159,10 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         const publishedDate = documentNode.publishedDate ? documentNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
 
         let fileName = documentNode.name ? documentNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(documentNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
-      //  fileName = `${process.env.IMG_PREFIX}_${fileName}`; // Need to remove once testing done
+
+        const imagePreFix = process.env.IMG_PREFIX || '';
+        fileName = `${imagePreFix}${fileName}`;
+
 
 
       const notInMC = await getValidFileName(fileName + docExt);
@@ -190,6 +202,8 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         const response = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${fileName}`; 
         const uploadStatus = 'Failed';
 
+        totalFailed64Count = totalFailed64Count+1;
+
         // update job status
         if(jobId && response){
             updateJobProgress(jobId, response, name, uploadStatus, referenceId);
@@ -204,11 +218,11 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
 
 
 
-async function createMCAsset(access_token, assetBody, jobId, referenceId, name) {
+async function createMCAsset(accessToken, assetBody, jobId, referenceId, name) {
     return new Promise((resolve, reject) => {
         request.post(process.env.MC_REST_BASE_URI + MC_ASSETS_API_PATH, {
             headers: {
-                Authorization: 'Bearer ' + access_token
+                Authorization: 'Bearer ' + accessToken
             },
             json: assetBody,
         },
@@ -224,22 +238,33 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name) 
                     const response = body.id ? `Uploaded with Asset id: ${body.id}`: `failed with Error code: ${errorCode} - Error message: ${msg} `; 
                     const uploadStatus = body.id ? 'Uploaded' : 'Failed';
 
-                    console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);
+                    console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);        
+
+                   totalUploadCount = totalUploadCount-1; 
+
+                   console.log('totalUploadCount--->', totalUploadCount);
+                   console.log('totalBase64Count--->', totalFailed64Count+base64Count);
+                   console.log('totalBase64Count--->', totalBase64Count);
+                   totalBase64Count = 110
+                   base64Count = 50 
+                   totalFailed64Count = 0
+                   // base64skipedItems = totalFailed64Count
+
+                   const totalUploadedBase65Count = totalFailed64Count+base64Count; //50
+
+                    if(totalBase64Count > 0 && totalUploadedBase65Count < totalBase64Count ){
+                        // call the service that hit service again
+                    }
+
+
+
+                    
                     /*
-                        // Memory status
-                        const formatMemmoryUsage = (data) => `${Math.round(data / 1024 / 1024 * 100) / 100} MB`
-
-                        const memoryData = process.memoryUsage()
-                        
-                        const memmoryUsage= { 'rss': `${formatMemmoryUsage(memoryData.rss)} -> Resident Set Size - total memory allocated for the process execution`,
-                                    heapTotal: `${formatMemmoryUsage(memoryData.heapTotal)} -> total size of the allocated heap`,
-                                    heapUsed: `${formatMemmoryUsage(memoryData.heapUsed)} -> actual memory used during the execution`,
-                                    external: `${formatMemmoryUsage(memoryData.external)} -> V8 external memory`,
-                                }
-                    */
-
-
-                    // update job status
+                    else if(totalUploadCount === 0){
+                        //update the final status
+                    }*/
+                   
+                    // update job status    
                     if(jobId && response){
                         updateJobProgress(jobId, response, name, uploadStatus, referenceId);
                     }
@@ -279,14 +304,12 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
             if (serviceResults && serviceResults.length) {
                 const result = {items: serviceResults, managedContentNodeTypes};
                 const items = getAssestsWithProperNaming(result);
-                 //console.log('serviceResults--->', items);
                 const job = await workQueue.add({ content: { items, cmsAuthResults, folderId, totalItems: items.length } }, {
                     attempts: 1
                 });
 
                 jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0 }];
 
-                //console.log('Hitting Connect REST URL:', cmsURL);
                 console.log('Job Id:', job.id);
 
             }
@@ -372,8 +395,6 @@ function updateJobProgress(jobId, serverResponse, name, serverStatus, referenceI
         const state = percents == 100.0 ? 'completed' : 'In-Progress';
         return { ...ele, progress: percents, counter, state, items ,counter };
     });
-
-    // console.log('jobWorkQueueList--->', jobWorkQueueList);
 }
 
 
@@ -388,19 +409,30 @@ async function startUploadProcess(workQueue) {
     console.log("Marketing Cloud authentication :", mcAuthResults.access_token ? 'Successful' : 'Failure');
 
     workQueue.process(maxJobsPerWorker, async (job, done) => {
-        //console.log('base64Count--->', base64Count);
         try {
             let { content } = job.data;
             const { items, folderId } = content;
             if (items) {
                 console.log(`Filtered no. of nodes for Job ID ${job.id} : ${items.length}`);
+                
+
+                
+                totalBase64Count = items.filter(ele => ele.assetTypeId === '8' || ele.assetTypeId === '11').length;
+                
+                totalUploadCount = items.length;//items.filter(ele => ele.assetTypeId === '196' || ele.assetTypeId === '197').length +totalBase64Count;
+                
+//totalUploadCount = totalUploadItems
+//totalBase64Count = totalBase64Items
 
                 //Upload CMS content to Marketing Cloud
                 //await Promise.all(
-
+               console.log('totalUploadCount--->', totalUploadCount);
+               console.log('totalBase64Count--->', totalBase64Count);
 
                 items.map(async (ele) => { 
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
+                    
+                        console.log('base64Count doc--->', base64Count);
                         await moveTextToMC(
                             ele.name,
                             ele.value,
@@ -410,8 +442,11 @@ async function startUploadProcess(workQueue) {
                             job.id,
                             ele.referenceId
                         );  
+                        
                     } else if (ele.assetTypeId === '8') { //image
-                        if(base64Count <=  50){
+
+                        console.log('base64Count--->', base64Count);
+                        if(base64Count <=  allowedBase64Count){
                             await moveImageToMC(
                                 ele,
                                 folderId,
@@ -425,7 +460,8 @@ async function startUploadProcess(workQueue) {
                        
 
                     } else if (ele.assetTypeId === '11') { //document
-                        if(base64Count <=  50){
+                        console.log('base64Count--->', base64Count);
+                        if(base64Count <=  allowedBase64Count){
                             await moveDocumentToMC(
                                 ele,
                                 folderId,
@@ -457,6 +493,9 @@ async function startUploadProcess(workQueue) {
 module.exports = {
     run: function (cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
         base64Count = 0;
+        totalBase64Count = 0;
+        totalUploadCount = 0;
+        totalFailed64Count = 0;
 
         let workQueue = new Queue(`work-${channelId}`, REDIS_URL);
         addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId)

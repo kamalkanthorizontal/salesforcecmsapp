@@ -76,41 +76,45 @@ app.post('/', async (req, res, next) => {
         }
 
         if (isSetup()) {
-            let { contentTypeNodes, contentType, channelId, mcFolderId } = req.body;
-            let validFolderId;
-            if (mcFolderId) {
-                validFolderId = await getValidFolderId(mcFolderId);
-            }
-
-            if (!validFolderId) {
-                validFolderId = await getFolderId();
-            }
-
-            if (validFolderId !== mcFolderId) {
-                await updateCallbackUrl(null, validFolderId);
-            }
-
-            mcFolderId = validFolderId;
-
-            contentTypeNodes = JSON.parse(contentTypeNodes);
-
-            //nforce setup to connect Salesforce
-            let org = nforce.createConnection({
-                clientId: process.env.CONSUMER_KEY,
-                clientSecret: process.env.CONSUMER_SECRET,
-                redirectUri: oauthCallbackUrl(req),
-                apiVersion: process.env.SF_API_VERSION,
-                mode: "single",
-                environment: "sandbox",
-                autoRefresh: true
-            });
-
             try {
+                let { contentTypeNodes, channelId, mcFolderId } = req.body;
+                // checking folder ID
+                let validFolderId;
+                if (mcFolderId) {
+                    validFolderId = await getValidFolderId(mcFolderId);
+                }
+
+                if (!validFolderId) {
+                    validFolderId = await getFolderId();
+                }
+
+                if (validFolderId !== mcFolderId) {
+                    await updateCallbackUrl(null, validFolderId);
+                }
+
+                mcFolderId = validFolderId;                
+
+                //nforce setup to connect Salesforce
+                let org = nforce.createConnection({
+                    clientId: process.env.CONSUMER_KEY,
+                    clientSecret: process.env.CONSUMER_SECRET,
+                    redirectUri: oauthCallbackUrl(req),
+                    apiVersion: process.env.SF_API_VERSION,
+                    mode: "single",
+                    environment: "sandbox",
+                    autoRefresh: true
+                });
+
                 const resp = await org.authenticate({
                     username: process.env.SF_USERNAME,
                     password: process.env.SF_PASSWORD,
                     securityToken: process.env.SF_SECURITY_TOKEN
                 });
+
+                if(contentTypeNodes){
+                    contentTypeNodes = JSON.parse(contentTypeNodes);    
+                }
+                
                 console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
                 run(resp, org, contentTypeNodes, channelId, mcFolderId);
                 res.send('CMS Content Type is syncing in the background. Please wait..');
@@ -196,21 +200,29 @@ async function updateCallbackUrl(appName, folderId = '') {
 }
 
 async function getFolderId() {
-    const folderName = process.env.MC_FOLDER_NAME; // Env folder name
+    const folderName = process.env.MC_FOLDER_NAME || 'CMS-SFMC-Connector'; // Env folder name
     const mcAuthResults = await getMcAuth();
-    const mcFolders = await getMcFolders(mcAuthResults.access_token); // Getting all folders
-    const matchedFolder = [...mcFolders.items].find(ele => ele.name === folderName); // Check is folder already created or not
-    if (!matchedFolder) {
-        //Create folder in MC
-        const parentFolder = [...mcFolders.items].find(ele => ele.parentId === 0);
-        if (parentFolder && parentFolder.id) {
-            console.log("Folder is being created");
-            const createdFolder = await createMcFolder(parentFolder.id, mcAuthResults.access_token);
-            return createdFolder ? createdFolder.id : null;
+    if(mcAuthResults && mcAuthResults.access_token){
+        const mcFolders = await getMcFolders(mcAuthResults.access_token); // Getting all folders
+
+        if(mcFolders && mcFolders.items){
+            const matchedFolder = [...mcFolders.items].find(ele => ele.name === folderName); // Check is folder already created or not
+            if (!matchedFolder) {
+                //Create folder in MC
+                const parentFolder = [...mcFolders.items].find(ele => ele.parentId === 0);
+                if (parentFolder && parentFolder.id) {
+                    console.log("Folder is being created");
+                    const createdFolder = await createMcFolder(parentFolder.id, mcAuthResults.access_token);
+                    return createdFolder ? createdFolder.id : null;
+                }
+            } else {
+                return matchedFolder.id;
+            }
+        }else{
+            return null;
         }
-    } else {
-        return matchedFolder.id;
     }
+   
 }
 
 
