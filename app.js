@@ -221,6 +221,8 @@ async function getFolderId() {
         }else{
             return null;
         }
+    }else{
+        return null;
     }
    
 }

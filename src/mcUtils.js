@@ -245,9 +245,6 @@ async function createMCAsset(accessToken, assetBody, jobId, referenceId, name) {
                    console.log('totalUploadCount--->', totalUploadCount);
                    console.log('totalBase64Count--->', totalFailed64Count+base64Count);
                    console.log('totalBase64Count--->', totalBase64Count);
-                   totalBase64Count = 110
-                   base64Count = 50 
-                   totalFailed64Count = 0
                    // base64skipedItems = totalFailed64Count
 
                    const totalUploadedBase65Count = totalFailed64Count+base64Count; //50
