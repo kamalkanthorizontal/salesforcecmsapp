@@ -270,6 +270,7 @@ async function createMCAsset(accessToken, assetBody, jobId, referenceId, name, s
 
                     const totalUploadedBase65Count = base64SkipedItems+base64Count; //50
                     console.log('totalUploadItems--->', totalUploadItems);
+                    console.log('base64SkipedItems--->', base64SkipedItems);
                     if( totalUploadItems === 0 && totalBase64Items > 0 && totalUploadedBase65Count < totalBase64Items ){
                    
                         // call the service that hit service again
