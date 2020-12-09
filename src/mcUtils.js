@@ -30,7 +30,8 @@ const PAGE_SIZE = process.env.PAGE_SIZE || 5;
 
 async function updateBase64Status(){
     const totalUploadedBase65Count = base64SkipedItems+base64Count; //50
-
+    console.log('base64SkipedItems--->', base64SkipedItems);
+    console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
     //if( totalUploadItems === 0 && totalBase64Items > 0 && totalUploadedBase65Count === totalBase64Items ){
                    if( totalUploadItems === 0){
                     console.log('base64SkipedItems--->', base64SkipedItems);
