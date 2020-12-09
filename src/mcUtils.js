@@ -266,21 +266,19 @@ async function createMCAsset(accessToken, assetBody, jobId, referenceId, name, s
 
                     totalUploadItems = totalUploadItems-1; 
 
-                    //console.log('totalUploadItems--->', totalUploadItems);
-                   
                     // base64skipedItems = totalFailed64Count
 
                     const totalUploadedBase65Count = base64SkipedItems+base64Count; //50
-
-                    if(totalBase64Items > 0 && totalUploadedBase65Count < totalBase64Items ){
+                    console.log('totalUploadItems--->', totalUploadItems);
+                    if( totalUploadItems === 0 && totalBase64Items > 0 && totalUploadedBase65Count < totalBase64Items ){
                    
+                        // call the service that hit service again
                         console.log('base64SkipedItems--->', base64SkipedItems);
                         console.log('base64Count--->', base64Count);                        
-                    console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
-                    console.log('totalBase64Items--->', totalBase64Items);
+                        console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
+                        console.log('totalBase64Items--->', totalBase64Items);
 
-                        // call the service that hit service again
-                    
+
                         // Call the next service hit after all process close
                         setTimeout(async() => {
                             await uploadAllBase64(sfToken);
