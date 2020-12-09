@@ -30,25 +30,22 @@ const PAGE_SIZE = process.env.PAGE_SIZE || 5;
 
 async function updateBase64Status(sfToken){
     const totalUploadedBase65Count = base64SkipedItems+base64Count; //50
-    console.log('totalUploadItems--->', totalUploadItems);
 
-    console.log('totalBase64Items--->', totalBase64Items);
-    console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
-
-
-    if( totalUploadItems === 0 && totalBase64Items > 0 && totalUploadedBase65Count === totalBase64Items ){
-                   
+    //if( totalUploadItems === 0 && totalBase64Items > 0 && totalUploadedBase65Count === totalBase64Items ){
+                   if( totalUploadItems === 0){
+                    console.log('base64SkipedItems--->', base64SkipedItems);
+                    console.log('base64Count--->', base64Count);                        
+                    console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
+                    console.log('totalBase64Items--->', totalBase64Items);
+            
+                    console.log('Total Base 64 Count--->', totalBase64Items);
+                   }
         // call the service that hit service again
-        console.log('base64SkipedItems--->', base64SkipedItems);
-        console.log('base64Count--->', base64Count);                        
-        console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
-        console.log('totalBase64Items--->', totalBase64Items);
-
-
+        
         // Call the next service hit after all process close
-        setTimeout(async() => {
+        /*setTimeout(async() => {
             await uploadAllBase64(sfToken);
-        }, 10000);
+        }, 10000);*/
     }
 }
 
@@ -320,7 +317,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name) 
 
                     totalUploadItems = totalUploadItems-1; 
 
-                    // await updateBase64Status();
+                     await updateBase64Status();
                    
                     // update job status    
                     if(jobId && response){
@@ -385,6 +382,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         }
     }));
 
+    console.log('Total Base 64 Count--->', totalBase64Items);
     startUploadProcess(workQueue);
 }
 
