@@ -28,7 +28,7 @@ const PAGE_SIZE = process.env.PAGE_SIZE || 5;
 
 
 
-async function updateBase64Status(sfToken){
+async function updateBase64Status(){
     const totalUploadedBase65Count = base64SkipedItems+base64Count; //50
 
     //if( totalUploadItems === 0 && totalBase64Items > 0 && totalUploadedBase65Count === totalBase64Items ){
@@ -220,7 +220,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
     });
 }
 
-async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults,  jobId, sfToken) {
+async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults,  jobId) {
     return new Promise(async (resolve, reject) => {
         const docUrl = `${documentNode.unauthenticatedUrl}`;
         const referenceId =  documentNode.referenceId;
@@ -300,7 +300,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name) 
             },
             json: assetBody,
         },
-            (error, res, body) => {
+            async(error, res, body) => {
                 if (error) {
                     console.log('error', error)
                     console.log(`Error for:${assetBody.name}`, error);
