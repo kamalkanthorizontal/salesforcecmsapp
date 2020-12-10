@@ -12,7 +12,7 @@ let maxJobsPerWorker = 150;
 let jobWorkQueueList = [];
 
 
-const allowedBase64Count = 2;
+const allowedBase64Count = 50;
 let base64Count = 0;
 let totalBase64Items = 0;
 let totalUploadItems = 0;
@@ -158,13 +158,48 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
    // return new Promise(async (resolve, reject) => {
         try{
             //console.log('imageNode--->', imageNode)
-            const imageUrl = imageNode.unauthenticatedUrl ?  `${imageNode.unauthenticatedUrl}` : null;
+            
+            const imageUrl = imageNode.imageUrl || null;
+            const fileName = imageNode.fileName || null;
+            const imageExt = imageNode.imageExt || null;
+           
             if(imageUrl){
                 const referenceId =  imageNode.referenceId || null;
                 const name =  imageNode.name;
              
+                const base64ImageBody = await downloadBase64FromURL(
+                    imageUrl,
+                    cmsAuthResults.access_token
+                );
                 
-                const imageExt = imageNode.fileName ? path.parse(imageNode.fileName).ext: null;
+                base64Count = base64Count+1;
+                
+                let imageAssetBody = {
+                    name: fileName + imageExt,
+                    assetType: {
+                        id: getImageAssetTypeId(imageExt.replace('.', '')),
+                    },
+                    fileProperties: {
+                        fileName: fileName + imageExt,
+                        extension: imageExt,
+                    },
+                    file: base64ImageBody,
+                    category: {
+                        id: folderId
+                    },
+                };
+        
+                //Marketing Cloud Regex for file fullName i.e. Developer name
+                var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
+                // Create Marketing Cloud Image Asset
+                if (mcRegex.test(fileName)) {
+                    //console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
+                    await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name);
+                } else {
+                    console.log('Upload on hold!! Please check the prohibited chars in', fileName);
+                }
+
+                /*const imageExt = imageNode.fileName ? path.parse(imageNode.fileName).ext: null;
                 const publishedDate = imageNode.publishedDate ? imageNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
         
                 let fileName = imageNode.name ? imageNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
@@ -226,7 +261,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                         updateJobProgress(jobId, response, name, uploadStatus, referenceId);
                     }
                     console.log(' notInMC failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ', fileName);
-                }
+                }*/
             }
             
             
@@ -370,7 +405,47 @@ async function getAllContent(org, cmsURL, items=[]){
     return [];
 }
 
+
+async function mediaSourceFiles(itemImages, localBase64Count){
+    let images = []; 
+    await Promise.all(itemImages.map(async (imageNode) => {
+        const imageUrl = imageNode.unauthenticatedUrl ?  `${imageNode.unauthenticatedUrl}` : null;
+        const referenceId =  imageNode.referenceId || null;
+        const name =  imageNode.name;
+     
+        if(imageUrl){
+            
+            const imageExt = imageNode.fileName ? path.parse(imageNode.fileName).ext: null;
+            const publishedDate = imageNode.publishedDate ? imageNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
+    
+            let fileName = imageNode.name ? imageNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
+            
+            const imagePreFix = process.env.IMG_PREFIX || '';
+            fileName = `${imagePreFix}${fileName}`;
+    
+            const notInMC = await getValidFileName(fileName + imageExt);
+            if(notInMC && localBase64Count < allowedBase64Count){
+                localBase64Count = localBase64Count+1;
+                const node = {
+                    assetTypeId: imageNode.assetTypeId,
+                    title: imageNode.title,
+                    type: imageNode.type,
+                    status: imageNode.status,
+                    imageUrl,
+                    fileName,
+                    imageExt,
+                    referenceId, 
+                    name
+                }
+                images = [...images, node];
+            }
+        }  
+    }));
+    return { images, localBase64Count };
+}
+
 async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
+    let localBase64Count = 0;
     await Promise.all(contentTypeNodes.map(async (ele) => {
         try {
             const managedContentType = ele.DeveloperName;
@@ -381,28 +456,41 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
             
             if (serviceResults && serviceResults.length) {
                 const result = {items: serviceResults, managedContentNodeTypes};
-                const items = getAssestsWithProperNaming(result);
-
+                let items = getAssestsWithProperNaming(result);
+              
                 const mediaCount = items.filter(ele => ele.assetTypeId === '8' || ele.assetTypeId === '11').length;
 
                 totalBase64Items = totalBase64Items+mediaCount;
                 totalUploadItems = totalUploadItems + items.length;
+
+                const contents = items.filter(ele => ele.assetTypeId === '196' || ele.assetTypeId === '197');
+                const itemDocuments = items.filter(ele => ele.assetTypeId === '11');
+                const itemImages = items.filter(ele => ele.assetTypeId === '8');
                 
-                const job = await workQueue.add({ content: { items, cmsAuthResults, folderId, totalItems: items.length } }, {
+                
+                const mediaSource = await mediaSourceFiles(itemImages, localBase64Count);
+                const images =  mediaSource.images;
+                localBase64Count = mediaSource.localBase64Count;
+
+                items = [...contents, ...itemDocuments, ...images];
+        
+
+                // content type
+               const job = await workQueue.add({ content: { items, cmsAuthResults, folderId, totalItems: items.length } }, {
                     attempts: 1,
                     lifo: true
                 });
 
                 jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0 }];
 
-                console.log('Job Id:', job.id);
+               console.log('Job Id:', job.id);
 
             }
         } catch (error) {
             console.log(error);
         }
     }));
-
+    console.log('localBase64Count--->', localBase64Count);
     console.log('Total Base 64 Count--->', totalBase64Items);
     startUploadProcess(workQueue);
 }
@@ -499,11 +587,14 @@ async function startUploadProcess(workQueue) {
             let { content } = job.data;
             const { items, folderId } = content;
             if (items) {
-                console.log(`Filtered no. of nodes for Job ID ${job.id} : ${items.length}`);
+                
 
                 //Upload CMS content to Marketing Cloud
                 //await Promise.all(
             
+                const images = items.filter(ele => ele.assetTypeId === '8');
+                console.log(`Filtered no. of nodes for Job ID ${job.id} : images ${images.length}`);
+
                 items.map(async (ele) => { 
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
@@ -517,7 +608,7 @@ async function startUploadProcess(workQueue) {
                         );  
                         
                     } else if (ele.assetTypeId === '8') { //image
-                        if(base64Count <  5){
+                        //if(base64Count <  5){
                             await moveImageToMC(
                                 ele,
                                 folderId,
@@ -525,9 +616,9 @@ async function startUploadProcess(workQueue) {
                                 content.cmsAuthResults,
                                 job.id
                             );
-                        }else{
+                        /*}else{
                             console.log('50 base64 synced');
-                        }
+                        }*/
                     } else if (ele.assetTypeId === '11') { //document
                         if(base64Count <  5){
                             await moveDocumentToMC(
