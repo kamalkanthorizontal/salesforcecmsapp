@@ -30,9 +30,9 @@ const PAGE_SIZE = process.env.PAGE_SIZE || 5;
 
 async function updateBase64Status(){
     const totalUploadedBase65Count = base64SkipedItems+base64Count; //50
-    console.log('base64SkipedItems--->', base64SkipedItems);
-    console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
-    console.log('totalUploadItems--->', totalUploadItems);
+    //console.log('base64SkipedItems--->', base64SkipedItems);
+    //console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
+    //console.log('totalUploadItems--->', totalUploadItems);
     //if( totalUploadItems === 0 && totalBase64Items > 0 && totalUploadedBase65Count === totalBase64Items ){
                    if( totalUploadItems === 0){
                     console.log('base64SkipedItems--->', base64SkipedItems);
@@ -157,71 +157,74 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  
 async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults, jobId) {
    // return new Promise(async (resolve, reject) => {
         try{
-            console.log('imageNode--->', imageNode)
-            const imageUrl = `${imageNode.unauthenticatedUrl}`;
-            const referenceId =  imageNode.referenceId;
-            const name =  imageNode.name;
-            
-            
-            const imageExt = path.parse(imageNode.fileName).ext;
-            const publishedDate = imageNode.publishedDate ? imageNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
-    
-            let fileName = imageNode.name ? imageNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
-            
-            const imagePreFix = process.env.IMG_PREFIX || '';
-            fileName = `${imagePreFix}${fileName}`;
-    
-            const notInMC = await getValidFileName(fileName + imageExt);
-    
-            if(notInMC && base64Count < 5){
+            //console.log('imageNode--->', imageNode)
+            const imageUrl = imageNode.unauthenticatedUrl ?  `${imageNode.unauthenticatedUrl}` : null;
+            if(imageUrl){
+                const referenceId =  imageNode.referenceId || null;
+                const name =  imageNode.name;
+             
                 
-                const base64ImageBody = await downloadBase64FromURL(
-                    imageUrl,
-                    cmsAuthResults.access_token
-                );
-                
-                base64Count = base64Count+1;
-                console.log('base64Count--->', base64Count);
-                let imageAssetBody = {
-                    name: fileName + imageExt,
-                    assetType: {
-                        id: getImageAssetTypeId(imageExt.replace('.', '')),
-                    },
-                    fileProperties: {
-                        fileName: fileName + imageExt,
-                        extension: imageExt,
-                    },
-                    file: base64ImageBody,
-                    category: {
-                        id: folderId
-                    },
-                };
+                const imageExt = imageNode.fileName ? path.parse(imageNode.fileName).ext: null;
+                const publishedDate = imageNode.publishedDate ? imageNode.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
         
-                //Marketing Cloud Regex for file fullName i.e. Developer name
-                var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
-                // Create Marketing Cloud Image Asset
-                if (mcRegex.test(fileName)) {
-                    //console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
-                    await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name);
-                } else {
-                    console.log('Upload on hold!! Please check the prohibited chars in', fileName);
-                }
-            
+                let fileName = imageNode.name ? imageNode.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(imageNode.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
                 
-            }else{
-                const response = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${fileName}`; 
-                const uploadStatus = 'Failed';
-    
-                base64SkipedItems = base64SkipedItems+1;
-                totalUploadItems = totalUploadItems-1;
-                await updateBase64Status();
-    
-                // update job status
-                if(jobId && response){
-                    updateJobProgress(jobId, response, name, uploadStatus, referenceId);
+                const imagePreFix = process.env.IMG_PREFIX || '';
+                fileName = `${imagePreFix}${fileName}`;
+        
+                const notInMC = await getValidFileName(fileName + imageExt);
+        
+                if(notInMC && base64Count < 5){
+                    
+                    const base64ImageBody = await downloadBase64FromURL(
+                        imageUrl,
+                        cmsAuthResults.access_token
+                    );
+                    
+                    base64Count = base64Count+1;
+                    console.log('base64Count--->', base64Count);
+                    let imageAssetBody = {
+                        name: fileName + imageExt,
+                        assetType: {
+                            id: getImageAssetTypeId(imageExt.replace('.', '')),
+                        },
+                        fileProperties: {
+                            fileName: fileName + imageExt,
+                            extension: imageExt,
+                        },
+                        file: base64ImageBody,
+                        category: {
+                            id: folderId
+                        },
+                    };
+            
+                    //Marketing Cloud Regex for file fullName i.e. Developer name
+                    var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
+                    // Create Marketing Cloud Image Asset
+                    if (mcRegex.test(fileName)) {
+                        //console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
+                        await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name);
+                    } else {
+                        console.log('Upload on hold!! Please check the prohibited chars in', fileName);
+                    }
+                
+                    
+                }else{
+                    const response = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${fileName}`; 
+                    const uploadStatus = 'Failed';
+        
+                    base64SkipedItems = base64SkipedItems+1;
+                    totalUploadItems = totalUploadItems-1;
+                    await updateBase64Status();
+        
+                    // update job status
+                    if(jobId && response){
+                        updateJobProgress(jobId, response, name, uploadStatus, referenceId);
+                    }
+                    console.log(' notInMC failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ', fileName);
                 }
-                console.log(' notInMC failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ', fileName);
             }
+            
             
            // resolve();
         }catch(error){
