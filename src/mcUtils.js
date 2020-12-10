@@ -278,7 +278,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         const fileName = documentNode.fileName || null;
         const docExt = documentNode.ext || null;
         
-        if(imageUrl){
+        if(docUrl){
             const referenceId =  documentNode.referenceId || null;
             const name =  documentNode.name;
     
@@ -395,6 +395,7 @@ async function getMediaSourceFile(node){
         
         const imagePreFix = process.env.IMG_PREFIX || '';
         fileName = `${imagePreFix}${fileName}`;
+        
         const notInMC = await getValidFileName(fileName + ext);
         if(notInMC){
             return {
@@ -409,9 +410,10 @@ async function getMediaSourceFile(node){
                 name
             }
         }else{
+
             base64SkipedItems = base64SkipedItems+1;
             totalUploadItems = totalUploadItems-1;
-            console.log(' notInMC failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ', fileName);
+
             return null;
         }
     }
@@ -449,7 +451,27 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                    if(node && localBase64Count < allowedBase64Count){
                         localBase64Count = localBase64Count+1;
                         images = [...images, node];
-                    }
+                   }else{
+
+                    const referenceId =  imageNode.referenceId || null;
+                    const name =  imageNode.name;
+
+                    const serverResponse = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${name}`; 
+                    const serverStatus = 'Failed';
+                    items = [...items].map(item =>{
+                        // response
+                        let response = item.response;
+                        let status = item.status;
+                        if(name && item.name === name ){
+                            response = serverResponse;
+                            status = serverStatus;
+                        }else if(referenceId && item.referenceId === referenceId ){
+                            response = serverResponse;
+                            status = serverStatus;
+                        }
+                        return {...item, response, status }
+                    })
+                   }
                 }));
 
 
@@ -465,11 +487,11 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 }));
 
             
-                items = [...contents, ...documents, ...images];
+                const jobItems = [...contents, ...documents, ...images];
         
 
                 // content type
-               const job = await workQueue.add({ content: { items, cmsAuthResults, folderId, totalItems: items.length } }, {
+               const job = await workQueue.add({ content: { items: jobItems, cmsAuthResults, folderId, totalItems: items.length } }, {
                     attempts: 1,
                     lifo: true
                 });
@@ -611,15 +633,13 @@ async function startUploadProcess(workQueue) {
                         );  
                         
                     } else if (ele.assetTypeId === '8') { //image
-                        
-                            await moveImageToMC(
-                                ele,
-                                folderId,
-                                mcAuthResults,
-                                content.cmsAuthResults,
-                                job.id
-                            );
-                       
+                        await moveImageToMC(
+                            ele,
+                            folderId,
+                            mcAuthResults,
+                            content.cmsAuthResults,
+                            job.id
+                        );
                     } else if (ele.assetTypeId === '11') { //document
                         await moveDocumentToMC(
                             ele,
