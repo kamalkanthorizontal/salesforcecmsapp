@@ -60,7 +60,7 @@ async function uploadAllBase64(accessToken) {
             redirectUri: process.env.SF_CMS_URL,
             apiVersion: process.env.SF_API_VERSION,
             mode: "single",
-            environment: "sandbox",
+            environment: "production",
             autoRefresh: true
         });
 
