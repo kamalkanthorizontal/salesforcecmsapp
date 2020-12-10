@@ -389,7 +389,8 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 totalUploadItems = totalUploadItems + items.length;
                 
                 const job = await workQueue.add({ content: { items, cmsAuthResults, folderId, totalItems: items.length } }, {
-                    attempts: 1
+                    attempts: 1,
+                    lifo: true
                 });
 
                 jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0 }];
@@ -499,11 +500,7 @@ async function startUploadProcess(workQueue) {
             const { items, folderId } = content;
             if (items) {
                 console.log(`Filtered no. of nodes for Job ID ${job.id} : ${items.length}`);
-                
-                // totalBase64Items = items.filter(ele => ele.assetTypeId === '8' || ele.assetTypeId === '11').length;
-                
-                // totalUploadItems = items.length;//items.filter(ele => ele.assetTypeId === '196' || ele.assetTypeId === '197').length +totalBase64Count;
-                
+
                 //Upload CMS content to Marketing Cloud
                 //await Promise.all(
             
@@ -520,8 +517,6 @@ async function startUploadProcess(workQueue) {
                         );  
                         
                     } else if (ele.assetTypeId === '8') { //image
-                        //console.log('base64Count', base64Count);
-                        //console.log('allowedBase64Count', allowedBase64Count);
                         if(base64Count <  5){
                             await moveImageToMC(
                                 ele,
