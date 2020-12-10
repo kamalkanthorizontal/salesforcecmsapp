@@ -106,7 +106,7 @@ app.post('/', async (req, res, next) => {
                 redirectUri: oauthCallbackUrl(req),
                 apiVersion: process.env.SF_API_VERSION,
                 mode: "single",
-                environment: "production",
+                environment: "sandbox",
                 autoRefresh: true
             });
 
@@ -167,7 +167,7 @@ async function updateCallbackUrl(appName, folderId = '') {
             redirectUri: process.env.SF_CMS_URL,
             apiVersion: process.env.SF_API_VERSION,
             mode: "single",
-            environment: "production",
+            environment: "sandbox", //production
             autoRefresh: true
         });
 
