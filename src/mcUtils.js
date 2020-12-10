@@ -12,7 +12,7 @@ let maxJobsPerWorker = 150;
 let jobWorkQueueList = [];
 
 
-const allowedBase64Count = 50;
+const allowedBase64Count = 2;
 let base64Count = 0;
 let totalBase64Items = 0;
 let totalUploadItems = 0;
@@ -30,8 +30,9 @@ const PAGE_SIZE = process.env.PAGE_SIZE || 5;
 
 async function updateBase64Status(){
     const totalUploadedBase65Count = base64SkipedItems+base64Count; //50
-    console.log('base64SkipedItems--->', base64SkipedItems);
-    console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
+   // console.log('base64SkipedItems--->', base64SkipedItems);
+   // console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
+   // console.log('totalUploadItems--->', totalUploadItems);
     //if( totalUploadItems === 0 && totalBase64Items > 0 && totalUploadedBase65Count === totalBase64Items ){
                    if( totalUploadItems === 0){
                     console.log('base64SkipedItems--->', base64SkipedItems);
@@ -172,7 +173,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
             const notInMC = await getValidFileName(fileName + imageExt);
     
             if(notInMC){
-                if(base64Count < 50){
+                if(base64Count < allowedBase64Count){
                     const base64ImageBody = await downloadBase64FromURL(
                         imageUrl,
                         cmsAuthResults.access_token
@@ -247,7 +248,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         const notInMC = await getValidFileName(fileName + docExt);
 
         if(notInMC){
-            if(base64Count < 50){
+            if(base64Count < allowedBase64Count){
                 const base64DocBody = await downloadBase64FromURL(
                     docUrl,
                     cmsAuthResults.access_token
@@ -510,6 +511,8 @@ async function startUploadProcess(workQueue) {
                         );  
                         
                     } else if (ele.assetTypeId === '8') { //image
+                        console.log('base64Count', base64Count);
+                        console.log('allowedBase64Count', allowedBase64Count);
                         if(base64Count <  allowedBase64Count){
                             await moveImageToMC(
                                 ele,
