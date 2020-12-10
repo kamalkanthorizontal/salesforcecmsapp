@@ -30,9 +30,9 @@ const PAGE_SIZE = process.env.PAGE_SIZE || 5;
 
 async function updateBase64Status(){
     const totalUploadedBase65Count = base64SkipedItems+base64Count; //50
-   // console.log('base64SkipedItems--->', base64SkipedItems);
-   // console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
-   // console.log('totalUploadItems--->', totalUploadItems);
+    console.log('base64SkipedItems--->', base64SkipedItems);
+    console.log('totalUploadedBase65Count--->', totalUploadedBase65Count);
+    console.log('totalUploadItems--->', totalUploadItems);
     //if( totalUploadItems === 0 && totalBase64Items > 0 && totalUploadedBase65Count === totalBase64Items ){
                    if( totalUploadItems === 0){
                     console.log('base64SkipedItems--->', base64SkipedItems);
@@ -157,6 +157,7 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  
 async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults, jobId) {
    // return new Promise(async (resolve, reject) => {
         try{
+            console.log('imageNode--->', imageNode)
             const imageUrl = `${imageNode.unauthenticatedUrl}`;
             const referenceId =  imageNode.referenceId;
             const name =  imageNode.name;
@@ -172,40 +173,40 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
     
             const notInMC = await getValidFileName(fileName + imageExt);
     
-            if(notInMC){
-                if(base64Count < allowedBase64Count){
-                    const base64ImageBody = await downloadBase64FromURL(
-                        imageUrl,
-                        cmsAuthResults.access_token
-                    );
-                    
-                    base64Count = base64Count+1;
-                    console.log('base64Count--->', base64Count);
-                    let imageAssetBody = {
-                        name: fileName + imageExt,
-                        assetType: {
-                            id: getImageAssetTypeId(imageExt.replace('.', '')),
-                        },
-                        fileProperties: {
-                            fileName: fileName + imageExt,
-                            extension: imageExt,
-                        },
-                        file: base64ImageBody,
-                        category: {
-                            id: folderId
-                        },
-                    };
-            
-                    //Marketing Cloud Regex for file fullName i.e. Developer name
-                    var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
-                    // Create Marketing Cloud Image Asset
-                    if (mcRegex.test(fileName)) {
-                        //console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
-                        await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name);
-                    } else {
-                        console.log('Upload on hold!! Please check the prohibited chars in', fileName);
-                    }
+            if(notInMC && base64Count < 5){
+                
+                const base64ImageBody = await downloadBase64FromURL(
+                    imageUrl,
+                    cmsAuthResults.access_token
+                );
+                
+                base64Count = base64Count+1;
+                console.log('base64Count--->', base64Count);
+                let imageAssetBody = {
+                    name: fileName + imageExt,
+                    assetType: {
+                        id: getImageAssetTypeId(imageExt.replace('.', '')),
+                    },
+                    fileProperties: {
+                        fileName: fileName + imageExt,
+                        extension: imageExt,
+                    },
+                    file: base64ImageBody,
+                    category: {
+                        id: folderId
+                    },
+                };
+        
+                //Marketing Cloud Regex for file fullName i.e. Developer name
+                var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
+                // Create Marketing Cloud Image Asset
+                if (mcRegex.test(fileName)) {
+                    //console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
+                    await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name);
+                } else {
+                    console.log('Upload on hold!! Please check the prohibited chars in', fileName);
                 }
+            
                 
             }else{
                 const response = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${fileName}`; 
@@ -248,7 +249,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         const notInMC = await getValidFileName(fileName + docExt);
 
         if(notInMC){
-            if(base64Count < allowedBase64Count){
+            if(base64Count < 5){
                 const base64DocBody = await downloadBase64FromURL(
                     docUrl,
                     cmsAuthResults.access_token
@@ -511,9 +512,9 @@ async function startUploadProcess(workQueue) {
                         );  
                         
                     } else if (ele.assetTypeId === '8') { //image
-                        console.log('base64Count', base64Count);
-                        console.log('allowedBase64Count', allowedBase64Count);
-                        if(base64Count <  allowedBase64Count){
+                        //console.log('base64Count', base64Count);
+                        //console.log('allowedBase64Count', allowedBase64Count);
+                        if(base64Count <  5){
                             await moveImageToMC(
                                 ele,
                                 folderId,
@@ -525,7 +526,7 @@ async function startUploadProcess(workQueue) {
                             console.log('50 base64 synced');
                         }
                     } else if (ele.assetTypeId === '11') { //document
-                        if(base64Count <  allowedBase64Count){
+                        if(base64Count <  5){
                             await moveDocumentToMC(
                                 ele,
                                 folderId,
