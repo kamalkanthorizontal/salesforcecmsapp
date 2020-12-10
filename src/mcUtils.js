@@ -419,6 +419,24 @@ async function getMediaSourceFile(node){
     }
 }
 
+function updateAlreadySyncImageStatus(items, name, referenceId){
+    const serverResponse = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${name}`; 
+    const serverStatus = 'Failed';
+    return items = [...items].map(item =>{
+        // response
+        let response = item.response;
+        let status = item.status;
+        if(name && item.name === name ){
+            response = serverResponse;
+            status = serverStatus;
+        }else if(referenceId && item.referenceId === referenceId ){
+            response = serverResponse;
+            status = serverStatus;
+        }
+        return {...item, response, status }
+    })
+}
+
 async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
     let localBase64Count = 0;
     await Promise.all(contentTypeNodes.map(async (ele) => {
@@ -448,30 +466,16 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
 
                    const node =  await getMediaSourceFile(imageNode)
 
-                   if(node && localBase64Count < allowedBase64Count){
-                        localBase64Count = localBase64Count+1;
-                        images = [...images, node];
+                   if(node ){
+                       if(localBase64Count < allowedBase64Count){
+                            localBase64Count = localBase64Count+1;
+                            images = [...images, node];
+                       }
                    }else{
-
-                    const referenceId =  imageNode.referenceId || null;
-                    const name =  imageNode.name;
-
-                    const serverResponse = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${name}`; 
-                    const serverStatus = 'Failed';
-                    items = [...items].map(item =>{
-                        // response
-                        let response = item.response;
-                        let status = item.status;
-                        if(name && item.name === name ){
-                            response = serverResponse;
-                            status = serverStatus;
-                        }else if(referenceId && item.referenceId === referenceId ){
-                            response = serverResponse;
-                            status = serverStatus;
-                        }
-                        return {...item, response, status }
-                    })
-                   }
+                        const referenceId =  imageNode.referenceId || null;
+                        const name =  imageNode.name;
+                        items = updateAlreadySyncImageStatus(items, name, referenceId);
+                    }
                 }));
 
 
@@ -480,9 +484,15 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
 
                    const node =  await getMediaSourceFile(docNode)
 
-                   if(node && localBase64Count < allowedBase64Count){
-                        localBase64Count = localBase64Count+1;
-                        documents = [...documents, node];
+                   if(node ){
+                        if(localBase64Count < allowedBase64Count){
+                            localBase64Count = localBase64Count+1;
+                            documents = [...documents, node];
+                        }
+                    }else{
+                        const referenceId =  docNode.referenceId || null;
+                        const name =  docNode.name;
+                        items = updateAlreadySyncImageStatus(items, name, referenceId);
                     }
                 }));
 
