@@ -106,7 +106,7 @@ app.post('/', async (req, res, next) => {
                 redirectUri: oauthCallbackUrl(req),
                 apiVersion: process.env.SF_API_VERSION,
                 mode: "single",
-                environment: "sandbox",
+                environment: "production",
                 autoRefresh: true
             });
 
