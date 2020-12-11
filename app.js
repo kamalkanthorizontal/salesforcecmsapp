@@ -81,10 +81,8 @@ app.post('/', async (req, res, next) => {
             if (mcFolderId) {
                 validFolderId = await getValidFolderId(mcFolderId);
             }
-            console.log('validFolderId--->', validFolderId)
             if (!validFolderId) {
                 mcFolderRes = await getFolderIdFromServer();
-                console.log('validFolderId--->', validFolderId);
                 if(mcFolderRes && mcFolderRes.id){
                     validFolderId = mcFolderRes.id;
                 }
@@ -228,18 +226,25 @@ async function getFolderIdFromServer() {
     const mcAuthResults = await getMcAuth();
     if(mcAuthResults && mcAuthResults.access_token){
         const mcFolders = await getMcFolders(mcAuthResults.access_token); // Getting all folders
-
+        
         if(mcFolders && mcFolders.items){
             const matchedFolder = [...mcFolders.items].find(ele => ele.name === folderName); // Check is folder already created or not
+
+           // console.log('matchedFolder--->', matchedFolder);
             if (!matchedFolder) {
                 //Create folder in MC
                 const parentFolder = [...mcFolders.items].find(ele => ele.parentId === 0);
                 if (parentFolder && parentFolder.id) {
-                    console.log("Folder is being created");
                     const createdFolder = await createMcFolder(parentFolder.id, mcAuthResults.access_token);
-                    const id = createdFolder ? createdFolder.id : null;
-                    const status = 200;
-                    return { id, status };
+                    if(createdFolder.errorcode){
+                        return { status: 500, errorMsg: `Error in folder creation: ${createdFolder.message}` };
+                    }else{
+                        const id = createdFolder ? createdFolder.id : null;
+                        const status = 200;
+                        return { id, status };
+                    }
+                }else{
+                    return { status: 500, errorMsg: `Parent Id error` };
                 }
             } else {
                 const id = matchedFolder.id ? matchedFolder.id : null;

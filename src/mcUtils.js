@@ -635,7 +635,7 @@ module.exports = {
     },
 
     getMcFolders: async function (accessToken) {
-        const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_CONTENT_CATEGORIES_API_PATH}`;
+        const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_CONTENT_CATEGORIES_API_PATH}?$pagesize=500`;
         return await fetch(serviceUrl, {
             method: 'GET',
             headers: {
