@@ -413,7 +413,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
     base64Count = localBase64Count;
 
     // Call the upload start
-    startUploadProcess(workQueue, channelId);
+    startUploadProcess(workQueue);
 }
 
 function getAssestsWithProperNaming(result){
@@ -493,7 +493,7 @@ function updateJobProgress(jobId, serverResponse, name, serverStatus, referenceI
 }
 
 
-async function startUploadProcess(workQueue, channelId) {
+async function startUploadProcess(workQueue) {
   
     workQueue.on('failed', (jobId, err) => {
         console.log(`Job ${jobId} failed with error ${err.message}`);
