@@ -1,4 +1,13 @@
 const https = require('https');
+const nforce = require("nforce");
+
+const { 
+    FETCH_CMS_FOLDER_DETAIL_QUERY,
+    SF_AUTH_FAILED_MSG,
+    ALLOWED_CONNECTION_STATUS,
+    CONNETION_STATUS,
+    CONNETION_FAILED_STATUS
+} = require('./constants');
 
 function getImageAssetTypeId(imageExtension) {
     let assetTypeId = '8';
@@ -257,5 +266,68 @@ module.exports = {
     },
     oauthCallbackUrl : function (request) {
         return request.protocol + "://" + request.get("host");
+    },
+    validateUrl: function (url){
+        const lastChar = url[url.length - 1];
+        return lastChar === '/' ? url.substring(0, url.length - 1) : url;
+    },
+    updateSfRecord: async function(appName, folderId = '', error, dateTime) {
+        try {
+           
+            let org = nforce.createConnection({
+                clientId: process.env.CONSUMER_KEY,
+                clientSecret: process.env.CONSUMER_SECRET,
+                redirectUri: process.env.SF_CMS_URL,
+                apiVersion: process.env.SF_API_VERSION,
+                mode: "single",
+                environment: "sandbox", //production
+                autoRefresh: true
+            });
+    
+            const oauth = await org.authenticate({
+                username: process.env.SF_USERNAME,
+                password: process.env.SF_PASSWORD,
+                securityToken: process.env.SF_SECURITY_TOKEN
+            });
+            if(org && oauth){
+                const resQuery = await org.query({ query: FETCH_CMS_FOLDER_DETAIL_QUERY });
+    
+                if (resQuery && resQuery.records && resQuery.records.length) {
+    
+                    let sobject = resQuery.records[0];
+
+                    if(error){
+                        sobject.set('Connection_Status__c', CONNETION_FAILED_STATUS);
+                        sobject.set('Error_Message__c', error);
+                        
+                    }else if (!error && sobject._fields.connection_status__c === null
+                        || sobject._fields.connection_status__c === ALLOWED_CONNECTION_STATUS
+                        || sobject._fields.sfmc_folder_id__c != folderId
+                        || sobject._fields.heroku_endpoint__c != appName) {
+        
+                        if (appName) {
+                            sobject.set('Heroku_Endpoint__c', appName);
+                            sobject.set('Connection_Status__c', CONNETION_STATUS);
+                        }
+        
+                        sobject.set('SFMC_Folder_Id__c', folderId);   
+                    }else if(!error && dateTime){
+                        sobject.set('Last_Synchronized_Time__c', new Date(new Date().toUTCString()));
+                    }
+
+                    console.log('Updating Salesforce CMS Connection Details:', sobject._fields);
+    
+                    await org.update({ sobject, oauth });
+    
+                    
+                    console.log('resQuery', sobject._fields);
+                    
+                }
+            }else{
+                console.log(SF_AUTH_FAILED_MSG)
+            }
+        } catch (error) {
+            console.log('Error in salesforce authentication: ', error);
+        }
     }
 }

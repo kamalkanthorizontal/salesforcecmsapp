@@ -2,9 +2,8 @@ const fetch = require('node-fetch');
 var request = require('request');
 let Queue = require('bull');
 const path = require('path');
-const nforce = require("nforce");
-
-const { getImageAssetTypeId, getDocumentAssetTypeId, downloadBase64FromURL, oauthCallbackUrl } = require('./utils.js');
+const decode = require('unescape');
+const { getImageAssetTypeId, getDocumentAssetTypeId, downloadBase64FromURL, validateUrl, updateSfRecord } = require('./utils.js');
 const { MC_ASSETS_API_PATH, MS_AUTH_PATH, MC_CONTENT_CATEGORIES_API_PATH, REDIS_URL } = require('./constants');
 
 
@@ -26,14 +25,22 @@ const getMcAuthBody = {
 };
 
 
+const MC_AUTHENTICATION_BASE_URI = process.env.MC_AUTHENTICATION_BASE_URI;
+const MC_REST_BASE_URI = process.env.MC_REST_BASE_URI;
+const SF_CMS_CONNECTION_ID = process.env.SF_CMS_CONNECTION_ID;
+const SF_CMS_URL = process.env.SF_CMS_URL;
+const SF_API_VERSION  = process.env.SF_API_VERSION;
+const MC_FOLDER_NAME = process.env.MC_FOLDER_NAME;
+const IMG_PREFIX  = process.env.IMG_PREFIX || '';
+
 async function uploadAllBase64(accessToken) {
     try {
 
         console.log("Salesforce authentication :", accessToken ? 'Successful' : 'Failure');
 
-        const body = {   cmsConnectionId: process.env.SF_CMS_CONNECTION_ID }
+        const body = {   cmsConnectionId: SF_CMS_CONNECTION_ID }
 
-        const url = `${process.env.SF_CMS_URL}/services/apexrest/CMSSFMC/callHeroku`;
+        const url = `${validateUrl(SF_CMS_URL)}/services/apexrest/CMSSFMC/callHeroku`;
         
         const res = await fetch(url, {
             method: 'POST',
@@ -56,7 +63,7 @@ async function uploadAllBase64(accessToken) {
 async function getValidFileName(fileName) {
     try {
         const mcAuthResults = await getMcAuth();
-        const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_ASSETS_API_PATH}?$filter=Name%20like%20'${fileName}'`;
+        const serviceUrl = `${validateUrl(MC_REST_BASE_URI)}${MC_ASSETS_API_PATH}?$filter=Name%20like%20'${fileName}'`;
     
         const res = await fetch(serviceUrl, {
             method: 'GET',
@@ -77,7 +84,7 @@ async function getValidFileName(fileName) {
 }
 
 async function getMcAuth() {
-    return await fetch(`${process.env.MC_AUTHENTICATION_BASE_URI}${MS_AUTH_PATH}`, {
+    return await fetch(`${validateUrl(MC_AUTHENTICATION_BASE_URI)}${MS_AUTH_PATH}`, {
         method: 'POST',
         body: JSON.stringify(getMcAuthBody),
         headers: {
@@ -92,7 +99,6 @@ async function getMcAuth() {
 }
 
 async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  jobId, referenceId, org) {
-    //console.log(`Uploading txt to MC: ${name} with body length ${value.length}`);
     let textAssetBody = {
         name: name,
         assetType: {
@@ -147,14 +153,20 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                     await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name, true, fileName, org);
                 } else {
                     console.log('Upload on hold!! Please check the prohibited chars in', fileName);
+                    const response = `FileProperties.fileName contains prohibited characters. ${fileName}`; 
+                    const uploadStatus ='Failed';
+
+                    // update job status    
+                    if(jobId && response){
+                        updateJobProgress(jobId, response, name, uploadStatus, referenceId);
+                    }
                 }
             }
             
             resolve();
         }catch(error){
-            console.log('Upload error -->', error)
+            console.log('Upload error -->', error);
         }
-        
     });
 }
 
@@ -196,6 +208,15 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
                 await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId, name, true, fileName, org);
             } else {
                 console.log('FileProperties.fileName contains prohibited characters.', fileName);
+
+                const response = `FileProperties.fileName contains prohibited characters. ${fileName}`; 
+                const uploadStatus ='Failed';
+
+                
+                // update job status    
+                if(jobId && response){
+                    updateJobProgress(jobId, response, name, uploadStatus, referenceId);
+                }
             }
            
         }
@@ -208,43 +229,65 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
 
 async function createMCAsset(access_token, assetBody, jobId, referenceId, name, isMedia, fileName, org) {
     return new Promise((resolve, reject) => {
-        request.post(process.env.MC_REST_BASE_URI + MC_ASSETS_API_PATH, {
+        request.post(validateUrl(MC_REST_BASE_URI) + MC_ASSETS_API_PATH, {
             headers: {
                 Authorization: 'Bearer ' + access_token
             },
             json: assetBody,
         },
             async(error, res, body) => {
+                
+                totalUploadItems = totalUploadItems-1; 
+
                 if (error) {
                     console.log('error', error)
                     console.log(`Error for:${assetBody.name}`, error);
-                    reject(error);
-                } else {
-                    const msg = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].message : '';
-                    const errorCode = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].errorcode : '';
-                    
-                    if(isMedia){
-                        base64Count = base64Count-1;
-                        console.log('errorCode--->', fileName, errorCode, msg, base64Count);
-                    }
-                    const response = body.id ? `Uploaded with Asset id: ${body.id}`: `failed with Error code: ${errorCode} - Error message: ${msg} `; 
-                    const uploadStatus = body.id ? 'Uploaded' : 'Failed';
+                    const response = `Error for:${assetBody.name} ${error}`; 
+                    const uploadStatus ='Failed';
 
-                   // console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);        
-
-                    totalUploadItems = totalUploadItems-1; 
-                    
                     // update job status    
                     if(jobId && response){
                         updateJobProgress(jobId, response, name, uploadStatus, referenceId);
                     }
-                    
-                    // Call next service
-                    if(nextUploadBase64Items > 0 && base64Count=== 1){
-                        setTimeout(async() => {
-                            uploadAllBase64(org.oauth.access_token); 
-                        }, 10000);
+
+                    reject(error);
+                } else {
+
+                    try{
+                        const msg = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].message : '';
+                        const errorCode = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].errorcode : '';
+                        
+                        if(isMedia){
+                            base64Count = base64Count-1;
+                        }
+                        const response = body.id ? `Uploaded with Asset id: ${body.id}`: `failed with Error code: ${errorCode} - Error message: ${msg} `; 
+                        const uploadStatus = body.id ? 'Uploaded' : 'Failed';
+    
+                        console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error message: ${msg} - Error code: ${errorCode}`);        
+                        
+                        // update job status    
+                        if(jobId && response){
+                            updateJobProgress(jobId, response, name, uploadStatus, referenceId);
+                        }
+                        
+                        // Call next service
+                        if(nextUploadBase64Items > 0 && base64Count === 1){
+                            
+                            setTimeout(async() => {
+                                uploadAllBase64(org.oauth.access_token); 
+                            }, 10000);
+
+                        }else if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count === 0 ){
+                            
+                            setTimeout(async() => {
+                                updateSfRecord(null, null, null, true); 
+                            }, 10000);
+
+                        }
+                    }catch(err){
+                        console.log(`Error for: `, err);
                     }
+                   
                     
                     resolve(res);
                 }
@@ -283,8 +326,7 @@ async function getMediaSourceFile(node){
 
         let fileName = node.name ? node.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(node.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
         
-        const imagePreFix = process.env.IMG_PREFIX || '';
-        fileName = `${imagePreFix}${fileName}`;
+        fileName = `${IMG_PREFIX}${fileName}`;
         
         const notInMC = await getValidFileName(fileName + ext);
         if(notInMC){
@@ -323,13 +365,13 @@ function updateAlreadySyncImageStatus(items, name, referenceId){
     })
 }
 
-async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
+async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, source) {
     let localBase64Count = 0;
     await Promise.all(contentTypeNodes.map(async (ele) => {
         try {
             const managedContentType = ele.DeveloperName;
             const managedContentNodeTypes = ele.managedContentNodeTypes;
-            const cmsURL = `/services/data/v${process.env.SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=250`;
+            const cmsURL = `/services/data/v${SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=250`;
            
             const serviceResults = await getAllContent(org, cmsURL);
             
@@ -342,7 +384,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 totalBase64Items = totalBase64Items+mediaCount;
                 totalUploadItems = totalUploadItems + items.length;
 
-                const contents = items.filter(ele => ele.assetTypeId === '196' || ele.assetTypeId === '197');
+                const contents =  items.filter(ele => ele.assetTypeId === '196' || ele.assetTypeId === '197');
                 const itemDocuments = items.filter(ele => ele.assetTypeId === '11');
                 const itemImages = items.filter(ele => ele.assetTypeId === '8');
                 
@@ -383,18 +425,21 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
 
                 base64SkipedItems = base64SkipedItems+localSkiped;
                 
-                const jobItems = [...contents, ...documents, ...images];
-        
-                // content type
-                const job = await workQueue.add({ content: { items: jobItems, cmsAuthResults, folderId, totalItems: items.length, org } }, {
-                    attempts: 1,
-                    lifo: true
-                });
+                //Sync content based on source
+                const jobItems = source === 'Heroku' ? [...documents, ...images] : [...contents, ...documents, ...images];
+                if(jobItems && jobItems.length){
+                    
+                    // content type
+                    const job = await workQueue.add({ content: { items: jobItems, cmsAuthResults, folderId, totalItems: items.length, org } }, {
+                        attempts: 1,
+                        lifo: true
+                    });
 
-                jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0 }];
+                    console.log('Job Id:', job.id);
 
-                console.log('Job Id:', job.id);
+                    jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0 }];
 
+                }
             }
         } catch (error) {
             console.log(error);
@@ -405,7 +450,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
     console.log('Total Base 64 Count--->', totalBase64Items);
     console.log('Total Skip Base 64 Count--->', base64SkipedItems);
     console.log('Total Upload--->', totalUploadItems);
-    
+    totalUploadItems = totalUploadItems - base64SkipedItems;
 
     nextUploadBase64Items = totalBase64Items - (base64SkipedItems + localBase64Count);
     console.log('nextUploadBase64Items--->', nextUploadBase64Items);
@@ -520,7 +565,7 @@ async function startUploadProcess(workQueue) {
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
                             ele.name,
-                            ele.value,
+                            decode(ele.value),
                             ele.assetTypeId,
                             folderId,
                             mcAuthResults,
@@ -565,19 +610,24 @@ async function startUploadProcess(workQueue) {
 }
 
 module.exports = {
-    run: function (cmsAuthResults, org, contentTypeNodes, channelId, folderId) {
+    run: function (cmsAuthResults, org, contentTypeNodes, channelId, folderId, source) {
+        
         base64Count = 0;
         totalBase64Items = 0;
         totalUploadItems = 0;
         base64SkipedItems = 0;
         nextUploadBase64Items = 0;
 
-        let workQueue = new Queue(`work-${channelId}`, REDIS_URL);
-        addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId)
+        if(source !== 'Heroku'){
+            jobWorkQueueList = [];
+        }
+
+        const workQueue = new Queue(`work-${channelId}`, REDIS_URL);
+        addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, source)
     },
 
     getMcFolders: async function (accessToken) {
-        const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_CONTENT_CATEGORIES_API_PATH}?$pagesize=500`;
+        const serviceUrl = `${validateUrl(MC_REST_BASE_URI)}${MC_CONTENT_CATEGORIES_API_PATH}?$pagesize=500`;
         return await fetch(serviceUrl, {
             method: 'GET',
             headers: {
@@ -590,9 +640,9 @@ module.exports = {
     },
 
     createMcFolder: async function (ParentId, accessToken) {
-        const serviceUrl = `${process.env.MC_REST_BASE_URI}${MC_CONTENT_CATEGORIES_API_PATH}`;
+        const serviceUrl = `${validateUrl(MC_REST_BASE_URI)}${MC_CONTENT_CATEGORIES_API_PATH}`;
         const body = JSON.stringify({
-            Name: process.env.MC_FOLDER_NAME,
+            Name: MC_FOLDER_NAME,
             ParentId
         });
         return await fetch(serviceUrl, {
@@ -610,7 +660,7 @@ module.exports = {
     },
 
     getMcAuth: async function () {
-        return await fetch(process.env.MC_AUTHENTICATION_BASE_URI + MS_AUTH_PATH, {
+        return await fetch(validateUrl(MC_AUTHENTICATION_BASE_URI) + MS_AUTH_PATH, {
             method: 'POST',
             body: JSON.stringify(getMcAuthBody),
             headers: {
