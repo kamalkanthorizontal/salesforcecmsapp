@@ -75,8 +75,14 @@ app.post('/', async (req, res, next) => {
             herokuApp = req.hostname.replace(".herokuapp.com", "");
         }
 
+        let { contentTypeNodes, channelId, mcFolderId } = req.body;
+
+        if (!contentTypeNodes || !channelId) {  
+            res.send('Required fields not found.');
+        }
+
         if (isSetup()) {
-            let { contentTypeNodes, contentType, channelId, mcFolderId } = req.body;
+           
             let validFolderId;
             if (mcFolderId) {
                 validFolderId = await getValidFolderId(mcFolderId);
@@ -202,25 +208,6 @@ async function updateCallbackUrl(appName, folderId = '') {
     }
 }
 
-async function getFolderId() {
-    const folderName = process.env.MC_FOLDER_NAME; // Env folder name
-    const mcAuthResults = await getMcAuth();
-    const mcFolders = await getMcFolders(mcAuthResults.access_token); // Getting all folders
-    const matchedFolder = [...mcFolders.items].find(ele => ele.name === folderName); // Check is folder already created or not
-    if (!matchedFolder) {
-        //Create folder in MC
-        const parentFolder = [...mcFolders.items].find(ele => ele.parentId === 0);
-        if (parentFolder && parentFolder.id) {
-            console.log("Folder is being created");
-            const createdFolder = await createMcFolder(parentFolder.id, mcAuthResults.access_token);
-            return createdFolder ? createdFolder.id : null;
-        }
-    } else {
-        return matchedFolder.id;
-    }
-}
-
-
 async function getFolderIdFromServer() {
     const folderName = process.env.MC_FOLDER_NAME || 'CMS-SFMC-Connector'; // Env folder name
     const mcAuthResults = await getMcAuth();
@@ -230,7 +217,7 @@ async function getFolderIdFromServer() {
         if(mcFolders && mcFolders.items){
             const matchedFolder = [...mcFolders.items].find(ele => ele.name === folderName); // Check is folder already created or not
 
-           // console.log('matchedFolder--->', matchedFolder);
+
             if (!matchedFolder) {
                 //Create folder in MC
                 const parentFolder = [...mcFolders.items].find(ele => ele.parentId === 0);

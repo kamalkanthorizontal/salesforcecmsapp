@@ -24,23 +24,22 @@ const getMcAuthBody = {
     client_id: process.env.MC_CLIENT_ID,
     client_secret: process.env.MC_CLIENT_SECRET,
 };
-const PAGE_SIZE = process.env.PAGE_SIZE || 5;
 
-async function uploadAllBase64(org, cmsConnectionId) {
+
+async function uploadAllBase64(accessToken) {
     try {
 
-        console.log("Salesforce authentication :", org.oauth.access_token ? 'Successful' : 'Failure');
+        console.log("Salesforce authentication :", accessToken ? 'Successful' : 'Failure');
 
-        const body = {   cmsConnectionId }
+        const body = {   cmsConnectionId: process.env.SF_CMS_CONNECTION_ID }
 
         const url = `${process.env.SF_CMS_URL}/services/apexrest/CMSSFMC/callHeroku`;
         
-       
         const res = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${org.oauth.access_token}`
+                'Authorization': `Bearer ${accessToken}`
             },
             body: JSON.stringify(body)
         });
@@ -92,7 +91,7 @@ async function getMcAuth() {
         });
 }
 
-async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  jobId, referenceId, org, channelId) {
+async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  jobId, referenceId, org) {
     //console.log(`Uploading txt to MC: ${name} with body length ${value.length}`);
     let textAssetBody = {
         name: name,
@@ -105,11 +104,11 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  
         },
     };
     // Create Marketing Cloud Block Asset
-    await createMCAsset(mcAuthResults.access_token, textAssetBody, jobId, referenceId,name, false, null,org, channelId);
+    await createMCAsset(mcAuthResults.access_token, textAssetBody, jobId, referenceId,name, false, null,org);
 }
 
 
-async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults, jobId, org, channelId) {
+async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults, jobId, org) {
     return new Promise(async (resolve, reject) => {
         try{
             
@@ -145,14 +144,11 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                 var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
                 // Create Marketing Cloud Image Asset
                 if (mcRegex.test(fileName)) {
-                    //console.log(`Uploading img to MC: ${fileName + imageExt} with base64ImageBody length ${base64ImageBody.length}`);
-                    await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name, true, fileName, org, channelId);
+                    await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name, true, fileName, org);
                 } else {
                     console.log('Upload on hold!! Please check the prohibited chars in', fileName);
                 }
-
             }
-            
             
             resolve();
         }catch(error){
@@ -162,7 +158,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
     });
 }
 
-async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults,  jobId, org, channelId) {
+async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults,  jobId, org) {
     return new Promise(async (resolve, reject) => {
         const docUrl = documentNode.url || null;
         const fileName = documentNode.fileName || null;
@@ -197,8 +193,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
             var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
             // Create Marketing Cloud Image Asset
             if (mcRegex.test(fileName)) {
-            //  console.log(`Uploading doc to MC: ${fileName + docExt} with base64DocBody length ${base64DocBody.length}`);
-                await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId, name, true, fileName, org, channelId);
+                await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId, name, true, fileName, org);
             } else {
                 console.log('FileProperties.fileName contains prohibited characters.', fileName);
             }
@@ -211,7 +206,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
 
 
 
-async function createMCAsset(access_token, assetBody, jobId, referenceId, name, isMedia, fileName, org, channelId) {
+async function createMCAsset(access_token, assetBody, jobId, referenceId, name, isMedia, fileName, org) {
     return new Promise((resolve, reject) => {
         request.post(process.env.MC_REST_BASE_URI + MC_ASSETS_API_PATH, {
             headers: {
@@ -225,14 +220,12 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                     console.log(`Error for:${assetBody.name}`, error);
                     reject(error);
                 } else {
-                    //console.log('body--> ', body);
                     const msg = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].message : '';
                     const errorCode = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].errorcode : '';
                     
                     if(isMedia){
                         base64Count = base64Count-1;
                         console.log('errorCode--->', fileName, errorCode, msg, base64Count);
-                        
                     }
                     const response = body.id ? `Uploaded with Asset id: ${body.id}`: `failed with Error code: ${errorCode} - Error message: ${msg} `; 
                     const uploadStatus = body.id ? 'Uploaded' : 'Failed';
@@ -247,9 +240,9 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                     }
                     
                     // Call next service
-                    if(nextUploadBase64Items > 0 && base64Count=== 1 && channelId){
+                    if(nextUploadBase64Items > 0 && base64Count=== 1){
                         setTimeout(async() => {
-                            uploadAllBase64(org, channelId); 
+                            uploadAllBase64(org.oauth.access_token); 
                         }, 10000);
                     }
                     
@@ -259,8 +252,6 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
         );
     });
 }
-
-
 
 
 async function getAllContent(org, cmsURL, items=[]){
@@ -309,10 +300,6 @@ async function getMediaSourceFile(node){
                 name
             }
         }else{
-
-           // base64SkipedItems = base64SkipedItems+1;
-            //totalUploadItems = totalUploadItems-1;
-
             return null;
         }
     }
@@ -363,9 +350,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 let images = []; 
                 let localSkiped = 0;
                 await Promise.all(itemImages.map(async (imageNode) => {
-
                    const node =  await getMediaSourceFile(imageNode)
-
                    if(node ){
                        if(localBase64Count < allowedBase64Count){
                             localBase64Count = localBase64Count+1;
@@ -382,9 +367,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
 
                 let documents = []; 
                 await Promise.all(itemDocuments.map(async (docNode) => {
-
-                   const node =  await getMediaSourceFile(docNode)
-
+                   const node =  await getMediaSourceFile(docNode);
                    if(node ){
                         if(localBase64Count < allowedBase64Count){
                             localBase64Count = localBase64Count+1;
@@ -402,27 +385,25 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 
                 const jobItems = [...contents, ...documents, ...images];
         
-
                 // content type
-               const job = await workQueue.add({ content: { items: jobItems, cmsAuthResults, folderId, totalItems: items.length, org } }, {
+                const job = await workQueue.add({ content: { items: jobItems, cmsAuthResults, folderId, totalItems: items.length, org } }, {
                     attempts: 1,
                     lifo: true
                 });
 
                 jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0 }];
 
-               console.log('Job Id:', job.id);
+                console.log('Job Id:', job.id);
 
             }
         } catch (error) {
             console.log(error);
         }
     }));
+
     console.log('localBase64Count--->', localBase64Count);
     console.log('Total Base 64 Count--->', totalBase64Items);
     console.log('Total Skip Base 64 Count--->', base64SkipedItems);
-
-
     console.log('Total Upload--->', totalUploadItems);
     
 
@@ -431,7 +412,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
 
     base64Count = localBase64Count;
 
-
+    // Call the upload start
     startUploadProcess(workQueue, channelId);
 }
 
@@ -519,7 +500,7 @@ async function startUploadProcess(workQueue, channelId) {
     });
 
 
-    let mcAuthResults = await getMcAuth();
+    const mcAuthResults = await getMcAuth();
     console.log("Marketing Cloud authentication :", mcAuthResults.access_token ? 'Successful' : 'Failure');
 
     workQueue.process(maxJobsPerWorker, async (job, done) => {
@@ -545,8 +526,7 @@ async function startUploadProcess(workQueue, channelId) {
                             mcAuthResults,
                             job.id,
                             ele.referenceId,
-                            org,
-                            channelId
+                            org
                         );  
                         
                     } else if (ele.assetTypeId === '8') { //image
@@ -556,8 +536,7 @@ async function startUploadProcess(workQueue, channelId) {
                             mcAuthResults,
                             content.cmsAuthResults,
                             job.id,
-                            org,
-                            channelId
+                            org
                         );
                     } else if (ele.assetTypeId === '11') { //document
                         await moveDocumentToMC(
@@ -566,8 +545,7 @@ async function startUploadProcess(workQueue, channelId) {
                             mcAuthResults,
                             content.cmsAuthResults,
                             job.id,
-                            org,
-                            channelId
+                            org
                         );
                     }
                 })
