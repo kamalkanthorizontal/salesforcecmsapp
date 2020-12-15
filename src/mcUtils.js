@@ -432,7 +432,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                     });
                     jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0, channelName }];
                 }else{
-                    jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: 0, state: "Skipped", items, response: '', counter: 0, channelName }];
+                    jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: 0, state: "Skiped", items, response: '', counter: 0, channelName }];
                 }
 
                 
@@ -447,6 +447,14 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
     console.log('totalUploadItems', totalUploadItems);
     // Call the upload start
     startUploadProcess(workQueue);
+
+    if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count === 0 ){
+                            
+        setTimeout(async() => {
+            updateSfRecord(null, null, null, true); 
+        }, 10000);
+
+    }
 }
 
 function getAssestsWithProperNaming(result){
