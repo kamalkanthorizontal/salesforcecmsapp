@@ -271,7 +271,7 @@ module.exports = {
         const lastChar = url[url.length - 1];
         return lastChar === '/' ? url.substring(0, url.length - 1) : url;
     },
-    updateSfRecord: async function(appName, folderId = '', error, dateTime) {
+    updateSfRecord: async function(appName, folderId = '', mcError, dateTime) {
         try {
            
             let org = nforce.createConnection({
@@ -290,17 +290,19 @@ module.exports = {
                 securityToken: process.env.SF_SECURITY_TOKEN
             });
             if(org && oauth){
+                console.log('FETCH_CMS_FOLDER_DETAIL_QUERY-->', FETCH_CMS_FOLDER_DETAIL_QUERY);
                 const resQuery = await org.query({ query: FETCH_CMS_FOLDER_DETAIL_QUERY });
     
                 if (resQuery && resQuery.records && resQuery.records.length) {
     
                     let sobject = resQuery.records[0];
 
-                    if(error){
+                    console.log('FETCH_CMS_FOLDER_DETAIL_QUERY-->', FETCH_CMS_FOLDER_DETAIL_QUERY);
+
+                    if(mcError){
                         sobject.set('Connection_Status__c', CONNETION_FAILED_STATUS);
-                        sobject.set('Error_Message__c', error);
-                        
-                    }else if (!error && sobject._fields.connection_status__c === null
+                        sobject.set('Error_Message__c', mcError);
+                    }else if (!mcError && sobject._fields.connection_status__c === null
                         || sobject._fields.connection_status__c === ALLOWED_CONNECTION_STATUS
                         || sobject._fields.sfmc_folder_id__c != folderId
                         || sobject._fields.heroku_endpoint__c != appName) {
@@ -311,7 +313,7 @@ module.exports = {
                         }
         
                         sobject.set('SFMC_Folder_Id__c', folderId);   
-                    }else if(!error && dateTime){
+                    }else if(!mcError && dateTime){
                         sobject.set('Last_Synchronized_Time__c', new Date(new Date().toUTCString()));
                     }
 
