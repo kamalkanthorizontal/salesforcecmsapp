@@ -293,21 +293,28 @@ module.exports = {
                 securityToken: process.env.SF_SECURITY_TOKEN
             });
 
-            console.log('org-->', org);
             if(org && oauth){
                 const resQuery = await org.query({ query: FETCH_CMS_FOLDER_DETAIL_QUERY });
-                console.log('FETCH_CMS_FOLDER_DETAIL_QUERY-->', FETCH_CMS_FOLDER_DETAIL_QUERY);
+              
                 if (resQuery && resQuery.records && resQuery.records.length) {
-                    console.log('resQuery.records.length-->', resQuery.records.length);
+                    
                     let sobject = resQuery.records[0];
 
                     if(mcError){
                         sobject.set('Connection_Status__c', CONNETION_FAILED_STATUS);
                         sobject.set('Error_Message__c', mcError);
-                    }else if (!mcError && sobject._fields.connection_status__c === null
+                    }
+                    else if(!mcError && dateTime){
+                        sobject.set('Connection_Status__c', CONNETION_STATUS);
+                        sobject.set('Error_Message__c', '');
+                        sobject.set('Last_Synchronized_Time__c', new Date(new Date().toISOString()));
+                    }
+                    
+                    else if (!mcError && (sobject._fields.connection_status__c === null
                         || sobject._fields.connection_status__c === ALLOWED_CONNECTION_STATUS
+                        || sobject._fields.connection_status__c === CONNETION_FAILED_STATUS
                         || sobject._fields.sfmc_folder_id__c != folderId
-                        || sobject._fields.heroku_endpoint__c != appName) {
+                        || sobject._fields.heroku_endpoint__c != appName)) {
         
                         if (appName) {
                             sobject.set('Heroku_Endpoint__c', appName);
@@ -316,10 +323,6 @@ module.exports = {
                         }
         
                         sobject.set('SFMC_Folder_Id__c', folderId);   
-                    }else if(!mcError && dateTime){
-                        sobject.set('Connection_Status__c', CONNETION_STATUS);
-                        sobject.set('Error_Message__c', '');
-                        sobject.set('Last_Synchronized_Time__c', new Date(new Date().toISOString()));
                     }
                     await org.update({ sobject, oauth });     
                     
