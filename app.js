@@ -29,7 +29,6 @@ app.use(bodyParser.json());
 
 function isNotBlank(val) {
     if (typeof val !== 'undefined' && val) {
-        //console.log('>>> ' + val);
         return true;
     };
     return false;
@@ -115,7 +114,6 @@ app.post('/uploadCMSContent', async (req, res, next) => {
                         securityToken: process.env.SF_SECURITY_TOKEN
                     });
 
-
                     console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
                     
                     if(resp.access_token){
@@ -147,7 +145,6 @@ async function checkFolderId(mcFolderId){
         if(resFolderId && resFolderId.id){
             validFolderId = resFolderId.id;
         }else if(resFolderId && resFolderId.status === 401){
-            console.log('resFolderId error');
             return null;
         }   
     }
@@ -304,12 +301,9 @@ async function getFolderIdFromServer() {
 app.listen(process.env.PORT || 3000, async function () {
     //Get App Ul
     const appUrl = `https://${process.env.APP_NAME}.herokuapp.com`;
-    console.log("appName >>> ", appUrl);
     if (appUrl) {
         //Get MC Folder Id
         const mcFolderRes = await getFolderIdFromServer();
-
-        console.log('MC Folder Id:', mcFolderRes);
         if (mcFolderRes && mcFolderRes.id ) {
             //Update call back url and mc folder id
             updateSfRecord(appUrl, mcFolderRes.id);

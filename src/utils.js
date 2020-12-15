@@ -318,8 +318,7 @@ module.exports = {
                     }else if(!mcError && dateTime){
                         sobject.set('Last_Synchronized_Time__c', new Date(new Date().toUTCString()));
                     }
-                    await org.update({ sobject, oauth });                    
-                    console.log('resQuery', sobject._fields);
+                    await org.update({ sobject, oauth });     
                     
                 }else{
                     console.log(SF_WRONG_CHANNEL_ID_MSG);

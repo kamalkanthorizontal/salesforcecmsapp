@@ -35,9 +35,6 @@ const IMG_PREFIX  = process.env.IMG_PREFIX || '';
 
 async function uploadAllBase64(accessToken) {
     try {
-
-        console.log("Salesforce authentication :", accessToken ? 'Successful' : 'Failure');
-
         const body = {   cmsConnectionId: SF_CMS_CONNECTION_ID }
 
         const url = `${validateUrl(SF_CMS_URL)}/services/apexrest/CMSSFMC/callHeroku`;
@@ -93,7 +90,6 @@ async function getMcAuth() {
     })
         .then(res => res.json())
         .catch((err) => {
-            //console.log(err);
             reject(err);
         });
 }
@@ -152,7 +148,6 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                 if (mcRegex.test(fileName)) {
                     await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name, true, fileName, org);
                 } else {
-                    console.log('Upload on hold!! Please check the prohibited chars in', fileName);
                     const response = `FileProperties.fileName contains prohibited characters. ${fileName}`; 
                     const uploadStatus ='Failed';
 
@@ -207,8 +202,6 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
             if (mcRegex.test(fileName)) {
                 await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId, name, true, fileName, org);
             } else {
-                console.log('FileProperties.fileName contains prohibited characters.', fileName);
-
                 const response = `FileProperties.fileName contains prohibited characters. ${fileName}`; 
                 const uploadStatus ='Failed';
 
@@ -240,8 +233,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                 totalUploadItems = totalUploadItems-1; 
 
                 if (error) {
-                    console.log('error', error)
-                    console.log(`Error for:${assetBody.name}`, error);
+
                     const response = `Error for:${assetBody.name} ${error}`; 
                     const uploadStatus ='Failed';
 
@@ -439,8 +431,6 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                         lifo: true
                     });
 
-                    console.log('Job Id:', job.id);
-
                     jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0 }];
 
                 }
@@ -449,16 +439,8 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
             console.log(error);
         }
     }));
-
-    console.log('localBase64Count--->', localBase64Count);
-    console.log('Total Base 64 Count--->', totalBase64Items);
-    console.log('Total Skip Base 64 Count--->', base64SkipedItems);
-    console.log('Total Upload--->', totalUploadItems);
     totalUploadItems = totalUploadItems - base64SkipedItems;
-
     nextUploadBase64Items = totalBase64Items - (base64SkipedItems + localBase64Count);
-    console.log('nextUploadBase64Items--->', nextUploadBase64Items);
-
     base64Count = localBase64Count;
 
     // Call the upload start
@@ -550,8 +532,7 @@ async function startUploadProcess(workQueue) {
 
 
     const mcAuthResults = await getMcAuth();
-    console.log("Marketing Cloud authentication :", mcAuthResults.access_token ? 'Successful' : 'Failure');
-
+    
     workQueue.process(maxJobsPerWorker, async (job, done) => {
         try {
             let { content } = job.data;
@@ -562,9 +543,6 @@ async function startUploadProcess(workQueue) {
                 //Upload CMS content to Marketing Cloud
                 //await Promise.all(
             
-                const images = items.filter(ele => ele.assetTypeId === '8');
-                console.log(`Filtered no. of nodes for Job ID ${job.id} : images ${images.length}`);
-
                 items.map(async (ele) => { 
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
