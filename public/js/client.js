@@ -32,9 +32,7 @@ async function getJobs() {
     let s = "";
     const groupedJobs = groupByKey(jobs, 'channelName');
     Object.entries(groupedJobs).forEach(([key, value]) => {
-      console.log('groupedJobs--->', key);
-      console.log('groupedJobs--->', value)
-
+      
       let jobsHtml = "";
       value.forEach(job => {
         jobsHtml += renderJob(job);

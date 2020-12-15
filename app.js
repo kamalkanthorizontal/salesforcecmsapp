@@ -80,7 +80,12 @@ app.get("/queue", async function (req, res) {
     const { cmsConnectionId, channelId } = req.query;
     console.log('cmsConnectionId--->',cmsConnectionId);
     console.log('channelId--->', channelId);
-    res.sendFile('./queue.html', { root: __dirname });
+
+    if(process.env.SF_CMS_CONNECTION_ID === cmsConnectionId){
+        res.sendFile('./queue.html', { root: __dirname });
+    }else{
+        res.send('Required fields not found.');
+    }  
 })
 
 app.post('/uploadCMSContent', async (req, res, next) => {
