@@ -292,6 +292,9 @@ module.exports = {
                 password: process.env.SF_PASSWORD,
                 securityToken: process.env.SF_SECURITY_TOKEN
             });
+
+            console.log('FETCH_CMS_FOLDER_DETAIL_QUERY-->', org, oauth);
+
             if(org && oauth){
                 console.log('FETCH_CMS_FOLDER_DETAIL_QUERY-->', FETCH_CMS_FOLDER_DETAIL_QUERY);
                 const resQuery = await org.query({ query: FETCH_CMS_FOLDER_DETAIL_QUERY });
