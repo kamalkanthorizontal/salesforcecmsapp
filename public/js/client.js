@@ -20,7 +20,7 @@ async function getJobs() {
     const response = await res.json();
 
     jobs = response.jobs;
-
+    
     if(jobs  && jobs.length){
         const filteredJobs = jobs ? jobs.filter(ele => ele.state !== 'completed') : [];
         if(filteredJobs.length === 0){

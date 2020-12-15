@@ -56,6 +56,12 @@ function isSetup() {
 function oauthCallbackUrl(req) {
     return req.protocol + "://" + req.get("host");
 }
+// Kick off a new job by adding it to the work queue
+app.get('/jobs', async (req, res) => {
+    res.json({ jobs: jobs() });
+});
+
+
 
 app.get("/setup", function (req, res) {
     res.render("setup", {
