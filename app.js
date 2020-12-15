@@ -318,6 +318,7 @@ app.listen(process.env.PORT || 3000, async function () {
     if (appUrl) {
         //Get MC Folder Id
         const mcFolderRes = await getFolderIdFromServer();
+        console.log('Launching heroku app --->', mcFolderRes);
         if (mcFolderRes && mcFolderRes.id ) {
             //Update call back url and mc folder id
             updateSfRecord(appUrl, mcFolderRes.id);

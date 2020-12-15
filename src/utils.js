@@ -319,7 +319,7 @@ module.exports = {
                     }else if(!mcError && dateTime){
                         sobject.set('Connection_Status__c', CONNETION_STATUS);
                         sobject.set('Error_Message__c', '');
-                        sobject.set('Last_Synchronized_Time__c', new Date(new Date().toUTCString()));
+                        sobject.set('Last_Synchronized_Time__c', new Date(new Date().toISOString()));
                     }
                     await org.update({ sobject, oauth });     
                     

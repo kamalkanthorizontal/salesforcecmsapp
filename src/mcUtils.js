@@ -432,7 +432,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                     });
                     jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0, channelName }];
                 }else{
-                    jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: 0, state: "Skiped", items, response: '', counter: 0, channelName }];
+                    jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: 0, state: "Skipped", items, response: '', counter: 0, channelName }];
                 }
 
                 
@@ -444,7 +444,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
     totalUploadItems = totalUploadItems - base64SkipedItems;
     nextUploadBase64Items = totalBase64Items - (base64SkipedItems + localBase64Count);
     base64Count = localBase64Count;
-    
+    console.log('totalUploadItems', totalUploadItems);
     // Call the upload start
     startUploadProcess(workQueue);
 }
