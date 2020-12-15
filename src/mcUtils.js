@@ -357,7 +357,7 @@ function updateAlreadySyncImageStatus(items, name, referenceId, fileName){
     })
 }
 
-async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, source) {
+async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, source, channelName) {
     let localBase64Count = 0;
     await Promise.all(contentTypeNodes.map(async (ele) => {
         try {
@@ -431,7 +431,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                         lifo: true
                     });
 
-                    jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0 }];
+                    jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0, channelName }];
 
                 }
             }
@@ -592,7 +592,7 @@ async function startUploadProcess(workQueue) {
 }
 
 module.exports = {
-    run: function (cmsAuthResults, org, contentTypeNodes, channelId, folderId, source) {
+    run: function (cmsAuthResults, org, contentTypeNodes, channelId, folderId, source, channelName) {
         
         base64Count = 0;
         totalBase64Items = 0;
@@ -605,7 +605,7 @@ module.exports = {
         }
 
         const workQueue = new Queue(`work-${channelId}`, REDIS_URL);
-        addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, source)
+        addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, source, channelName)
     },
 
     getMcFolders: async function (accessToken) {

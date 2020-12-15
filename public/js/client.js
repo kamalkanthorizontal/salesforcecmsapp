@@ -20,6 +20,7 @@ async function getJobs() {
     const response = await res.json();
 
     jobs = response.jobs;
+
     if(jobs  && jobs.length){
         const filteredJobs = jobs ? jobs.filter(ele => ele.state !== 'completed') : [];
         if(filteredJobs.length === 0){
@@ -29,7 +30,7 @@ async function getJobs() {
 
 
     let s = "";
-    const groupedJobs = groupByKey(jobs, 'channelId');
+    const groupedJobs = groupByKey(jobs, 'channelName');
     Object.entries(groupedJobs).forEach(([key, value]) => {
       console.log('groupedJobs--->', key);
       console.log('groupedJobs--->', value)
@@ -41,7 +42,7 @@ async function getJobs() {
 
       s +=`
       <div style="margin-top: 10px">
-        <div  class='tl mt2 mb1'><u><b>Channel ID:</span></b>  ${key}</u></div>
+        <div  class='tl mt2 mb1'><u><b>Channel:</span></b>  ${key}</u></div>
         <div class="hk-well" style="margin-top: 10px">  
           ${jobsHtml}
         </div>

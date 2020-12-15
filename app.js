@@ -72,7 +72,7 @@ app.get('/', async (req, res) => {
 
 app.get("/queue", async function (req, res) {
     const { cmsConnectionId, channelId } = req.query;
-    console.log('cmsConnectionId--->', cmsConnectionId);
+    console.log('cmsConnectionId--->',cmsConnectionId);
     console.log('channelId--->', channelId);
     res.sendFile('./queue.html', { root: __dirname });
 })
@@ -87,7 +87,7 @@ app.post('/uploadCMSContent', async (req, res, next) => {
             herokuApp = req.hostname.replace(".herokuapp.com", "");
         }
 
-        let { contentTypeNodes, channelId, mcFolderId, source } = req.body;
+        let { contentTypeNodes, channelId, mcFolderId, source, channelName } = req.body;
 
         if (!contentTypeNodes || !channelId || !source) {  
             res.send('Required fields not found.');
@@ -120,7 +120,7 @@ app.post('/uploadCMSContent', async (req, res, next) => {
                     console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
                     
                     if(resp.access_token){
-                        run(resp, org, contentTypeNodes, channelId, mcFolderId, source);
+                        run(resp, org, contentTypeNodes, channelId, mcFolderId, source, channelName);
                         res.send('CMS Content Type is syncing in the background. Please wait..');
                     }else{
                         console.log(SF_AUTH_FAILED_MSG);
