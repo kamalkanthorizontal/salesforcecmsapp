@@ -327,6 +327,7 @@ module.exports = {
                 console.log(SF_AUTH_FAILED_MSG)
             }
         } catch (error) {
+            console.log('error')
             console.log('Error in salesforce authentication: ', error);
         }
     }
