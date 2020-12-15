@@ -293,12 +293,12 @@ module.exports = {
                 securityToken: process.env.SF_SECURITY_TOKEN
             });
 
-
+            console.log('org-->', org);
             if(org && oauth){
                 const resQuery = await org.query({ query: FETCH_CMS_FOLDER_DETAIL_QUERY });
-    
+                console.log('FETCH_CMS_FOLDER_DETAIL_QUERY-->', FETCH_CMS_FOLDER_DETAIL_QUERY);
                 if (resQuery && resQuery.records && resQuery.records.length) {
-    
+                    console.log('resQuery.records.length-->', resQuery.records.length);
                     let sobject = resQuery.records[0];
 
                     if(mcError){
