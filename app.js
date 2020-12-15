@@ -91,7 +91,7 @@ app.get("/queue", async function (req, res) {
 app.post('/uploadCMSContent', async (req, res, next) => {
     try {
         const origin = req.get('origin');
-        console.log('origin--->', origin);
+       // console.log('origin--->', origin);
 
         isLocal = req.hostname.indexOf("localhost") == 0;
         if (req.hostname.indexOf(".herokuapp.com") > 0) {
@@ -100,7 +100,7 @@ app.post('/uploadCMSContent', async (req, res, next) => {
 
         let { contentTypeNodes, channelId, mcFolderId, source, channelName } = req.body;
 
-        if (!contentTypeNodes || !channelId || !source) {  
+        if (!contentTypeNodes || !channelId || !source || !channelName) {  
             res.send('Required fields not found.');
         }
 

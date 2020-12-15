@@ -339,10 +339,10 @@ async function getMediaSourceFile(node){
     }
 }
 
-function updateAlreadySyncImageStatus(items, name, referenceId, fileName){
+function updateAlreadySyncMediaStatus(items, name, referenceId, fileName){
     const serverResponse = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${name}`; 
-    const serverStatus = 'Uploaded';
-    return items = [...items].map(item =>{
+    const serverStatus = 'Alreday Uploaded';
+    return items = [...items].map(item =>{        
         // response
         let response = item.response;
         let status = item.status;
@@ -390,7 +390,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                         localSkiped = localSkiped+1;
                         const referenceId =  imageNode.referenceId || null;
                         const name =  imageNode.name;
-                        items = updateAlreadySyncImageStatus(items, name, referenceId, node);
+                        items = updateAlreadySyncMediaStatus(items, name, referenceId, node);
                    }else if(node){
                         if(localBase64Count < allowedBase64Count){
                             localBase64Count = localBase64Count+1;
@@ -405,12 +405,13 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 await Promise.all(itemDocuments.map(async (docNode) => {
                    const node =  await getMediaSourceFile(docNode);
 
-
                     if(typeof node == "string"){
                         localSkiped = localSkiped+1;
                         const referenceId =  docNode.referenceId || null;
                         const name =  docNode.name;
-                        items = updateAlreadySyncImageStatus(items, name, referenceId, node);
+                        
+                        items = updateAlreadySyncMediaStatus(items, name, referenceId, node);
+                        
                     }else if(node){
                         if(localBase64Count < allowedBase64Count){
                             localBase64Count = localBase64Count+1;
@@ -424,16 +425,17 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 //Sync content based on source
                 const jobItems = source === 'Heroku' ? [...documents, ...images] : [...contents, ...documents, ...images];
                 if(jobItems && jobItems.length){
-                    
                     // content type
                     const job = await workQueue.add({ content: { items: jobItems, cmsAuthResults, folderId, totalItems: items.length, org } }, {
                         attempts: 1,
                         lifo: true
                     });
-
                     jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0, channelName }];
-
+                }else{
+                    jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: 0, state: "Skiped", items, response: '', counter: 0, channelName }];
                 }
+
+                
             }
         } catch (error) {
             console.log(error);
@@ -442,7 +444,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
     totalUploadItems = totalUploadItems - base64SkipedItems;
     nextUploadBase64Items = totalBase64Items - (base64SkipedItems + localBase64Count);
     base64Count = localBase64Count;
-
+    
     // Call the upload start
     startUploadProcess(workQueue);
 }

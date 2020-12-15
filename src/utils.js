@@ -312,10 +312,13 @@ module.exports = {
                         if (appName) {
                             sobject.set('Heroku_Endpoint__c', appName);
                             sobject.set('Connection_Status__c', CONNETION_STATUS);
+                            sobject.set('Error_Message__c', '');
                         }
         
                         sobject.set('SFMC_Folder_Id__c', folderId);   
                     }else if(!mcError && dateTime){
+                        sobject.set('Connection_Status__c', CONNETION_STATUS);
+                        sobject.set('Error_Message__c', '');
                         sobject.set('Last_Synchronized_Time__c', new Date(new Date().toUTCString()));
                     }
                     await org.update({ sobject, oauth });     
