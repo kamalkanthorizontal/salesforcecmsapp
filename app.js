@@ -72,6 +72,9 @@ app.get('/jobs', async (req, res) => {
 });
 
 app.get("/queue", async function (req, res) {
+    const { cmsConnectionId, channelId } = req.query;
+    console.log('cmsConnectionId--->', cmsConnectionId);
+    console.log('channelId--->', channelId);
     res.sendFile('./queue.html', { root: __dirname });
 })
 
