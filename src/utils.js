@@ -330,6 +330,8 @@ module.exports = {
                     
                     console.log('resQuery', sobject._fields);
                     
+                }else{
+                    console.log('else resQuery', resQuery);
                 }
             }else{
                 console.log(SF_AUTH_FAILED_MSG)
