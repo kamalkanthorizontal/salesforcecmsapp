@@ -1,5 +1,8 @@
 const https = require('https');
 const nforce = require("nforce");
+var hbs = require('hbs');
+var dotenv = require("dotenv").config();
+var path = require('path');
 
 const { 
     FETCH_CMS_FOLDER_DETAIL_QUERY,
