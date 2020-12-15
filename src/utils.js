@@ -271,7 +271,7 @@ module.exports = {
         const lastChar = url[url.length - 1];
         return lastChar === '/' ? url.substring(0, url.length - 1) : url;
     },
-    updateSfRecord: async function(appName, folderId = '', mcError, dateTime) {
+    updateSfRecord: async function(appName, folderId, mcError, dateTime) {
         try {
            
             let org = nforce.createConnection({
@@ -297,7 +297,7 @@ module.exports = {
     
                     let sobject = resQuery.records[0];
 
-                    console.log('FETCH_CMS_FOLDER_DETAIL_QUERY-->', FETCH_CMS_FOLDER_DETAIL_QUERY);
+                    console.log('FETCH_CMS_FOLDER_DETAIL_QUERY-->', appName, folderId, mcError, dateTime);
 
                     if(mcError){
                         sobject.set('Connection_Status__c', CONNETION_FAILED_STATUS);
