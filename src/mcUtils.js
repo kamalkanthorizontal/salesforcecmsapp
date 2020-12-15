@@ -342,14 +342,14 @@ async function getMediaSourceFile(node){
                 name
             }
         }else{
-            return null;
+            return fileName + ext;
         }
     }
 }
 
-function updateAlreadySyncImageStatus(items, name, referenceId){
+function updateAlreadySyncImageStatus(items, name, referenceId, fileName){
     const serverResponse = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${name}`; 
-    const serverStatus = 'Failed';
+    const serverStatus = 'Uploaded';
     return items = [...items].map(item =>{
         // response
         let response = item.response;
@@ -361,7 +361,7 @@ function updateAlreadySyncImageStatus(items, name, referenceId){
             response = serverResponse;
             status = serverStatus;
         }
-        return {...item, response, status }
+        return {...item, response, status, name: fileName ? fileName: name  }
     })
 }
 
@@ -393,33 +393,37 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 let localSkiped = 0;
                 await Promise.all(itemImages.map(async (imageNode) => {
                    const node =  await getMediaSourceFile(imageNode)
-                   if(node ){
-                       if(localBase64Count < allowedBase64Count){
-                            localBase64Count = localBase64Count+1;
-                            images = [...images, node];
-                       }
-                   }else{
-                    localSkiped = localSkiped+1;
+                   
+                   if(typeof node == "string"){
+                        localSkiped = localSkiped+1;
                         const referenceId =  imageNode.referenceId || null;
                         const name =  imageNode.name;
-                        items = updateAlreadySyncImageStatus(items, name, referenceId);
-                    }
+                        items = updateAlreadySyncImageStatus(items, name, referenceId, node);
+                   }else if(node){
+                        if(localBase64Count < allowedBase64Count){
+                            localBase64Count = localBase64Count+1;
+                            images = [...images, node];
+                        }
+                   }
+                   
                 }));
 
 
                 let documents = []; 
                 await Promise.all(itemDocuments.map(async (docNode) => {
                    const node =  await getMediaSourceFile(docNode);
-                   if(node ){
+
+
+                    if(typeof node == "string"){
+                        localSkiped = localSkiped+1;
+                        const referenceId =  docNode.referenceId || null;
+                        const name =  docNode.name;
+                        items = updateAlreadySyncImageStatus(items, name, referenceId, node);
+                    }else if(node){
                         if(localBase64Count < allowedBase64Count){
                             localBase64Count = localBase64Count+1;
                             documents = [...documents, node];
                         }
-                    }else{
-                        localSkiped = localSkiped+1;
-                        const referenceId =  docNode.referenceId || null;
-                        const name =  docNode.name;
-                        items = updateAlreadySyncImageStatus(items, name, referenceId);
                     }
                 }));
 
