@@ -79,6 +79,9 @@ app.get("/queue", async function (req, res) {
 
 app.post('/uploadCMSContent', async (req, res, next) => {
     try {
+        const origin = req.get('origin');
+        console.log('origin--->', origin);
+
         isLocal = req.hostname.indexOf("localhost") == 0;
         if (req.hostname.indexOf(".herokuapp.com") > 0) {
             herokuApp = req.hostname.replace(".herokuapp.com", "");
