@@ -67,8 +67,8 @@ app.get("/setup", function (req, res) {
 });
 
 // Kick off a new job by adding it to the work queue
-app.get('/jobs', async (req, res) => {
-    res.json({ jobs: jobs() });
+app.get('/', async (req, res) => {
+    res.send('Welcome to CMS content sync.');
 });
 
 app.get("/queue", async function (req, res) {
@@ -78,7 +78,7 @@ app.get("/queue", async function (req, res) {
     res.sendFile('./queue.html', { root: __dirname });
 })
 
-app.post('/', async (req, res, next) => {
+app.post('/uploadCMSContent', async (req, res, next) => {
     try {
         isLocal = req.hostname.indexOf("localhost") == 0;
         if (req.hostname.indexOf(".herokuapp.com") > 0) {

@@ -293,17 +293,13 @@ module.exports = {
                 securityToken: process.env.SF_SECURITY_TOKEN
             });
 
-            console.log('FETCH_CMS_FOLDER_DETAIL_QUERY-->', org, oauth);
 
             if(org && oauth){
-                console.log('FETCH_CMS_FOLDER_DETAIL_QUERY-->', FETCH_CMS_FOLDER_DETAIL_QUERY);
                 const resQuery = await org.query({ query: FETCH_CMS_FOLDER_DETAIL_QUERY });
     
                 if (resQuery && resQuery.records && resQuery.records.length) {
     
                     let sobject = resQuery.records[0];
-
-                    console.log('FETCH_CMS_FOLDER_DETAIL_QUERY-->', appName, folderId, mcError, dateTime);
 
                     if(mcError){
                         sobject.set('Connection_Status__c', CONNETION_FAILED_STATUS);
@@ -322,19 +318,14 @@ module.exports = {
                     }else if(!mcError && dateTime){
                         sobject.set('Last_Synchronized_Time__c', new Date(new Date().toUTCString()));
                     }
-
-                    console.log('Updating Salesforce CMS Connection Details:', sobject._fields);
-    
-                    await org.update({ sobject, oauth });
-    
-                    
+                    await org.update({ sobject, oauth });                    
                     console.log('resQuery', sobject._fields);
                     
                 }else{
-                    console.log('else resQuery', resQuery);
+                    console.log(SF_WRONG_CHANNEL_ID_MSG);
                 }
             }else{
-                console.log(SF_AUTH_FAILED_MSG)
+                console.log(SF_AUTH_FAILED_MSG);
             }
         } catch (err) {
             console.log('error', err)

@@ -14,5 +14,6 @@ module.exports = {
     MC_FOLDER_CREATION_FAILED_MSG: 'Marketing cloud folder creation failed. Please try again.' ,
     MC_NO_PARENT_FOLDER_MSG: `No parent folder available in marketing cloud.`,
 
-    SF_AUTH_FAILED_MSG: 'Salesforce authentication failed. Please check environment variables in heroku.'
+    SF_AUTH_FAILED_MSG: 'Salesforce authentication failed. Please check environment variables in heroku.',
+    SF_WRONG_CHANNEL_ID_MSG: 'Please check channel id environment variable in heroku.'
 }
