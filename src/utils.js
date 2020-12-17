@@ -308,10 +308,10 @@ module.exports = {
                         console.log('datetime: ', new Date(new Date().toISOString()))
                         sobject.set('Connection_Status__c', CONNETION_STATUS);
                         sobject.set('Error_Message__c', '');
-                        sobject.set('Last_Synchronized_Time__c', new Date(new Date().toISOString()));
+                        sobject.set('Last_Synchronized_Time__c', new Date().toISOString());
                     }
                     
-                    else if (!mcError && (sobject._fields.connection_status__c === null
+                    else if (!mcError && !dateTime && (sobject._fields.connection_status__c === null
                         || sobject._fields.connection_status__c === ALLOWED_CONNECTION_STATUS
                         || sobject._fields.connection_status__c === CONNETION_FAILED_STATUS
                         || sobject._fields.sfmc_folder_id__c != folderId
