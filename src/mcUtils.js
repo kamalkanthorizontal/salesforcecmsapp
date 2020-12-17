@@ -57,13 +57,11 @@ async function uploadAllBase64(accessToken) {
     }
 }
 
-async function getValidFileName(fileName, alreadySyncedContents) {
+async function getValidFileName(fileName, alreadySyncedContents, name) {
 
     if(alreadySyncedContents && alreadySyncedContents.items && alreadySyncedContents.items.length){
-       // console.log('alreadySyncedContents.items.length--->', alreadySyncedContents.items.length);
+       
        const item =  [...alreadySyncedContents.items].find(ele => ele.name === fileName);
-
-       //console.log('alreadySyncedContents.items.length--->', fileName, item);
 
        return item ? false : true;
     }else{
@@ -107,7 +105,7 @@ async function getMcAuth() {
 
 async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  jobId, referenceId, org) {
 
-   // name = `${IMG_PREFIX}${name}`;
+    name = `${IMG_PREFIX}${name}`;
     
     let textAssetBody = {
         name: name,
@@ -333,8 +331,8 @@ async function getMediaSourceFile(node, alreadySyncedContents){
         let fileName = node.name ? node.name.replace(/[^a-zA-Z0-9]/g, "") : `${path.parse(node.fileName).name.replace(/[^a-zA-Z0-9]/g, "")}${publishedDate}`;
         
         fileName = `${IMG_PREFIX}${fileName}`;
-        
-        const notInMC = await getValidFileName(fileName + ext, alreadySyncedContents);
+       
+        const notInMC = await getValidFileName(fileName + ext, alreadySyncedContents, `${IMG_PREFIX}${node.name}`);
         if(notInMC){
             return {
                 assetTypeId: node.assetTypeId,
@@ -427,7 +425,6 @@ async function getAlreadyMcAssets(folderId){
 async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, source, channelName) {
     
     const alreadySyncedContents = await getAlreadyMcAssets(folderId);
-    
     let localBase64Count = 0;
     await Promise.all(contentTypeNodes.map(async (ele) => {
         try {
@@ -456,16 +453,21 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
 
                 let contents = []; 
                 
-                
+
                 let localSkiped = 0;
 
                 await Promise.all(itemContents.map(async (contentNode) => {
-                   
-                    const notInMC = await getValidFileName(contentNode.name, alreadySyncedContents);
+                    
+                    const notInMC = await getValidFileName( `${IMG_PREFIX}${contentNode.name}`, alreadySyncedContents);
+
                     if(notInMC){
-                        contents = [...contents, contentNode];
+                        if(localBase64Count < allowedBase64Count){
+                            localBase64Count = localBase64Count+1;
+                            contents = [...contents, contentNode];
+                        }
                     }else{
-                        console.log('contentNode.name--->', contentNode.name);
+                        localSkiped = localSkiped+1;
+                        
                         totalUploadItems = totalUploadItems-1;
                         const referenceId =  contentNode.referenceId || null;
                         items = updateAlreadySyncMediaStatus(items, contentNode.name, referenceId, contentNode.name);
@@ -473,7 +475,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                  }));
 
                 await Promise.all(itemImages.map(async (imageNode) => {
-                   const node =  await getMediaSourceFile(imageNode, alreadySyncedContents)
+                   const node =  await getMediaSourceFile(imageNode, alreadySyncedContents);
                    
                    if(typeof node == "string"){
                         localSkiped = localSkiped+1;
@@ -486,7 +488,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                             images = [...images, node];
                         }
                    }
-                   
+
                 }));
 
 
@@ -512,7 +514,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 base64SkipedItems = base64SkipedItems+localSkiped;
                // console.log('contents--->', contents, items);
                 //Sync content based on source
-                const jobItems = source === 'Heroku' ? [...documents, ...images] : [...contents, ...documents, ...images];
+                const jobItems =  [...contents, ...documents, ...images]; //source === 'Heroku' ? [...documents, ...images] : [...contents, ...documents, ...images];
                 if(jobItems && jobItems.length){
                     // content type
                     const job = await workQueue.add({ content: { items: jobItems, cmsAuthResults, folderId, totalItems: items.length, org } }, {
@@ -531,11 +533,13 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         }
     }));
     
-    // console.log('totalUploadItems', totalUploadItems, base64SkipedItems);
+    console.log('totalUploadItems', totalUploadItems);
+    console.log('base64SkipedItems', base64SkipedItems);
+    console.log('localBase64Count', localBase64Count);
     totalUploadItems = totalUploadItems - base64SkipedItems;
     nextUploadBase64Items = totalBase64Items - (base64SkipedItems + localBase64Count);
     base64Count = localBase64Count;
-    // console.log('totalUploadItems', totalUploadItems);
+     console.log('totalUploadItems', totalUploadItems);
     // Call the upload start
    startUploadProcess(workQueue);
 
