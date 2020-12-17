@@ -44,6 +44,7 @@ function isSetup() {
         isNotBlank(process.env.MC_AUTHENTICATION_BASE_URI) &&
         isNotBlank(process.env.MC_REST_BASE_URI) &&
         isNotBlank(process.env.MC_FOLDER_NAME) &&
+        isNotBlank(process.env.SF_ENVIRONMENT) &&
         isNotBlank(process.env.SF_USERNAME) &&
         isNotBlank(process.env.SF_PASSWORD) &&
         isNotBlank(process.env.SF_SECURITY_TOKEN) &&
@@ -118,7 +119,7 @@ app.post('/uploadCMSContent', async (req, res, next) => {
                         redirectUri: oauthCallbackUrl(req),
                         apiVersion: process.env.SF_API_VERSION,
                         mode: "single",
-                        environment: "sandbox",
+                        environment: process.env.SF_ENVIRONMENT,
                         autoRefresh: true
                     });
                     
@@ -218,7 +219,7 @@ async function getFolderId(folderId) {
             redirectUri: process.env.SF_CMS_URL,
             apiVersion: process.env.SF_API_VERSION,
             mode: "single",
-            environment: "sandbox", //production
+            environment: process.env.SF_ENVIRONMENT,
             autoRefresh: true
         });
 

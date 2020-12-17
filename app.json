@@ -20,6 +20,11 @@
             "required": true,
             "value": ""
         },
+        "SF_ENVIRONMENT": { 
+            "description": "Salesforce Environment (sandbox or production).",
+            "required": true,
+            "value": "production"
+        },
         "SF_USERNAME": {
             "description": "Salesforce Username.",
             "required": true,
