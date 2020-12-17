@@ -510,7 +510,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 }));
 
                 base64SkipedItems = base64SkipedItems+localSkiped;
-                console.log('contents--->', contents, items);
+               // console.log('contents--->', contents, items);
                 //Sync content based on source
                 const jobItems = source === 'Heroku' ? [...documents, ...images] : [...contents, ...documents, ...images];
                 if(jobItems && jobItems.length){
@@ -531,11 +531,11 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         }
     }));
     
-    console.log('totalUploadItems', totalUploadItems, base64SkipedItems);
+    // console.log('totalUploadItems', totalUploadItems, base64SkipedItems);
     totalUploadItems = totalUploadItems - base64SkipedItems;
     nextUploadBase64Items = totalBase64Items - (base64SkipedItems + localBase64Count);
     base64Count = localBase64Count;
-    console.log('totalUploadItems', totalUploadItems);
+    // console.log('totalUploadItems', totalUploadItems);
     // Call the upload start
    startUploadProcess(workQueue);
 
