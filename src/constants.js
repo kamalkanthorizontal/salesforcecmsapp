@@ -2,6 +2,7 @@ module.exports = {
     MC_ASSETS_API_PATH :'/asset/v1/content/assets',
     MS_AUTH_PATH : '/v2/token',
     MC_CONTENT_CATEGORIES_API_PATH : '/asset/v1/content/categories',
+    MC_ALREADY_CONTENT_API_PATH : '/asset/v1/content/assets/query',
     REDIS_URL : process.env.REDIS_URL || 'redis://127.0.0.1:6379',
 
 

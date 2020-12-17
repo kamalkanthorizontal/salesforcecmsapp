@@ -9,7 +9,8 @@ const {
     SF_AUTH_FAILED_MSG,
     ALLOWED_CONNECTION_STATUS,
     CONNETION_STATUS,
-    CONNETION_FAILED_STATUS
+    CONNETION_FAILED_STATUS,
+    SF_WRONG_CHANNEL_ID_MSG
 } = require('./constants');
 
 function getImageAssetTypeId(imageExtension) {

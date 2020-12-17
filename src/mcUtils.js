@@ -4,7 +4,7 @@ let Queue = require('bull');
 const path = require('path');
 const decode = require('unescape');
 const { getImageAssetTypeId, getDocumentAssetTypeId, downloadBase64FromURL, validateUrl, updateSfRecord } = require('./utils.js');
-const { MC_ASSETS_API_PATH, MS_AUTH_PATH, MC_CONTENT_CATEGORIES_API_PATH, REDIS_URL } = require('./constants');
+const { MC_ASSETS_API_PATH, MS_AUTH_PATH, MC_CONTENT_CATEGORIES_API_PATH, REDIS_URL, MC_ALREADY_CONTENT_API_PATH } = require('./constants');
 
 
 let maxJobsPerWorker = 150;
@@ -57,27 +57,38 @@ async function uploadAllBase64(accessToken) {
     }
 }
 
-async function getValidFileName(fileName) {
-    try {
-        const mcAuthResults = await getMcAuth();
-        const serviceUrl = `${validateUrl(MC_REST_BASE_URI)}${MC_ASSETS_API_PATH}?$filter=Name%20like%20'${fileName}'`;
+async function getValidFileName(fileName, alreadySyncedContents) {
+
+    if(alreadySyncedContents && alreadySyncedContents.items && alreadySyncedContents.items.length){
+       // console.log('alreadySyncedContents.items.length--->', alreadySyncedContents.items.length);
+       const item =  [...alreadySyncedContents.items].find(ele => ele.name === fileName);
+
+       //console.log('alreadySyncedContents.items.length--->', fileName, item);
+
+       return item ? false : true;
+    }else{
+        try {
+            const mcAuthResults = await getMcAuth();
+            const serviceUrl = `${validateUrl(MC_REST_BASE_URI)}${MC_ASSETS_API_PATH}?$filter=Name%20like%20'${fileName}'`;
+        
+            const res = await fetch(serviceUrl, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${mcAuthResults.access_token}`
+                },
+            });
     
-        const res = await fetch(serviceUrl, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${mcAuthResults.access_token}`
-            },
-        });
-
-        const response = await res.json();
-        const notInMc = response.count === 0 ? true : false;
-
-        return notInMc;
-    } catch (error) {
-        console.log('Error in file Name:', error);
-        return false;
+            const response = await res.json();
+            const notInMc = response.count === 0 ? true : false;
+    
+            return notInMc;
+        } catch (error) {
+            console.log('Error in file Name:', error);
+            return false;
+        }
     }
+    
 }
 
 async function getMcAuth() {
@@ -95,6 +106,9 @@ async function getMcAuth() {
 }
 
 async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  jobId, referenceId, org) {
+
+   // name = `${IMG_PREFIX}${name}`;
+    
     let textAssetBody = {
         name: name,
         assetType: {
@@ -305,7 +319,7 @@ async function getAllContent(org, cmsURL, items=[]){
 }
 
 
-async function getMediaSourceFile(node){
+async function getMediaSourceFile(node, alreadySyncedContents){
     const referenceId =  node.referenceId || null;
     const name =  node.name;
 
@@ -320,7 +334,7 @@ async function getMediaSourceFile(node){
         
         fileName = `${IMG_PREFIX}${fileName}`;
         
-        const notInMC = await getValidFileName(fileName + ext);
+        const notInMC = await getValidFileName(fileName + ext, alreadySyncedContents);
         if(notInMC){
             return {
                 assetTypeId: node.assetTypeId,
@@ -342,22 +356,78 @@ async function getMediaSourceFile(node){
 function updateAlreadySyncMediaStatus(items, name, referenceId, fileName){
     const serverResponse = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${name}`; 
     const serverStatus = 'Alreday Uploaded';
-    return items = [...items].map(item =>{        
+    return items = [...items].map(item =>{   
+
+       // console.log('matched', name, item);
         // response
         let response = item.response;
         let status = item.status;
         if(name && item.name === name ){
+            console.log('matched');
             response = serverResponse;
             status = serverStatus;
         }else if(referenceId && item.referenceId === referenceId ){
             response = serverResponse;
             status = serverStatus;
         }
+
+
         return {...item, response, status, name: fileName ? fileName: name  }
     })
 }
 
+async function getAlreadyMcAssets(folderId){
+    const mcAuthResults = await getMcAuth();
+    const serviceUrl = `${validateUrl(MC_REST_BASE_URI)}${MC_ALREADY_CONTENT_API_PATH}`;
+
+        const body = JSON.stringify({
+            "page":
+            {
+                "pageSize":7500 //fixed
+            },
+
+            "query":
+            {
+                "leftOperand":
+                {
+                    "property":"category.id",
+                    "simpleOperator":"equal",
+                    "value":folderId // folderid
+                },
+                "logicalOperator":"AND",
+                "rightOperand":
+                {
+                    "property":"assetType.displayName",
+                    "simpleOperator":"like",
+                    "value":"Document,Image,Text Block,HTML Block"
+                }
+            },
+            "fields":
+            [
+                "id",
+                "assetType",
+                "name"
+            ]
+        });
+        return await fetch(serviceUrl, {
+            method: 'POST',
+            body,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${mcAuthResults.access_token}`
+            },
+        })
+            .then(res => res.json())
+            .catch((err) => {
+                console.log(err);
+            });
+    
+}
+
 async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, source, channelName) {
+    
+    const alreadySyncedContents = await getAlreadyMcAssets(folderId);
+    
     let localBase64Count = 0;
     await Promise.all(contentTypeNodes.map(async (ele) => {
         try {
@@ -376,15 +446,34 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 totalBase64Items = totalBase64Items+mediaCount;
                 totalUploadItems = totalUploadItems + items.length;
 
-                const contents =  items.filter(ele => ele.assetTypeId === '196' || ele.assetTypeId === '197');
+                const itemContents =  items.filter(ele => ele.assetTypeId === '196' || ele.assetTypeId === '197');
                 const itemDocuments = items.filter(ele => ele.assetTypeId === '11');
                 const itemImages = items.filter(ele => ele.assetTypeId === '8');
                 
                 // Images 
                 let images = []; 
+                let documents = []; 
+
+                let contents = []; 
+                
+                
                 let localSkiped = 0;
+
+                await Promise.all(itemContents.map(async (contentNode) => {
+                   
+                    const notInMC = await getValidFileName(contentNode.name, alreadySyncedContents);
+                    if(notInMC){
+                        contents = [...contents, contentNode];
+                    }else{
+                        console.log('contentNode.name--->', contentNode.name);
+                        totalUploadItems = totalUploadItems-1;
+                        const referenceId =  contentNode.referenceId || null;
+                        items = updateAlreadySyncMediaStatus(items, contentNode.name, referenceId, contentNode.name);
+                    }
+                 }));
+
                 await Promise.all(itemImages.map(async (imageNode) => {
-                   const node =  await getMediaSourceFile(imageNode)
+                   const node =  await getMediaSourceFile(imageNode, alreadySyncedContents)
                    
                    if(typeof node == "string"){
                         localSkiped = localSkiped+1;
@@ -401,9 +490,9 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 }));
 
 
-                let documents = []; 
+                
                 await Promise.all(itemDocuments.map(async (docNode) => {
-                   const node =  await getMediaSourceFile(docNode);
+                   const node =  await getMediaSourceFile(docNode, alreadySyncedContents);
 
                     if(typeof node == "string"){
                         localSkiped = localSkiped+1;
@@ -421,7 +510,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 }));
 
                 base64SkipedItems = base64SkipedItems+localSkiped;
-                
+                console.log('contents--->', contents, items);
                 //Sync content based on source
                 const jobItems = source === 'Heroku' ? [...documents, ...images] : [...contents, ...documents, ...images];
                 if(jobItems && jobItems.length){
@@ -441,15 +530,16 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
             console.log(error);
         }
     }));
+    
+    console.log('totalUploadItems', totalUploadItems, base64SkipedItems);
     totalUploadItems = totalUploadItems - base64SkipedItems;
     nextUploadBase64Items = totalBase64Items - (base64SkipedItems + localBase64Count);
     base64Count = localBase64Count;
     console.log('totalUploadItems', totalUploadItems);
     // Call the upload start
-    startUploadProcess(workQueue);
+   startUploadProcess(workQueue);
 
-    if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count === 0 ){
-                            
+    if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count === 0 ){    
         setTimeout(async() => {
             updateSfRecord(null, null, null, true); 
         }, 10000);
