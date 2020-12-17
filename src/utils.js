@@ -283,7 +283,7 @@ module.exports = {
                 redirectUri: process.env.SF_CMS_URL,
                 apiVersion: process.env.SF_API_VERSION,
                 mode: "single",
-                environment: "sandbox", //production
+                environment: process.env.SF_ENVIRONMENT,
                 autoRefresh: true
             });
     
