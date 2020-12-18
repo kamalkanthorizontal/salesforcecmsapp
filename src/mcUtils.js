@@ -577,7 +577,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         jobWorkQueueList = jobWorkQueueList.map(job =>{
             console.log('job.items--->', [...job.items].find(jobEle =>  (jobEle.name &&  ele.name && jobEle.name ==  ele.name)));
 
-            const serverResponse = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${name}`; 
+            const serverResponse = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${ele.name}`; 
             const serverStatus = 'Alreday Uploaded';
             items = [...job.items].map(item =>{   
 
