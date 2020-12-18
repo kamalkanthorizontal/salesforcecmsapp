@@ -273,6 +273,8 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                         if(jobId && response){
                             updateJobProgress(jobId, response, name, uploadStatus, referenceId);
                         }
+
+                        console.log('totalUploadItems--->', totalUploadItems, nextUploadBase64Items, base64Count);
                         
                         // Call next service
                         if(nextUploadBase64Items > 0 && base64Count === 1){
@@ -281,7 +283,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                                 uploadAllBase64(org.oauth.access_token); 
                             }, 10000);
 
-                        }else if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count === 0 ){
+                        }else if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count < 2 ){
                             
                             setTimeout(async() => {
                                 updateSfRecord(null, null, null, true); 
