@@ -261,9 +261,9 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                         const msg = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].message : '';
                         const errorCode = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].errorcode : '';
                         
-                        if(isMedia){
-                            base64Count = base64Count-1;
-                        }
+                        //if(isMedia){
+                        base64Count = base64Count-1;
+                        //}
                         const response = body.id ? `Uploaded with Asset id: ${body.id}`: `failed with Error code: ${errorCode} - Error message: ${msg} `; 
                         const uploadStatus = body.id ? 'Uploaded' : 'Failed';
     
@@ -278,7 +278,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                         
                         // Call next service
                         if(nextUploadBase64Items > 0 && base64Count === 1){
-                            
+                            console.log()
                             setTimeout(async() => {
                                 uploadAllBase64(org.oauth.access_token); 
                             }, 5000);
@@ -366,19 +366,15 @@ function updateAlreadySyncMediaStatus(skippedItems){
                     let response = jobEle.response;
                     let status = jobEle.status;
                     if(jobEle.name &&  ele.name && jobEle.name ==  ele.name ){
-                        console.log('matched');
                         response = serverResponse;
                         status = serverStatus;
                     }else if(jobEle.fileName &&  ele.fileName && jobEle.fileName ==  ele.fileName ){
-                        console.log('matched');
                         response = serverResponse;
                         status = serverStatus;
                     }else if( jobEle.referenceId &&  ele.referenceId && jobEle.referenceId ==  ele.referenceId ){
                         response = serverResponse;
                         status = serverStatus;
                     }
-    
-    
                     return {...jobEle, response, status, name: jobEle.fileName ? jobEle.fileName: jobEle.name  }
                 })
     
@@ -486,8 +482,6 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                         }
                     }else{
                         localSkiped = localSkiped+1;
-                        
-                        //totalUploadItems = totalUploadItems-1;
                         const referenceId =  contentNode.referenceId || null;
 
                         skippedItems = [...skippedItems, { referenceId, name: contentNode.name}];
@@ -501,15 +495,9 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                    if(typeof node == "string"){
                         localSkiped = localSkiped+1;
                         const referenceId =  imageNode.referenceId || null;
-                        
-                       
-                        
-
                         let name =  imageNode.name;
                         
                         skippedItems = [...skippedItems, { referenceId, name, fileName: imageNode.fileName}];
-
-                        //items = updateAlreadySyncMediaStatus(items, name, referenceId, node);
                    }else if(node){
                         if(localBase64Count < allowedBase64Count){
                             localBase64Count = localBase64Count+1;
@@ -530,8 +518,6 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                         const name =  docNode.name;
                         
                         skippedItems = [...skippedItems, { referenceId, name}];
-
-                        // items = updateAlreadySyncMediaStatus(items, name, referenceId, node);
                         
                     }else if(node){
                         if(localBase64Count < allowedBase64Count){
@@ -573,7 +559,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
    
     totalUploadItems = totalUploadItems - base64SkipedItems;
     nextUploadBase64Items = totalBase64Items - (base64SkipedItems + localBase64Count);
-    // base64Count = localBase64Count;
+    base64Count = localBase64Count;
     console.log('totalUploadItems', totalUploadItems);
    
     console.log('nextUploadBase64Items', nextUploadBase64Items);
