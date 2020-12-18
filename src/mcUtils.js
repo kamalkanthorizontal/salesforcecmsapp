@@ -579,12 +579,12 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
 
             const serverResponse = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${ele.name}`; 
             const serverStatus = 'Alreday Uploaded';
-            items = [...job.items].map(item =>{   
+            items = [...job.items].map(jobEle =>{   
 
                 // console.log('name 2--->', name, item.name);
                 // response
-                let response = item.response;
-                let status = item.status;
+                let response = jobEle.response;
+                let status = jobEle.status;
                 if(jobEle.name &&  ele.name && jobEle.name ==  ele.name ){
                     console.log('matched');
                     response = serverResponse;
@@ -595,7 +595,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 }
 
 
-                return {...item, response, status, name: jobEle.fileName ? jobEle.fileName: jobEle.name  }
+                return {...jobEle, response, status, name: jobEle.fileName ? jobEle.fileName: jobEle.name  }
             })
 
             //items = updateAlreadySyncMediaStatus(job.items, ele.name, ele.referenceId, ele.name);
