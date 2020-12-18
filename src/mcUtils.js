@@ -104,21 +104,26 @@ async function getMcAuth() {
 }
 
 async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  jobId, referenceId, org) {
-
-    name = `${IMG_PREFIX}${name}`;
+    try{
+        name = `${IMG_PREFIX}${name}`;
     
-    let textAssetBody = {
-        name: name,
-        assetType: {
-            id: assetTypeId,
-        },
-        content: value,
-        category: {
-            id: folderId
-        },
-    };
-    // Create Marketing Cloud Block Asset
-    await createMCAsset(mcAuthResults.access_token, textAssetBody, jobId, referenceId,name, false, null,org);
+        let textAssetBody = {
+            name: name,
+            assetType: {
+                id: assetTypeId,
+            },
+            content: value,
+            category: {
+                id: folderId
+            },
+        };
+        // Create Marketing Cloud Block Asset
+        await createMCAsset(mcAuthResults.access_token, textAssetBody, jobId, referenceId,name, false, null,org);
+    }catch(error){
+        base64Count = base64Count-1;
+        console.log('Upload error -->', error);
+    }
+    
 }
 
 
@@ -172,6 +177,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
             
             resolve();
         }catch(error){
+            base64Count = base64Count-1;
             console.log('Upload error -->', error);
         }
     });
@@ -245,6 +251,8 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                 totalUploadItems = totalUploadItems-1; 
 
                 if (error) {
+
+                    base64Count = base64Count-1;
 
                     const response = `Error for:${assetBody.name} ${error}`; 
                     const uploadStatus ='Failed';
