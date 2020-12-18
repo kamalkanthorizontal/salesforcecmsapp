@@ -289,13 +289,13 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                             console.log()
                             setTimeout(async() => {
                                 uploadAllBase64(org.oauth.access_token); 
-                            }, 5000);
+                            }, 10000);
 
                         }else if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count < 2 ){
                             
                             setTimeout(async() => {
                                 updateSfRecord(null, null, null, true); 
-                            }, 50000);
+                            }, 10000);
 
                         }
                     }catch(err){
