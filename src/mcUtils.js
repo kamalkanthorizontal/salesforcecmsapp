@@ -356,11 +356,11 @@ function updateAlreadySyncMediaStatus(items, name, referenceId, fileName){
     const serverStatus = 'Alreday Uploaded';
     return items = [...items].map(item =>{   
 
-       // console.log('matched', name, item);
+        // console.log('name 2--->', name, item.name);
         // response
         let response = item.response;
         let status = item.status;
-        if(name && item.name === name ){
+        if(name && item.name == name ){
             console.log('matched');
             response = serverResponse;
             status = serverStatus;
@@ -426,6 +426,8 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
     
     const alreadySyncedContents = await getAlreadyMcAssets(folderId);
     let localBase64Count = 0;
+    let skippedItems = [];
+
     await Promise.all(contentTypeNodes.map(async (ele) => {
         try {
             const managedContentType = ele.DeveloperName;
@@ -437,16 +439,16 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
             if (serviceResults && serviceResults.length) {
                 const result = {items: serviceResults, managedContentNodeTypes};
                 let items = getAssestsWithProperNaming(result);
-              
-                const mediaCount = items.filter(ele => ele.assetTypeId === '8' || ele.assetTypeId === '11').length;
-                
-                totalBase64Items = totalBase64Items+mediaCount;
-                totalUploadItems = totalUploadItems + items.length;
+
+               
 
                 const itemContents =  items.filter(ele => ele.assetTypeId === '196' || ele.assetTypeId === '197');
                 const itemDocuments = items.filter(ele => ele.assetTypeId === '11');
                 const itemImages = items.filter(ele => ele.assetTypeId === '8');
-                
+
+                totalBase64Items = totalBase64Items+itemContents.length+itemDocuments.length+itemImages.length;
+
+                totalUploadItems = totalUploadItems + items.length;
                 // Images 
                 let images = []; 
                 let documents = []; 
@@ -468,20 +470,38 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                     }else{
                         localSkiped = localSkiped+1;
                         
-                        totalUploadItems = totalUploadItems-1;
+                        //totalUploadItems = totalUploadItems-1;
                         const referenceId =  contentNode.referenceId || null;
-                        items = updateAlreadySyncMediaStatus(items, contentNode.name, referenceId, contentNode.name);
+
+                        skippedItems = [...skippedItems, { referenceId, name: contentNode.name}];
+                       // items = updateAlreadySyncMediaStatus(items, contentNode.name, referenceId, contentNode.name);
                     }
                  }));
 
                 await Promise.all(itemImages.map(async (imageNode) => {
                    const node =  await getMediaSourceFile(imageNode, alreadySyncedContents);
-                   
+                   //console.log('image --->', node, imageNode.referenceId, imageNode)
                    if(typeof node == "string"){
                         localSkiped = localSkiped+1;
                         const referenceId =  imageNode.referenceId || null;
-                        const name =  imageNode.name;
-                        items = updateAlreadySyncMediaStatus(items, name, referenceId, node);
+                        
+                       
+                        
+
+                        let name =  imageNode.name;
+                        console.log('name 1-->', name);
+                        /*if(name){
+                            const ext = imageNode.fileName ? path.parse(imageNode.fileName).ext: null;
+                            name =name.replace(/[^a-zA-Z0-9]/g, "")
+                            name = `${IMG_PREFIX}${name}${ext}`;
+            
+                            
+                            console.log('name-->', name);
+                            
+                        }*/
+                        skippedItems = [...skippedItems, { referenceId, name}];
+
+                        //items = updateAlreadySyncMediaStatus(items, name, referenceId, node);
                    }else if(node){
                         if(localBase64Count < allowedBase64Count){
                             localBase64Count = localBase64Count+1;
@@ -501,7 +521,9 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                         const referenceId =  docNode.referenceId || null;
                         const name =  docNode.name;
                         
-                        items = updateAlreadySyncMediaStatus(items, name, referenceId, node);
+                        skippedItems = [...skippedItems, { referenceId, name}];
+
+                        // items = updateAlreadySyncMediaStatus(items, name, referenceId, node);
                         
                     }else if(node){
                         if(localBase64Count < allowedBase64Count){
@@ -533,21 +555,63 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         }
     }));
     
+    console.log('jobWorkQueueList', jobWorkQueueList);
+    console.log('skippedItems', skippedItems);
+
     console.log('totalUploadItems', totalUploadItems);
     console.log('base64SkipedItems', base64SkipedItems);
     console.log('localBase64Count', localBase64Count);
+    console.log('totalBase64Items', totalBase64Items);
+   
     totalUploadItems = totalUploadItems - base64SkipedItems;
     nextUploadBase64Items = totalBase64Items - (base64SkipedItems + localBase64Count);
-    base64Count = localBase64Count;
-     console.log('totalUploadItems', totalUploadItems);
-    // Call the upload start
-   startUploadProcess(workQueue);
+    // base64Count = localBase64Count;
+    console.log('totalUploadItems', totalUploadItems);
+   
+    console.log('nextUploadBase64Items', nextUploadBase64Items);
+
+
+    skippedItems.forEach(ele =>{
+        console.log('job.items ele--->', ele.name, ele.referenceId);
+
+        jobWorkQueueList = jobWorkQueueList.map(job =>{
+            console.log('job.items--->', [...job.items].find(jobEle =>  (jobEle.name &&  ele.name && jobEle.name ==  ele.name)));
+
+            const serverResponse = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${name}`; 
+            const serverStatus = 'Alreday Uploaded';
+            items = [...job.items].map(item =>{   
+
+                // console.log('name 2--->', name, item.name);
+                // response
+                let response = item.response;
+                let status = item.status;
+                if(jobEle.name &&  ele.name && jobEle.name ==  ele.name ){
+                    console.log('matched');
+                    response = serverResponse;
+                    status = serverStatus;
+                }else if( jobEle.referenceId &&  ele.referenceId && jobEle.referenceId ==  ele.referenceId ){
+                    response = serverResponse;
+                    status = serverStatus;
+                }
+
+
+                return {...item, response, status, name: fileName ? fileName: name  }
+            })
+
+            //items = updateAlreadySyncMediaStatus(job.items, ele.name, ele.referenceId, ele.name);
+            return {...job, items}
+        })
+    });
+    
 
     if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count === 0 ){    
         setTimeout(async() => {
             updateSfRecord(null, null, null, true); 
         }, 10000);
 
+    }else{
+        // Call the upload start
+        startUploadProcess(workQueue);
     }
 }
 

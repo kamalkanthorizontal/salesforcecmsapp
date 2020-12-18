@@ -69,7 +69,7 @@ function renderJob(job) {
     job.items.forEach(item => {
         const html = `<div class="flex justify-between mb2">
         <div class='mt2 mb1'><span class="hk-label">Title:</span> ${item.title}</div>
-        <div class='mt2 mb1'><span class="hk-label">File:</span> ${item.name}</div>
+        <div class='mt2 mb1'><span class="hk-label">File:</span> ${item.name} ${item.mediaType}</div>
         <div class='mt2 mb1'><span class="hk-label">Type:</span> ${item.type}</div>
         <div class='mt2 mb1'><span class="hk-label">Status:</span> <b>${item.status}</b></div>
       </div>
