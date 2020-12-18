@@ -274,20 +274,20 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                             updateJobProgress(jobId, response, name, uploadStatus, referenceId);
                         }
 
-                        console.log('totalUploadItems--->', totalUploadItems, nextUploadBase64Items, base64Count);
+                        console.log('next call data--->', totalUploadItems, nextUploadBase64Items, base64Count);
                         
                         // Call next service
                         if(nextUploadBase64Items > 0 && base64Count === 1){
                             
                             setTimeout(async() => {
                                 uploadAllBase64(org.oauth.access_token); 
-                            }, 10000);
+                            }, 5000);
 
                         }else if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count < 2 ){
                             
                             setTimeout(async() => {
                                 updateSfRecord(null, null, null, true); 
-                            }, 10000);
+                            }, 50000);
 
                         }
                     }catch(err){
@@ -439,7 +439,7 @@ async function getAlreadyMcAssets(folderId){
     
 }
 
-async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, source, channelName) {
+async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName) {
     
     const alreadySyncedContents = await getAlreadyMcAssets(folderId);
     let localBase64Count = 0;
@@ -751,7 +751,7 @@ module.exports = {
         }
 
         const workQueue = new Queue(`work-${channelId}`, REDIS_URL);
-        addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, source, channelName)
+        addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName)
     },
 
     getMcFolders: async function (accessToken) {
