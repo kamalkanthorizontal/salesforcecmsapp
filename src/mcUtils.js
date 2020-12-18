@@ -595,7 +595,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 }
 
 
-                return {...item, response, status, name: fileName ? fileName: name  }
+                return {...item, response, status, name: jobEle.fileName ? jobEle.fileName: jobEle.name  }
             })
 
             //items = updateAlreadySyncMediaStatus(job.items, ele.name, ele.referenceId, ele.name);
