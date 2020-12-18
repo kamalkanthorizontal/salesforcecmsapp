@@ -22,12 +22,12 @@ const {
 var isLocal;
 var herokuApp;
 
-let appUrl = '';
-const corsDomains = appUrl.split(',');
+/*const corsDomains = ENV_URL.split(',');
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests).
     if (!origin) return callback(null, true);
+
     // Block non-matching origins.
     if (corsDomains.indexOf(origin) === -1) {
       var msg = 'The CORS policy for this site does not allow access from the specified Origin.';
@@ -37,7 +37,7 @@ const corsOptions = {
 
     return callback(null, true);
   },
-};
+};*/
 
 
 
@@ -46,20 +46,8 @@ app.set('view engine', 'hbs');
 app.enable('trust proxy');
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
-app.use(cors(corsOptions));
-/*app.use((req, res, next) => {
-    res.set('Cache-Control', 'no-cache');
-    res.set('Content-Security-Policy',   `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.google-analytics.com *.googletagmanager.com tagmanager.google.com; object-src 'none'; style-src 'self' 'unsafe-inline' *.typekit.net tagmanager.google.com fonts.googleapis.com; img-src 'self' data: *.google-analytics.com *.googletagmanager.com *.sfmc-content.com ssl.gstatic.com www.gstatic.com ; frame-ancestors 'none'; frame-src 'none'; font-src 'self' data: *.typekit.net fonts.gstatic.com; connect-src 'self' *.google-analytics.com *.g.doubleclick.net;`);
-    res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.set('Strict-Transport-Security', 'max-age=200'); 
-    res.set('X-Content-Security-Policy', `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.google-analytics.com *.googletagmanager.com tagmanager.google.com; object-src 'none'; style-src 'self' 'unsafe-inline' *.typekit.net tagmanager.google.com fonts.googleapis.com; img-src 'self' data: *.google-analytics.com *.googletagmanager.com *.sfmc-content.com ssl.gstatic.com www.gstatic.com ; frame-ancestors 'none'; frame-src 'none'; font-src 'self' data: *.typekit.net fonts.gstatic.com; connect-src 'self' *.google-analytics.com *.g.doubleclick.net;`);
-    res.set('X-Content-Type-Options', 'nosniff');
-    res.set('X-Frame-Options', 'deny');
-    res.set('X-Powered-By', '');
-    res.set('X-WebKit-CSP',              `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.google-analytics.com *.googletagmanager.com tagmanager.google.com; object-src 'none'; style-src 'self' 'unsafe-inline' *.typekit.net tagmanager.google.com fonts.googleapis.com; img-src 'self' data: *.google-analytics.com *.googletagmanager.com *.sfmc-content.com ssl.gstatic.com www.gstatic.com ; frame-ancestors 'none'; frame-src 'none'; font-src 'self' data: *.typekit.net fonts.gstatic.com; connect-src 'self' *.google-analytics.com *.g.doubleclick.net;`);
-    res.set('X-XSS-Protection', '1; mode=block');
-    next();
-  });*/
+app.use(cors());
+
 
 
 function isNotBlank(val) {
@@ -350,7 +338,7 @@ async function getFolderIdFromServer() {
 // Initialize the app.
 app.listen(process.env.PORT || 3000, async function () {
     //Get App Ul
-    appUrl = `https://${process.env.APP_NAME}.herokuapp.com`;
+    const appUrl = `https://${process.env.APP_NAME}.herokuapp.com`;
     if (appUrl) {
         //Get MC Folder Id
         const mcFolderRes = await getFolderIdFromServer();

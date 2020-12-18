@@ -351,27 +351,42 @@ async function getMediaSourceFile(node, alreadySyncedContents){
     }
 }
 
-function updateAlreadySyncMediaStatus(items, name, referenceId, fileName){
-    const serverResponse = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${name}`; 
-    const serverStatus = 'Alreday Uploaded';
-    return items = [...items].map(item =>{   
-
-        // console.log('name 2--->', name, item.name);
-        // response
-        let response = item.response;
-        let status = item.status;
-        if(name && item.name == name ){
-            console.log('matched');
-            response = serverResponse;
-            status = serverStatus;
-        }else if(referenceId && item.referenceId === referenceId ){
-            response = serverResponse;
-            status = serverStatus;
-        }
-
-
-        return {...item, response, status, name: fileName ? fileName: name  }
-    })
+function updateAlreadySyncMediaStatus(skippedItems){
+    try{
+        skippedItems.forEach(ele =>{
+            jobWorkQueueList = jobWorkQueueList.map(job =>{
+             
+                const serverResponse = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken.`; 
+                const serverStatus = 'Alreday Uploaded';
+                items = [...job.items].map(jobEle =>{   
+    
+                    // response
+                    let response = jobEle.response;
+                    let status = jobEle.status;
+                    if(jobEle.name &&  ele.name && jobEle.name ==  ele.name ){
+                        console.log('matched');
+                        response = serverResponse;
+                        status = serverStatus;
+                    }else if(jobEle.fileName &&  ele.fileName && jobEle.fileName ==  ele.fileName ){
+                        console.log('matched');
+                        response = serverResponse;
+                        status = serverStatus;
+                    }else if( jobEle.referenceId &&  ele.referenceId && jobEle.referenceId ==  ele.referenceId ){
+                        response = serverResponse;
+                        status = serverStatus;
+                    }
+    
+    
+                    return {...jobEle, response, status, name: jobEle.fileName ? jobEle.fileName: jobEle.name  }
+                })
+    
+                return {...job, items}
+            })
+        });
+    }catch(error){
+        console.log(error);
+    }
+    
 }
 
 async function getAlreadyMcAssets(folderId){
@@ -489,17 +504,8 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                         
 
                         let name =  imageNode.name;
-                        console.log('name 1-->', name);
-                        /*if(name){
-                            const ext = imageNode.fileName ? path.parse(imageNode.fileName).ext: null;
-                            name =name.replace(/[^a-zA-Z0-9]/g, "")
-                            name = `${IMG_PREFIX}${name}${ext}`;
-            
-                            
-                            console.log('name-->', name);
-                            
-                        }*/
-                        skippedItems = [...skippedItems, { referenceId, name}];
+                        
+                        skippedItems = [...skippedItems, { referenceId, name, fileName: imageNode.fileName}];
 
                         //items = updateAlreadySyncMediaStatus(items, name, referenceId, node);
                    }else if(node){
@@ -555,7 +561,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         }
     }));
     
-    console.log('jobWorkQueueList', jobWorkQueueList);
+    // console.log('jobWorkQueueList', jobWorkQueueList);
     console.log('skippedItems', skippedItems);
 
     console.log('totalUploadItems', totalUploadItems);
@@ -570,38 +576,8 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
    
     console.log('nextUploadBase64Items', nextUploadBase64Items);
 
-
-    skippedItems.forEach(ele =>{
-        console.log('job.items ele--->', ele.name, ele.referenceId);
-
-        jobWorkQueueList = jobWorkQueueList.map(job =>{
-            console.log('job.items--->', [...job.items].find(jobEle =>  (jobEle.name &&  ele.name && jobEle.name ==  ele.name)));
-
-            const serverResponse = `failed with Error code: 118039 - Error message: Asset names within a category and asset type must be unique. is already taken. Suggested name: ${ele.name}`; 
-            const serverStatus = 'Alreday Uploaded';
-            items = [...job.items].map(jobEle =>{   
-
-                // console.log('name 2--->', name, item.name);
-                // response
-                let response = jobEle.response;
-                let status = jobEle.status;
-                if(jobEle.name &&  ele.name && jobEle.name ==  ele.name ){
-                    console.log('matched');
-                    response = serverResponse;
-                    status = serverStatus;
-                }else if( jobEle.referenceId &&  ele.referenceId && jobEle.referenceId ==  ele.referenceId ){
-                    response = serverResponse;
-                    status = serverStatus;
-                }
-
-
-                return {...jobEle, response, status, name: jobEle.fileName ? jobEle.fileName: jobEle.name  }
-            })
-
-            //items = updateAlreadySyncMediaStatus(job.items, ele.name, ele.referenceId, ele.name);
-            return {...job, items}
-        })
-    });
+    updateAlreadySyncMediaStatus(skippedItems);
+   
     
 
     if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count === 0 ){    
