@@ -124,7 +124,7 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  
         totalUploadItems = totalUploadItems-1; 
 
         console.log('Upload error -->', error);
-        updateStatusToserver();
+        updateStatusToserver(org);
     }
     
 }
@@ -184,7 +184,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
             totalUploadItems = totalUploadItems-1; 
             console.log('Upload error -->', error);
 
-            updateStatusToserver();
+            updateStatusToserver(org);
             
         }
     });
@@ -268,7 +268,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                     if(jobId && response){
                         updateJobProgress(jobId, response, name, uploadStatus, referenceId);
                     }
-                    updateStatusToserver();
+                    updateStatusToserver(org);
                     reject(error);
                 } else {
 
@@ -291,7 +291,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
 
                         console.log('next call data--->', totalUploadItems, nextUploadBase64Items, base64Count);
                         
-                        updateStatusToserver();
+                        updateStatusToserver(org);
                     }catch(err){
                         console.log(`Error for: `, err);
                     }
@@ -304,7 +304,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
     });
 }
 
-async function  updateStatusToserver(){
+async function  updateStatusToserver(org){
      // Call next service
      if(nextUploadBase64Items > 0 && base64Count === 1){
         console.log()
