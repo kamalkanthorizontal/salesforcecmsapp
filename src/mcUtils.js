@@ -121,7 +121,10 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  
         await createMCAsset(mcAuthResults.access_token, textAssetBody, jobId, referenceId,name, false, null,org);
     }catch(error){
         base64Count = base64Count-1;
+        totalUploadItems = totalUploadItems-1; 
+
         console.log('Upload error -->', error);
+        updateStatusToserver();
     }
     
 }
@@ -178,7 +181,11 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
             resolve();
         }catch(error){
             base64Count = base64Count-1;
+            totalUploadItems = totalUploadItems-1; 
             console.log('Upload error -->', error);
+
+            updateStatusToserver();
+            
         }
     });
 }
@@ -261,7 +268,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                     if(jobId && response){
                         updateJobProgress(jobId, response, name, uploadStatus, referenceId);
                     }
-
+                    updateStatusToserver();
                     reject(error);
                 } else {
 
@@ -284,20 +291,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
 
                         console.log('next call data--->', totalUploadItems, nextUploadBase64Items, base64Count);
                         
-                        // Call next service
-                        if(nextUploadBase64Items > 0 && base64Count === 1){
-                            console.log()
-                            setTimeout(async() => {
-                                uploadAllBase64(org.oauth.access_token); 
-                            }, 10000);
-
-                        }else if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count < 2 ){
-                            
-                            setTimeout(async() => {
-                                updateSfRecord(null, null, null, true); 
-                            }, 10000);
-
-                        }
+                        updateStatusToserver();
                     }catch(err){
                         console.log(`Error for: `, err);
                     }
@@ -308,6 +302,23 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
             }
         );
     });
+}
+
+async function  updateStatusToserver(){
+     // Call next service
+     if(nextUploadBase64Items > 0 && base64Count === 1){
+        console.log()
+        setTimeout(async() => {
+            uploadAllBase64(org.oauth.access_token); 
+        }, 10000);
+
+    }else if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count < 2 ){
+        
+        setTimeout(async() => {
+            updateSfRecord(null, null, null, true); 
+        }, 10000);
+
+    }
 }
 
 
