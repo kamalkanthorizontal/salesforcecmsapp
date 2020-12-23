@@ -242,14 +242,17 @@ async function downloadBase64FromURL(url, access_token, callback) {
                 url,
                 { headers: { Authorization: 'Bearer ' + access_token } },
                 (resp) => {
-                    resp.setEncoding('base64');
-                    let imageBody = '';
-                    resp.on('data', (data) => {
-                        imageBody += data;
-                    });
-                    resp.on('end', () => {
-                        resolve(imageBody);
-                    });
+                    if(resp){
+                        resp.setEncoding('base64');
+                        let imageBody = '';
+                        resp.on('data', (data) => {
+                            imageBody += data;
+                        });
+                        resp.on('end', () => {
+                            resolve(imageBody);
+                        });
+                    }
+                 
                 }
             )
             .on('error', (e) => {
