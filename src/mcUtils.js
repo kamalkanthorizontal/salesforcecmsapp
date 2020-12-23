@@ -134,7 +134,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
     return new Promise(async (resolve, reject) => {
         try{
             
-            const imageUrl = imageNode.url || null;
+            const imageUrl = imageNode.unauthenticatedUrl || null;
             const fileName = imageNode.fileName || null;
             const imageExt = imageNode.ext || null;
            
@@ -192,7 +192,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
 
 async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults,  jobId, org) {
     return new Promise(async (resolve, reject) => {
-        const docUrl = documentNode.url || null;
+        const docUrl = documentNode.unauthenticatedUrl || null;
         const fileName = documentNode.fileName || null;
         const docExt = documentNode.ext || null;
         
