@@ -322,7 +322,7 @@ async function  updateStatusToserver(org){
 
         console.log(memmoryUsage);
 
-        if(memoryData.heapTotal > 200){
+        if(memoryData.heapUsed > 200){
             global.gc();
         }
 
