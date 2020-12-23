@@ -322,6 +322,10 @@ async function  updateStatusToserver(org){
 
         console.log(memmoryUsage);
 
+        if(memoryData.heapTotal > 200){
+            global.gc();
+        }
+
         setTimeout(async() => {
             uploadAllBase64(org.oauth.access_token); 
         }, 50000);
