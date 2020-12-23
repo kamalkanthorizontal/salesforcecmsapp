@@ -307,10 +307,24 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
 async function  updateStatusToserver(org){
      // Call next service
      if(nextUploadBase64Items > 0 && base64Count === 1){
-        console.log()
+        
+
+        const formatMemmoryUsage = (data) => `${Math.round(data / 1024 / 1024 * 100) / 100} MB`
+
+        const memoryData = process.memoryUsage()
+
+        const memmoryUsage = {
+                    rss: `${formatMemmoryUsage(memoryData.rss)} -> Resident Set Size - total memory allocated for the process execution`,
+                    heapTotal: `${formatMemmoryUsage(memoryData.heapTotal)} -> total size of the allocated heap`,
+                    heapUsed: `${formatMemmoryUsage(memoryData.heapUsed)} -> actual memory used during the execution`,
+                    external: `${formatMemmoryUsage(memoryData.external)} -> V8 external memory`,
+                }
+
+        console.log(memmoryUsage);
+
         setTimeout(async() => {
             uploadAllBase64(org.oauth.access_token); 
-        }, 10000);
+        }, 50000);
 
     }else if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count < 2 ){
         
@@ -454,17 +468,50 @@ async function getAlreadyMcAssets(folderId){
     
 }
 
+
+// let nextPageUrl = '';
+// let nextIndex = 0;
+
 async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName) {
     
-    const alreadySyncedContents = await getAlreadyMcAssets(folderId);
+    const alreadySyncedContents = await getAlreadyMcAssets(folderId);// marketing cloud
     let localBase64Count = 0;
-    let skippedItems = [];
+    let skippedItems = []; 
+
+    // img = 500
+
+
+   /* const managedContentType = contentTypeNodes[nextIndex].DeveloperName;
+    const managedContentNodeTypes = contentTypeNodes[nextIndex].managedContentNodeTypes;
+
+    const cmsURL = nextPageUrl ? nextPageUrl :  `/services/data/v${SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=50`;
+   
+    let result = await org.getUrl(cmsURL);
+
+
+    if(result){
+        items = result.items || [];
+        nextPageUrl = result.nextPageUrl;
+        if(!nextPageUrl){
+            nextIndex = nextIndex+1;
+        }
+        
+    }
+
+    console.log('nextIndex--->', nextIndex);
+    console.log('nextPageUrl--->', nextPageUrl);
+    */
+    
 
     await Promise.all(contentTypeNodes.map(async (ele) => {
         try {
             const managedContentType = ele.DeveloperName;
             const managedContentNodeTypes = ele.managedContentNodeTypes;
-            const cmsURL = `/services/data/v${SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=250`;
+
+            // page 0 and page size 25
+            // next url
+
+            const cmsURL = `/services/data/v${SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=50`;
            
             const serviceResults = await getAllContent(org, cmsURL);
             
@@ -569,7 +616,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
     }));
     
     // console.log('jobWorkQueueList', jobWorkQueueList);
-    console.log('skippedItems', skippedItems);
+     console.log('skippedItems', skippedItems);
 
     console.log('totalUploadItems', totalUploadItems);
     console.log('base64SkipedItems', base64SkipedItems);
@@ -658,10 +705,10 @@ function updateJobProgress(jobId, serverResponse, name, serverStatus, referenceI
                 // response
                 let response = item.response;
                 let status = item.status;
-                if(name && item.name === name ){
+                if(name && item.name === name && !item.response){
                     response = serverResponse;
                     status = serverStatus;
-                }else if(referenceId && item.referenceId === referenceId ){
+                }else if(referenceId && item.referenceId === referenceId  && !item.response){
                     response = serverResponse;
                     status = serverStatus;
                 }
@@ -750,10 +797,10 @@ module.exports = {
         totalUploadItems = 0;
         base64SkipedItems = 0;
         nextUploadBase64Items = 0;
-
-        if(source !== 'Heroku'){
+        jobWorkQueueList = [];
+        /*if(source !== 'Heroku'){
             jobWorkQueueList = [];
-        }
+        }*/
 
         const workQueue = new Queue(`work-${channelId}`, REDIS_URL);
         addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName)
