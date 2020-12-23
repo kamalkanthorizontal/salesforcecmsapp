@@ -251,6 +251,8 @@ async function downloadBase64FromURL(url, access_token, callback) {
                         resp.on('end', () => {
                             resolve(imageBody);
                         });
+                    }else{
+                        reject(`Got error: Base 64 creation`);
                     }
                  
                 }
