@@ -1,16 +1,15 @@
 const https = require('https');
 const nforce = require("nforce");
-var hbs = require('hbs');
 var dotenv = require("dotenv").config();
 var path = require('path');
 
-const { 
-    FETCH_CMS_FOLDER_DETAIL_QUERY,
+const {
+    SF_CMS_CONNECTION_SOQL,
     SF_AUTH_FAILED_MSG,
     ALLOWED_CONNECTION_STATUS,
     CONNETION_STATUS,
     CONNETION_FAILED_STATUS,
-    SF_WRONG_CHANNEL_ID_MSG
+    SF_INCORRECT_CMS_CONNECTION_ID_MSG
 } = require('./constants');
 
 function getImageAssetTypeId(imageExtension) {
@@ -94,7 +93,6 @@ function getImageAssetTypeId(imageExtension) {
     }
     return assetTypeId;
 }
-
 function getDocumentAssetTypeId(docExtension) {
     let assetTypeId = '11';
 
@@ -234,7 +232,6 @@ function getDocumentAssetTypeId(docExtension) {
     return assetTypeId;
 }
 
-
 async function downloadBase64FromURL(url, access_token, callback) {
     return new Promise((resolve, reject) => {
         https
@@ -242,7 +239,7 @@ async function downloadBase64FromURL(url, access_token, callback) {
                 url,
                 { headers: { Authorization: 'Bearer ' + access_token } },
                 (resp) => {
-                    if(resp){
+                    if (resp) {
                         resp.setEncoding('base64');
                         let imageBody = '';
                         resp.on('data', (data) => {
@@ -251,10 +248,10 @@ async function downloadBase64FromURL(url, access_token, callback) {
                         resp.on('end', () => {
                             resolve(imageBody);
                         });
-                    }else{
+                    } else {
                         reject(`Got error: Base 64 creation`);
                     }
-                 
+
                 }
             )
             .on('error', (e) => {
@@ -265,7 +262,7 @@ async function downloadBase64FromURL(url, access_token, callback) {
 
 module.exports = {
     getImageAssetTypeId: function (imageExtension) {
-       return getImageAssetTypeId(imageExtension);
+        return getImageAssetTypeId(imageExtension);
     },
     getDocumentAssetTypeId: function (docExtension) {
         return getDocumentAssetTypeId(docExtension);
@@ -273,16 +270,15 @@ module.exports = {
     downloadBase64FromURL: async function (url, access_token, callback) {
         return await downloadBase64FromURL(url, access_token, callback)
     },
-    oauthCallbackUrl : function (request) {
+    oauthCallbackUrl: function (request) {
         return request.protocol + "://" + request.get("host");
     },
-    validateUrl: function (url){
+    validateUrl: function (url) {
         const lastChar = url[url.length - 1];
         return lastChar === '/' ? url.substring(0, url.length - 1) : url;
     },
-    updateSfRecord: async function(appName, folderId, mcError, dateTime) {
+    updateSfRecord: async function (appName, folderId, mcError, dateTime) {
         try {
-           
             let org = nforce.createConnection({
                 clientId: process.env.CONSUMER_KEY,
                 clientSecret: process.env.CONSUMER_SECRET,
@@ -292,55 +288,50 @@ module.exports = {
                 environment: process.env.SF_ENVIRONMENT,
                 autoRefresh: true
             });
-    
+
             const oauth = await org.authenticate({
                 username: process.env.SF_USERNAME,
                 password: process.env.SF_PASSWORD,
                 securityToken: process.env.SF_SECURITY_TOKEN
             });
 
-            if(org && oauth){
-                const resQuery = await org.query({ query: FETCH_CMS_FOLDER_DETAIL_QUERY });
-              
+            if (org && oauth) {
+                const resQuery = await org.query({ query: SF_CMS_CONNECTION_SOQL });
+
                 if (resQuery && resQuery.records && resQuery.records.length) {
-                    
+
                     let sobject = resQuery.records[0];
 
-                    if(mcError){
+                    if (mcError) {
                         sobject.set('Connection_Status__c', CONNETION_FAILED_STATUS);
                         sobject.set('Error_Message__c', mcError);
-                    }
-                    else if(!mcError && dateTime){
-                        console.log('datetime: ',  new Date().toISOString())
+                    } else if (!mcError && dateTime) {
+                        console.log('datetime: ', new Date().toISOString())
                         sobject.set('Connection_Status__c', CONNETION_STATUS);
                         sobject.set('Error_Message__c', '');
                         sobject.set('Last_Synchronized_Time__c', new Date().toISOString());
-                    }
-                    
-                    else if (!mcError && !dateTime && (sobject._fields.connection_status__c === null
+                    } else if (!mcError && !dateTime && (sobject._fields.connection_status__c === null
                         || sobject._fields.connection_status__c === ALLOWED_CONNECTION_STATUS
                         || sobject._fields.connection_status__c === CONNETION_FAILED_STATUS
                         || sobject._fields.sfmc_folder_id__c != folderId
                         || sobject._fields.heroku_endpoint__c != appName)) {
-        
+
                         if (appName) {
                             sobject.set('Heroku_Endpoint__c', appName);
                         }
                         sobject.set('Connection_Status__c', CONNETION_STATUS);
                         sobject.set('Error_Message__c', '');
-                        sobject.set('SFMC_Folder_Id__c', folderId);   
+                        sobject.set('SFMC_Folder_Id__c', folderId);
                     }
-                    await org.update({ sobject, oauth });     
-                    
-                }else{
-                    console.log(SF_WRONG_CHANNEL_ID_MSG);
+                    await org.update({ sobject, oauth });
+                } else {
+                    console.log(SF_INCORRECT_CMS_CONNECTION_ID_MSG);
                 }
-            }else{
+            } else {
                 console.log(SF_AUTH_FAILED_MSG);
             }
         } catch (err) {
-            console.log('error', err)
-            console.log('Error in salesforce authentication: ', err);
+            console.log('Error in salesforce authentication:', err ? err.body ? err.body : err : 'Unknown error');
         }
     }
 }

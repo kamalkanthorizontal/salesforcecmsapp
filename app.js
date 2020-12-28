@@ -4,15 +4,14 @@ var nforce = require("nforce");
 const fetch = require('node-fetch');
 const cors = require('cors');
 
-var hbs = require('hbs');
 var dotenv = require("dotenv").config();
 var path = require('path');
 
 const { run, getMcFolders, createMcFolder, getMcAuth, jobs } = require('./src/mcUtils.js');
 const { validateUrl, updateSfRecord } = require('./src/utils');
 
-const { 
-    MC_CONTENT_CATEGORIES_API_PATH, 
+const {
+    MC_CONTENT_CATEGORIES_API_PATH,
     MC_AUTH_FAILED_MSG,
     MC_FOLDER_CREATION_FAILED_MSG,
     SF_AUTH_FAILED_MSG
@@ -39,16 +38,11 @@ const corsOptions = {
   },
 };*/
 
-
-
 let app = express();
-app.set('view engine', 'hbs');
 app.enable('trust proxy');
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
 app.use(cors());
-
-
 
 function isNotBlank(val) {
     if (typeof val !== 'undefined' && val) {
@@ -62,18 +56,18 @@ function isSetup() {
         isNotBlank(process.env.APP_NAME) &&
         isNotBlank(process.env.CONSUMER_KEY) &&
         isNotBlank(process.env.CONSUMER_SECRET) &&
-        isNotBlank(process.env.MC_CLIENT_ID) &&
-        isNotBlank(process.env.MC_CLIENT_SECRET) &&
-        isNotBlank(process.env.MC_AUTHENTICATION_BASE_URI) &&
-        isNotBlank(process.env.MC_REST_BASE_URI) &&
-        isNotBlank(process.env.MC_FOLDER_NAME) &&
         isNotBlank(process.env.SF_ENVIRONMENT) &&
         isNotBlank(process.env.SF_USERNAME) &&
         isNotBlank(process.env.SF_PASSWORD) &&
         isNotBlank(process.env.SF_SECURITY_TOKEN) &&
         isNotBlank(process.env.SF_API_VERSION) &&
         isNotBlank(process.env.SF_CMS_CONNECTION_ID) &&
-        isNotBlank(process.env.SF_CMS_URL)
+        isNotBlank(process.env.SF_CMS_URL) &&
+        isNotBlank(process.env.MC_CLIENT_ID) &&
+        isNotBlank(process.env.MC_CLIENT_SECRET) &&
+        isNotBlank(process.env.MC_AUTHENTICATION_BASE_URI) &&
+        isNotBlank(process.env.MC_REST_BASE_URI) &&
+        isNotBlank(process.env.MC_FOLDER_NAME)
     );
 }
 
@@ -85,54 +79,43 @@ app.get('/jobs', async (req, res) => {
     res.json({ jobs: jobs() });
 });
 
-
-
-app.get("/setup", function (req, res) {
-    res.render("setup", {
-        isLocal: isLocal,
-        oauthCallbackUrl: oauthCallbackUrl(req),
-        herokuApp: herokuApp,
-    });
-});
-
 // Kick off a new job by adding it to the work queue
 app.get('/', async (req, res) => {
-    res.send('Welcome to CMS content sync.');
+    res.send('Welcome to CMS SFMC Sync Heroku App.');
 });
 
 app.get("/queue", async function (req, res) {
     const { cmsConnectionId, channelId } = req.query;
-    console.log('cmsConnectionId--->',cmsConnectionId);
+    console.log('cmsConnectionId--->', cmsConnectionId);
     console.log('channelId--->', channelId);
     console.log('origin--->', req.get('host'), req.get('origin'));
-    if(process.env.SF_CMS_CONNECTION_ID === cmsConnectionId){
+    if (process.env.SF_CMS_CONNECTION_ID === cmsConnectionId) {
         res.sendFile('./queue.html', { root: __dirname });
-    }else{
+    } else {
         res.send('Required fields not found.');
-    }  
+    }
 })
 
 app.post('/uploadCMSContent', async (req, res, next) => {
     try {
         const origin = req.get('origin');
-       // console.log('origin--->', origin);
 
         isLocal = req.hostname.indexOf("localhost") == 0;
         if (req.hostname.indexOf(".herokuapp.com") > 0) {
             herokuApp = req.hostname.replace(".herokuapp.com", "");
         }
 
-        let { contentTypeNodes, channelId, mcFolderId, source, channelName } = req.body;
+        let { contentTypeNodes, channelId, channelName, mcFolderId, source } = req.body;
 
-        if (!contentTypeNodes || !channelId || !source || !channelName) {  
+        if (!contentTypeNodes || !channelId || !channelName || !source) {
             res.send('Required fields not found.');
         }
 
         if (isSetup()) {
-            
+
             mcFolderId = await checkFolderId(mcFolderId);
-            
-            if(mcFolderId){
+
+            if (mcFolderId) {
                 contentTypeNodes = JSON.parse(contentTypeNodes);
                 try {
                     //nforce setup to connect Salesforce
@@ -145,7 +128,7 @@ app.post('/uploadCMSContent', async (req, res, next) => {
                         environment: process.env.SF_ENVIRONMENT,
                         autoRefresh: true
                     });
-                    
+
                     const resp = await org.authenticate({
                         username: process.env.SF_USERNAME,
                         password: process.env.SF_PASSWORD,
@@ -153,47 +136,47 @@ app.post('/uploadCMSContent', async (req, res, next) => {
                     });
 
                     console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
-                    
-                    if(resp.access_token){
-                        run(resp, org, contentTypeNodes, channelId, mcFolderId, source, channelName);
+
+                    if (resp.access_token) {
+                        run(resp, org, contentTypeNodes, channelId, channelName, mcFolderId, source);
                         res.send('CMS Content Type is syncing in the background. Please wait..');
-                    }else{
+                    } else {
                         console.log(SF_AUTH_FAILED_MSG);
-                    }                    
+                    }
                 } catch (error) {
                     res.send(error.message);
                 }
-            }else{
+            } else {
                 updateSfRecord(null, null, MC_AUTH_FAILED_MSG);
                 res.send(MC_AUTH_FAILED_MSG);
             }
-            
+
         } else {
-            res.redirect("/setup");
+            res.send('Required environment variables not found.');
         }
     } catch (error) {
         res.send(error.message);
     }
 });
 
-async function checkFolderId(mcFolderId){
+async function checkFolderId(mcFolderId) {
     let validFolderId;
     if (mcFolderId) {
         const resFolderId = await getFolderId(mcFolderId);
-        if(resFolderId && resFolderId.id){
+        if (resFolderId && resFolderId.id) {
             validFolderId = resFolderId.id;
-        }else if(resFolderId && resFolderId.status === 401){
+        } else if (resFolderId && resFolderId.status === 401) {
             return null;
-        }   
+        }
     }
-    
+
     if (!validFolderId) {
         mcFolderRes = await getFolderIdFromServer();
-        if(mcFolderRes && mcFolderRes.id){
+        if (mcFolderRes && mcFolderRes.id) {
             validFolderId = mcFolderRes.id;
-        }else if(mcFolderRes && mcFolderRes.status === 401){
+        } else if (mcFolderRes && mcFolderRes.status === 401) {
             return null;
-        }   
+        }
     }
 
     if (validFolderId !== mcFolderId) {
@@ -214,17 +197,17 @@ async function getFolderId(folderId) {
                 'Authorization': `Bearer ${mcAuthResults.access_token}`
             },
         });
-        
+
         const response = await res.json();
-    
+
         if (response && response.id == folderId) {
-            return {id: folderId};
+            return { id: folderId };
         } else {
             mcFolderRes = await getFolderIdFromServer();
-            if (mcFolderRes && mcFolderRes.id ) {
-                return {id: mcFolderRes.id};
-            }else if(mcFolderRes && mcFolderRes.status == 401){
-                return {status: 401, errorMsg: MC_AUTH_FAILED_MSG};
+            if (mcFolderRes && mcFolderRes.id) {
+                return { id: mcFolderRes.id };
+            } else if (mcFolderRes && mcFolderRes.status == 401) {
+                return { status: 401, errorMsg: MC_AUTH_FAILED_MSG };
             }
         }
     } catch (error) {
@@ -232,7 +215,6 @@ async function getFolderId(folderId) {
         return folderId;
     }
 }
-
 
 /*async function updateSfRecord(appName, folderId = '', error) {
     try {
@@ -252,7 +234,7 @@ async function getFolderId(folderId) {
             securityToken: process.env.SF_SECURITY_TOKEN
         });
         if(org && oauth){
-            const resQuery = await org.query({ query: FETCH_CMS_FOLDER_DETAIL_QUERY });
+            const resQuery = await org.query({ query: SF_CMS_CONNECTION_SOQL });
 
             if (resQuery && resQuery.records && resQuery.records.length) {
 
@@ -291,29 +273,27 @@ async function getFolderId(folderId) {
 }*/
 
 async function getFolderIdFromServer() {
-    try{
-        const folderName = process.env.MC_FOLDER_NAME || 'CMS-SFMC-Connector'; // Env folder name
+    try {
+        const folderName = process.env.MC_FOLDER_NAME || 'CMS SFMC Sync Folder'; // Env folder name
         const mcAuthResults = await getMcAuth();
-        if(mcAuthResults && mcAuthResults.access_token){
+        if (mcAuthResults && mcAuthResults.access_token) {
             const mcFolders = await getMcFolders(mcAuthResults.access_token); // Getting all folders
-            
-            if(mcFolders && mcFolders.items){
+
+            if (mcFolders && mcFolders.items) {
                 const matchedFolder = [...mcFolders.items].find(ele => ele.name === folderName); // Check is folder already created or not
-    
-    
                 if (!matchedFolder) {
                     //Create folder in MC
                     const parentFolder = [...mcFolders.items].find(ele => ele.parentId === 0);
                     if (parentFolder && parentFolder.id) {
                         const createdFolder = await createMcFolder(parentFolder.id, mcAuthResults.access_token);
-                        if(createdFolder.errorcode){
+                        if (createdFolder.errorcode) {
                             return { status: 500, errorMsg: `Error in folder creation: ${createdFolder.message}` };
-                        }else{
+                        } else {
                             const id = createdFolder ? createdFolder.id : null;
                             const status = 200;
                             return { id, status };
                         }
-                    }else{
+                    } else {
                         return { status: 500, errorMsg: MC_NO_PARENT_FOLDER_MSG };
                     }
                 } else {
@@ -321,19 +301,16 @@ async function getFolderIdFromServer() {
                     const status = 200;
                     return { id, status };
                 }
-            }else{
-                return { status: 500, errorMsg: MC_FOLDER_CREATION_FAILED_MSG};
+            } else {
+                return { status: 500, errorMsg: MC_FOLDER_CREATION_FAILED_MSG };
             }
-        }else{
-            return { status: 401, errorMsg: MC_AUTH_FAILED_MSG};
+        } else {
+            return { status: 401, errorMsg: MC_AUTH_FAILED_MSG };
         }
-    }catch(error){
+    } catch (error) {
         return { status: 500, errorMsg: `${error.message}` };
     }
-    
-   
 }
-
 
 // Initialize the app.
 app.listen(process.env.PORT || 3000, async function () {
@@ -342,11 +319,11 @@ app.listen(process.env.PORT || 3000, async function () {
     if (appUrl) {
         //Get MC Folder Id
         const mcFolderRes = await getFolderIdFromServer();
-        console.log('Launching heroku app --->', mcFolderRes, appUrl);
-        if (mcFolderRes && mcFolderRes.id ) {
+        console.log(`Launching Heroku App with URL ${appUrl} and MC Folder Id:`, mcFolderRes);
+        if (mcFolderRes && mcFolderRes.id) {
             //Update call back url and mc folder id
             updateSfRecord(appUrl, mcFolderRes.id);
-        }else if(mcFolderRes && mcFolderRes.errorMsg){
+        } else if (mcFolderRes && mcFolderRes.errorMsg) {
             updateSfRecord(null, null, mcFolderRes.errorMsg);
         }
     }
