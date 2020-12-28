@@ -11,11 +11,12 @@ let maxJobsPerWorker = 150;
 let jobWorkQueueList = [];
 
 
-const allowedBase64Count = 50;
-let base64Count = 0;
-let totalBase64Items = 0;
 let totalUploadItems = 0;
-let base64SkipedItems = 0;
+let skipedItemsCount = 0;
+
+
+const allowedBase64Count = 50;
+
 let nextUploadBase64Items = 0;
 
 const getMcAuthBody = {
@@ -33,7 +34,7 @@ const SF_API_VERSION  = process.env.SF_API_VERSION;
 const MC_FOLDER_NAME = process.env.MC_FOLDER_NAME;
 const IMG_PREFIX  = process.env.IMG_PREFIX || '';
 
-async function uploadAllBase64(accessToken) {
+async function callNextBetchService(accessToken) {
     try {
         const body = {   cmsConnectionId: SF_CMS_CONNECTION_ID }
 
@@ -99,7 +100,8 @@ async function getMcAuth() {
     })
         .then(res => res.json())
         .catch((err) => {
-            reject(err);
+           console.log(err)
+            // reject(err);
         });
 }
 
@@ -120,9 +122,7 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  
         // Create Marketing Cloud Block Asset
         await createMCAsset(mcAuthResults.access_token, textAssetBody, jobId, referenceId,name, false, null,org);
     }catch(error){
-        base64Count = base64Count-1;
         totalUploadItems = totalUploadItems-1; 
-
         console.log('Upload error -->', error);
         updateStatusToserver(org);
     }
@@ -133,11 +133,11 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  
 async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults, jobId, org) {
     return new Promise(async (resolve, reject) => {
         try{
-            
-            const imageUrl = imageNode.unauthenticatedUrl || null;
+           // console.log('imageUrl', imageNode);
+            const imageUrl = imageNode.unauthenticatedUrl ?  imageNode.unauthenticatedUrl : imageNode.url;
             const fileName = imageNode.fileName || null;
             const imageExt = imageNode.ext || null;
-           
+           // console.log('imageUrl', imageUrl);
             if(imageUrl){
                 const referenceId =  imageNode.referenceId || null;
                 const name =  imageNode.name;
@@ -161,7 +161,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                         id: folderId
                     },
                 };
-        
+                console.log('fileName-->', fileName);
                 //Marketing Cloud Regex for file fullName i.e. Developer name
                 var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
                 // Create Marketing Cloud Image Asset
@@ -180,7 +180,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
             
             resolve();
         }catch(error){
-            base64Count = base64Count-1;
+
             totalUploadItems = totalUploadItems-1; 
             console.log('Upload error -->', error);
 
@@ -205,7 +205,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
                 cmsAuthResults.access_token
             );
     
-            base64Count = base64Count+1;
+            
             let docAssetBody = {
                 name: fileName + docExt,
                 assetType: {
@@ -258,10 +258,10 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                 totalUploadItems = totalUploadItems-1; 
 
                 if (error) {
-
-                    base64Count = base64Count-1;
-
+                    
                     const response = `Error for:${assetBody.name} ${error}`; 
+
+                    console.log('createMCAsset-->', response)
                     const uploadStatus ='Failed';
 
                     // update job status    
@@ -276,9 +276,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                         const msg = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].message : '';
                         const errorCode = body.validationErrors && body.validationErrors.length ? body.validationErrors[0].errorcode : '';
                         
-                        //if(isMedia){
-                        base64Count = base64Count-1;
-                        //}
+                        
                         const response = body.id ? `Uploaded with Asset id: ${body.id}`: `failed with Error code: ${errorCode} - Error message: ${msg} `; 
                         const uploadStatus = body.id ? 'Uploaded' : 'Failed';
     
@@ -289,7 +287,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                             updateJobProgress(jobId, response, name, uploadStatus, referenceId);
                         }
 
-                        console.log('next call data--->', totalUploadItems, nextUploadBase64Items, base64Count);
+                        console.log('next call data--->', totalUploadItems);
                         
                         updateStatusToserver(org);
                     }catch(err){
@@ -306,10 +304,10 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
 
 async function  updateStatusToserver(org){
      // Call next service
-     if(nextUploadBase64Items > 0 && base64Count === 1){
+     //if(totalUploadItems > 0 ){
         
 
-        const formatMemmoryUsage = (data) => `${Math.round(data / 1024 / 1024 * 100) / 100} MB`
+        const formatMemmoryUsage = (data) => `${Math.round(data / 1024 / 1024 * 100) / 100}`
 
         const memoryData = process.memoryUsage()
 
@@ -320,23 +318,31 @@ async function  updateStatusToserver(org){
                     external: `${formatMemmoryUsage(memoryData.external)} -> V8 external memory`,
                 }
 
-        console.log(memmoryUsage);
+        console.log('memmoryUsage', `${formatMemmoryUsage(memoryData.heapUsed)} -> actual memory used during the execution`);
 
-        if(memoryData.heapUsed > 200){
+        /*if(formatMemmoryUsage(memoryData.heapUsed) > 400){
             global.gc();
+        }*/
+
+        // Csll the next betch service
+        if(totalUploadItems === 0){
+            setTimeout(async() => {
+                callNextBetchService(org.oauth.access_token); 
+            }, 50000);
         }
+        
 
-        setTimeout(async() => {
-            uploadAllBase64(org.oauth.access_token); 
-        }, 50000);
-
-    }else if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count < 2 ){
+    
+    
+        //}
+    
+    /*else if(totalUploadItems === 0 && nextUploadBase64Items === 0){
         
         setTimeout(async() => {
             updateSfRecord(null, null, null, true); 
         }, 10000);
 
-    }
+    }*/
 }
 
 
@@ -473,41 +479,262 @@ async function getAlreadyMcAssets(folderId){
 }
 
 
-// let nextPageUrl = '';
-// let nextIndex = 0;
+let nextPageUrl = '';
+let nextIndex = 0;
+
+async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName, skippedItems, managedContentNodeTypes, masterLabel, Id){
+    try {
+        const alreadySyncedContents = await getAlreadyMcAssets(folderId);// marketing cloud
+        if (serviceResults && serviceResults.length) {
+
+           // serviceResults = serviceResults.slice(0, 1)
+           // console.log('serviceResults--->', serviceResults);
+            const result = {items: serviceResults, managedContentNodeTypes};
+            let items = getAssestsWithProperNaming(result);
+            
+            totalUploadItems = items.length;
+            
+            console.log('totalUploadItems--->', totalUploadItems);
+
+            let jobItems =  [];
+
+
+            await Promise.all([...items].map(async (ele) => {
+
+                // Content
+                if(ele.assetTypeId === '196' || ele.assetTypeId === '197'){
+                    const notInMC = await getValidFileName( `${IMG_PREFIX}${ele.name}`, alreadySyncedContents);
+                    if(notInMC){    
+                        jobItems = [...jobItems, ele];
+                    }else{
+                        //localSkiped = localSkiped+1;
+                        const referenceId =  ele.referenceId || null;
+                        
+                        skippedItems = [...skippedItems, { referenceId, name: ele.name}];
+                    }
+                }
+                // Image
+                else if(ele => ele.assetTypeId === '8'){
+                    const node =  await getMediaSourceFile(ele, alreadySyncedContents);
+                    if(typeof node == "string"){
+                            //localSkiped = localSkiped+1;
+                            const referenceId =  ele.referenceId || null;
+                            let name =  ele.name;
+                            skippedItems = [...skippedItems, { referenceId, name, fileName: ele.fileName}];
+                    }else if(node){
+                        jobItems = [...jobItems, node];
+                    }
+    
+                }
+                //Document
+                else if(ele => ele.assetTypeId === '11'){
+                    const node =  await getMediaSourceFile(ele, alreadySyncedContents);
+                    if(typeof node == "string"){
+                        //localSkiped = localSkiped+1;
+                        const referenceId =  ele.referenceId || null;
+                        const name =  ele.name;
+                        skippedItems = [...skippedItems, { referenceId, name}];
+                    }else if(node){
+                        jobItems = [...jobItems, node];
+                    }
+                }
+
+            }))
+
+            /*await Promise.all(itemContents.map(async (contentNode) => {
+                
+                const notInMC = await getValidFileName( `${IMG_PREFIX}${contentNode.name}`, alreadySyncedContents);
+
+                if(notInMC){
+                    
+                        
+                        jobItems = [...jobItems, contentNode];
+                    
+                }else{
+                    //localSkiped = localSkiped+1;
+                    const referenceId =  contentNode.referenceId || null;
+
+                    //const found = [...skippedItems].some(el => el.referenceId === referenceId || el.name === contentNode.name);
+                    //if (!found)  
+                    
+                    skippedItems = [...skippedItems, { referenceId, name: contentNode.name}];
+                   
+                   // items = updateAlreadySyncMediaStatus(items, contentNode.name, referenceId, contentNode.name);
+                }
+             }));
+
+            await Promise.all(itemImages.map(async (imageNode) => {
+               const node =  await getMediaSourceFile(imageNode, alreadySyncedContents);
+               if(typeof node == "string"){
+                    //localSkiped = localSkiped+1;
+                    const referenceId =  imageNode.referenceId || null;
+                    let name =  imageNode.name;
+                    
+                    //const found = [...skippedItems].some(el => el.referenceId === referenceId || el.name === name || el.fileName === fileName);
+                    //if (!found)  
+                    
+                    skippedItems = [...skippedItems, { referenceId, name, fileName: imageNode.fileName}];
+
+                    //skippedItems = [...skippedItems, { referenceId, name, fileName: imageNode.fileName}];
+               }else if(node){
+                jobItems = [...jobItems, node];
+                    
+               }
+
+            }));
+
+
+            
+            await Promise.all(itemDocuments.map(async (docNode) => {
+               const node =  await getMediaSourceFile(docNode, alreadySyncedContents);
+                if(typeof node == "string"){
+                   // localSkiped = localSkiped+1;
+                    const referenceId =  docNode.referenceId || null;
+                    const name =  docNode.name;
+                    
+
+                    //const found = [...skippedItems].some(el => el.referenceId === referenceId || el.name === name);
+
+                   
+                    //if (!found)  
+                    
+                    skippedItems = [...skippedItems, { referenceId, name}];
+
+                    
+                }else if(node){
+                    jobItems = [...jobItems, node];
+                    //documents = [...documents, node];
+                }
+            }));*/
+
+            //skipedItemsCount = skipedItemsCount+localSkiped;
+           
+            //Sync content based on source
+            //const jobItems =  [...contents, ...documents, ...images]; //source === 'Heroku' ? [...documents, ...images] : [...contents, ...documents, ...images];
+            
+            console.log('jobItems--->', jobItems.length);
+            if(jobItems && jobItems.length){
+                // content type
+                const job = await workQueue.add({ content: { items: jobItems, cmsAuthResults, folderId, totalItems: items.length, org } }, {
+                    attempts: 1,
+                    lifo: true
+                });
+                console.log('job id -->', job.id)
+                jobWorkQueueList = [...jobWorkQueueList, { queueName: masterLabel, id: Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0, channelName }];
+
+                return skippedItems;
+            }else{
+                jobWorkQueueList = [...jobWorkQueueList, { queueName: masterLabel, id: Id, channelId, jobId: 0, state: "Skiped", items, response: '', counter: 0, channelName }];
+
+                return skippedItems;
+            }
+        }
+
+        
+    } catch (error) {
+        console.log(error);
+    }
+
+    
+}
+
 
 async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName) {
     
-    const alreadySyncedContents = await getAlreadyMcAssets(folderId);// marketing cloud
-    let localBase64Count = 0;
-    let skippedItems = []; 
-
-    // img = 500
-
-
-   /* const managedContentType = contentTypeNodes[nextIndex].DeveloperName;
-    const managedContentNodeTypes = contentTypeNodes[nextIndex].managedContentNodeTypes;
-
-    const cmsURL = nextPageUrl ? nextPageUrl :  `/services/data/v${SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=50`;
-   
-    let result = await org.getUrl(cmsURL);
-
-
-    if(result){
-        items = result.items || [];
-        nextPageUrl = result.nextPageUrl;
-        if(!nextPageUrl){
-            nextIndex = nextIndex+1;
-        }
-        
-    }
-
+    
+    console.log('contentTypeNodes--->', contentTypeNodes.length);
     console.log('nextIndex--->', nextIndex);
-    console.log('nextPageUrl--->', nextPageUrl);
-    */
+
+    if(contentTypeNodes[nextIndex] && nextIndex < contentTypeNodes.length){
+        
+        let skippedItems = []; 
+
+        const managedContentType = contentTypeNodes[nextIndex].DeveloperName;
+        const managedContentNodeTypes = contentTypeNodes[nextIndex].managedContentNodeTypes;
+        const masterLabel = contentTypeNodes[nextIndex].MasterLabel;
+        const Id = contentTypeNodes[nextIndex].Id;
+        
+    
+        
+        const cmsURL = nextPageUrl ? nextPageUrl :  `/services/data/v${SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentType}&showAbsoluteUrl=true&pageSize=25`;
+        console.log('cmsURL--->', cmsURL);
+        
+        let result = await org.getUrl(cmsURL);
+        console.log('result.items--->', result.items.length);
+
+
+        if(result){
+
+            let serviceResults = result.items || [];
+            nextPageUrl = result.nextPageUrl;
+            if(!nextPageUrl){
+                nextIndex = nextIndex+1;
+            }else if(contentTypeNodes.length === nextIndex && !nextPageUrl){
+                console.log('nextIndex---> 0 index');
+                nextIndex = 0;
+            }
+            
+            skippedItems =  await createJobQueue(serviceResults, workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName, skippedItems, managedContentNodeTypes, masterLabel, Id)
     
 
-    await Promise.all(contentTypeNodes.map(async (ele) => {
+            console.log('nextIndex--->', nextIndex);
+            console.log('nextPageUrl--->', nextPageUrl);
+
+            console.log('skippedItems--->', skippedItems.length);
+            console.log('totalUploadItems--->', totalUploadItems);
+
+
+            if(skippedItems.length === totalUploadItems){
+                updateStatusToserver(org);
+            }else{
+                totalUploadItems = totalUploadItems - skippedItems.length;
+
+                console.log('call the startUploadProcess for items--->', totalUploadItems);
+                // Call the upload start
+                startUploadProcess(workQueue);
+            }
+        }
+    
+        
+
+
+        
+
+        //updateAlreadySyncMediaStatus(skippedItems);
+        
+
+
+      
+       // addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName);
+    }else{
+        console.log('all data sent');
+        global.gc();
+
+        nextPageUrl = '';
+        nextIndex = 0;
+
+        totalUploadItems = 0;
+        base64SkipedItems = 0;
+
+        setTimeout(async() => {
+            updateSfRecord(null, null, null, true); 
+        }, 10000);
+    }
+    
+    
+
+    /*if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count === 0 ){    
+        setTimeout(async() => {
+            updateSfRecord(null, null, null, true); 
+        }, 10000);
+
+    }else{
+        // Call the upload start
+        startUploadProcess(workQueue);
+    }*/
+
+
+   /*  await Promise.all(contentTypeNodes.map(async (ele) => {
         try {
             const managedContentType = ele.DeveloperName;
             const managedContentNodeTypes = ele.managedContentNodeTypes;
@@ -646,7 +873,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
     }else{
         // Call the upload start
         startUploadProcess(workQueue);
-    }
+    }*/
 }
 
 function getAssestsWithProperNaming(result){
@@ -736,16 +963,21 @@ async function startUploadProcess(workQueue) {
     const mcAuthResults = await getMcAuth();
     
     workQueue.process(maxJobsPerWorker, async (job, done) => {
+        
         try {
             let { content } = job.data;
+
             const { items, folderId, org } = content;
+            console.log(`Job started`, items.length);
+
             if (items) {
                 
 
                 //Upload CMS content to Marketing Cloud
-                //await Promise.all(
+               // await Promise.all(
             
                 items.map(async (ele) => { 
+                   // console.log(ele.assetTypeId);
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
                             ele.name,
@@ -759,6 +991,7 @@ async function startUploadProcess(workQueue) {
                         );  
                         
                     } else if (ele.assetTypeId === '8') { //image
+                        //console.log('upload img')
                         await moveImageToMC(
                             ele,
                             folderId,
@@ -778,7 +1011,7 @@ async function startUploadProcess(workQueue) {
                         );
                     }
                 })
-                // )
+            // )
                 //await Promise.all());
                 // call done when finished
                 // workQueue.getJobCounts().then(res => console.log('Job Count:\n',res));
@@ -797,10 +1030,8 @@ module.exports = {
     run: function (cmsAuthResults, org, contentTypeNodes, channelId, folderId, source, channelName) {
         
         base64Count = 0;
-        totalBase64Items = 0;
         totalUploadItems = 0;
         base64SkipedItems = 0;
-        nextUploadBase64Items = 0;
         jobWorkQueueList = [];
         /*if(source !== 'Heroku'){
             jobWorkQueueList = [];
