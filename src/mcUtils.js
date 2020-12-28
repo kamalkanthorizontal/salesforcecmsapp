@@ -161,7 +161,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                         id: folderId
                     },
                 };
-                console.log('fileName-->', fileName);
+                console.log('image fileName-->', fileName);
                 //Marketing Cloud Regex for file fullName i.e. Developer name
                 var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
                 // Create Marketing Cloud Image Asset
@@ -192,10 +192,13 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
 
 async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults,  jobId, org) {
     return new Promise(async (resolve, reject) => {
-        const docUrl = documentNode.unauthenticatedUrl || null;
+        const docUrl = documentNode.unauthenticatedUrl ?  documentNode.unauthenticatedUrl : documentNode.url; // documentNode.unauthenticatedUrl || null;
         const fileName = documentNode.fileName || null;
         const docExt = documentNode.ext || null;
         
+
+        console.log('doc fileName-->', fileName);
+        console.log('doc docUrl-->', docUrl);
         if(docUrl){
             const referenceId =  documentNode.referenceId || null;
             const name =  documentNode.name;
