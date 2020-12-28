@@ -12,6 +12,7 @@ let jobWorkQueueList = [];
 
 
 let totalUploadItems = 0;
+let failedItemsCount = 0;
 let skipedItemsCount = 0;
 
 
@@ -35,6 +36,8 @@ const MC_FOLDER_NAME = process.env.MC_FOLDER_NAME;
 const IMG_PREFIX  = process.env.IMG_PREFIX || '';
 
 async function callNextBetchService(accessToken) {
+    console.log('failedItemsCount--->', failedItemsCount);
+    console.log('skipedItemsCount--->', skipedItemsCount);
     try {
         const body = {   cmsConnectionId: SF_CMS_CONNECTION_ID }
 
@@ -124,6 +127,7 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults,  
     }catch(error){
         totalUploadItems = totalUploadItems-1; 
         console.log('Upload error -->', error);
+        failedItemsCount = failedItemsCount+1;
         updateStatusToserver(org);
     }
     
@@ -183,6 +187,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
 
             totalUploadItems = totalUploadItems-1; 
             console.log('Upload error -->', error);
+            failedItemsCount = failedItemsCount+1;
 
             updateStatusToserver(org);
             
@@ -192,57 +197,67 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
 
 async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults,  jobId, org) {
     return new Promise(async (resolve, reject) => {
-        const docUrl = documentNode.unauthenticatedUrl ?  documentNode.unauthenticatedUrl : documentNode.url; // documentNode.unauthenticatedUrl || null;
-        const fileName = documentNode.fileName || null;
-        const docExt = documentNode.ext || null;
-        
-
-        console.log('doc fileName-->', fileName);
-        console.log('doc docUrl-->', docUrl);
-        if(docUrl){
-            const referenceId =  documentNode.referenceId || null;
-            const name =  documentNode.name;
-    
-            const base64DocBody = await downloadBase64FromURL(
-                docUrl,
-                cmsAuthResults.access_token
-            );
-    
+        try{
+            const docUrl = documentNode.unauthenticatedUrl ?  documentNode.unauthenticatedUrl : documentNode.url; // documentNode.unauthenticatedUrl || null;
+            const fileName = documentNode.fileName || null;
+            const docExt = documentNode.ext || null;
             
-            let docAssetBody = {
-                name: fileName + docExt,
-                assetType: {
-                    id: getDocumentAssetTypeId(docExt.replace('.', '')),
-                },
-                fileProperties: {
-                    fileName: fileName + docExt,
-                    extension: docExt,
-                },
-                file: base64DocBody,
-                category: {
-                    id: folderId
-                },
-            };
-    
-            //Marketing Cloud Regex for file fullName i.e. Developer name
-            var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
-            // Create Marketing Cloud Image Asset
-            if (mcRegex.test(fileName)) {
-                await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId, name, true, fileName, org);
-            } else {
-                const response = `FileProperties.fileName contains prohibited characters. ${fileName}`; 
-                const uploadStatus ='Failed';
 
-                
-                // update job status    
-                if(jobId && response){
-                    updateJobProgress(jobId, response, name, uploadStatus, referenceId);
-                }
-            }
-           
-        }
+            console.log('doc fileName-->', fileName);
+            console.log('doc docUrl-->', docUrl);
+            if(docUrl){
+                const referenceId =  documentNode.referenceId || null;
+                const name =  documentNode.name;
         
-        resolve();
+                const base64DocBody = await downloadBase64FromURL(
+                    docUrl,
+                    cmsAuthResults.access_token
+                );
+        
+                
+                let docAssetBody = {
+                    name: fileName + docExt,
+                    assetType: {
+                        id: getDocumentAssetTypeId(docExt.replace('.', '')),
+                    },
+                    fileProperties: {
+                        fileName: fileName + docExt,
+                        extension: docExt,
+                    },
+                    file: base64DocBody,
+                    category: {
+                        id: folderId
+                    },
+                };
+        
+                //Marketing Cloud Regex for file fullName i.e. Developer name
+                var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
+                // Create Marketing Cloud Image Asset
+                if (mcRegex.test(fileName)) {
+                    await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId, name, true, fileName, org);
+                } else {
+                    const response = `FileProperties.fileName contains prohibited characters. ${fileName}`; 
+                    const uploadStatus ='Failed';
+
+                    
+                    // update job status    
+                    if(jobId && response){
+                        updateJobProgress(jobId, response, name, uploadStatus, referenceId);
+                    }
+                }
+            
+            }
+            
+            resolve();
+        }catch(error){
+
+            totalUploadItems = totalUploadItems-1; 
+            console.log('Upload error -->', error);
+            failedItemsCount = failedItemsCount+1;
+
+            updateStatusToserver(org);
+            
+        }
     });
 }
 
@@ -702,7 +717,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
 
 
         
-
+        skipedItemsCount = skipedItemsCount+skippedItems.length;
         //updateAlreadySyncMediaStatus(skippedItems);
         
 
@@ -718,6 +733,12 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
 
         totalUploadItems = 0;
         base64SkipedItems = 0;
+
+        console.log('failedItemsCount--->', failedItemsCount);
+        console.log('skipedItemsCount--->', skipedItemsCount);
+
+        skipedItemsCount = 0;
+        failedItemsCount = 0;
 
         setTimeout(async() => {
             updateSfRecord(null, null, null, true); 
