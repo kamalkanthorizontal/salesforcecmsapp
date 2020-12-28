@@ -320,9 +320,9 @@ async function  updateStatusToserver(org){
 
         console.log('memmoryUsage', `${formatMemmoryUsage(memoryData.heapUsed)} -> actual memory used during the execution`);
 
-        if(formatMemmoryUsage(memoryData.heapUsed) > 400){
+        /*if(formatMemmoryUsage(memoryData.heapUsed) > 400){
             global.gc();
-        }
+        }*/
 
         // Csll the next betch service
         if(totalUploadItems === 0){
