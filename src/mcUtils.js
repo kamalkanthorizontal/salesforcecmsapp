@@ -54,11 +54,65 @@ async function callNextBatchService(accessToken) {
     }
 }
 
+async function checkFileInMc(folderId, fileName){
+    const mcAuthResults = await getMcAuth();
+    const serviceUrl = `${validateUrl(MC_REST_BASE_URI)}${MC_CONTENT_QUERY_API_PATH}`;
+
+    const body = JSON.stringify({
+        "page":
+        {
+            "pageSize": 1 //fixed
+        },
+
+        "query":
+        {
+            "leftOperand":
+            {
+                "property": "category.id",
+                "simpleOperator": "equal",
+                "value": folderId // folderid
+            },
+            "logicalOperator": "AND",
+            "rightOperand":
+            {
+                "property": "name",
+                "simpleOperator": "like",
+                "value": fileName
+            }
+        },
+        "fields":
+            [
+                "id",
+                "assetType",
+                "name"
+            ]
+    });
+    console.log('body--->', body);
+    return await fetch(serviceUrl, {
+        method: 'POST',
+        body,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${mcAuthResults.access_token}`
+        },
+    })
+        .then(res => res.json())
+        .catch((err) => {
+            console.log(err);
+    });
+}
+
 async function verfiyFileNameMCFolder(fileName, alreadySyncedContents, name) {
+    
     if (alreadySyncedContents && alreadySyncedContents.items && alreadySyncedContents.items.length) {
         const item = [...alreadySyncedContents.items].find(ele => ele.name === fileName);
         return item ? false : true;
     } else {
+       const result =  await checkFileInMc(folderId, fileName);
+       
+       return result && result.items ? false : true;
+        
+
         /*try {
             const mcAuthResults = await getMcAuth();
             const serviceUrl = `${validateUrl(MC_REST_BASE_URI)}${MC_ASSETS_API_PATH}?$filter=Name%20like%20'${fileName}'`;
@@ -442,7 +496,7 @@ async function getPresentMCAssets(folderId) {
         .then(res => res.json())
         .catch((err) => {
             console.log(err);
-        });
+    });
 
 }
 
@@ -452,6 +506,7 @@ let ctIndex = 0;
 async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName, skippedItems, managedContentNodeTypes, managedContentTypeLabel, Id) {
     try {
         const alreadySyncedContents = await getPresentMCAssets(folderId);
+        
         if (serviceResults && serviceResults.length) {
             // serviceResults = serviceResults.slice(0, 1)
             // console.log('serviceResults--->', serviceResults);
@@ -472,103 +527,20 @@ async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, co
                         skippedItems = [...skippedItems, { referenceId, name: ele.name }];
                     }
                 }
-                // Image
-                else if (ele => ele.assetTypeId === '8') {
+                // Image and Document
+                else if (ele => ele.assetTypeId === '8' ||  ele.assetTypeId === '11') {
                     const node = await getMediaSourceFile(ele, alreadySyncedContents);
                     if (typeof node == "string") {
                         //localSkiped = localSkiped+1;
                         const referenceId = ele.referenceId || null;
                         let name = ele.name;
-                        skippedItems = [...skippedItems, { referenceId, name, fileName: ele.fileName }];
+                        skippedItems = ele.assetTypeId === '8' ? [...skippedItems, { referenceId, name, fileName: ele.fileName }] :  [...skippedItems, { referenceId, name }];
                     } else if (node) {
                         jobItems = [...jobItems, node];
                     }
 
-                }
-                //Document
-                else if (ele => ele.assetTypeId === '11') {
-                    const node = await getMediaSourceFile(ele, alreadySyncedContents);
-                    if (typeof node == "string") {
-                        //localSkiped = localSkiped+1;
-                        const referenceId = ele.referenceId || null;
-                        const name = ele.name;
-                        skippedItems = [...skippedItems, { referenceId, name }];
-                    } else if (node) {
-                        jobItems = [...jobItems, node];
-                    }
                 }
             }))
-
-            /*await Promise.all(itemContents.map(async (contentNode) => {
-                
-                const notInMC = await verfiyFileNameMCFolder( `${ASSETNAME_PREFIX}${contentNode.name}`, alreadySyncedContents);
-
-                if(notInMC){
-                    
-                        
-                        jobItems = [...jobItems, contentNode];
-                    
-                }else{
-                    //localSkiped = localSkiped+1;
-                    const referenceId =  contentNode.referenceId || null;
-
-                    //const found = [...skippedItems].some(el => el.referenceId === referenceId || el.name === contentNode.name);
-                    //if (!found)  
-                    
-                    skippedItems = [...skippedItems, { referenceId, name: contentNode.name}];
-                   
-                   // items = updateAlreadySyncMediaStatus(items, contentNode.name, referenceId, contentNode.name);
-                }
-             }));
-
-            await Promise.all(itemImages.map(async (imageNode) => {
-               const node =  await getMediaSourceFile(imageNode, alreadySyncedContents);
-               if(typeof node == "string"){
-                    //localSkiped = localSkiped+1;
-                    const referenceId =  imageNode.referenceId || null;
-                    let name =  imageNode.name;
-                    
-                    //const found = [...skippedItems].some(el => el.referenceId === referenceId || el.name === name || el.fileName === fileName);
-                    //if (!found)  
-                    
-                    skippedItems = [...skippedItems, { referenceId, name, fileName: imageNode.fileName}];
-
-                    //skippedItems = [...skippedItems, { referenceId, name, fileName: imageNode.fileName}];
-               }else if(node){
-                jobItems = [...jobItems, node];
-                    
-               }
-
-            }));
-
-
-            
-            await Promise.all(itemDocuments.map(async (docNode) => {
-               const node =  await getMediaSourceFile(docNode, alreadySyncedContents);
-                if(typeof node == "string"){
-                   // localSkiped = localSkiped+1;
-                    const referenceId =  docNode.referenceId || null;
-                    const name =  docNode.name;
-                    
-
-                    //const found = [...skippedItems].some(el => el.referenceId === referenceId || el.name === name);
-
-                   
-                    //if (!found)  
-                    
-                    skippedItems = [...skippedItems, { referenceId, name}];
-
-                    
-                }else if(node){
-                    jobItems = [...jobItems, node];
-                    //documents = [...documents, node];
-                }
-            }));*/
-
-            //skippedItemsCount = skippedItemsCount+localSkiped;
-
-            //Sync content based on source
-            //const jobItems =  [...contents, ...documents, ...images]; //source === 'Heroku' ? [...documents, ...images] : [...contents, ...documents, ...images];
 
             console.log('Total Available Items to upload --->', jobItems.length);
             if (jobItems && jobItems.length) {
