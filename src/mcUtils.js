@@ -151,9 +151,8 @@ async function getMcAuth() {
 }
 
 async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults, jobId, referenceId, org) {
+    name = `${ASSETNAME_PREFIX}${name}`;
     try {
-        name = `${ASSETNAME_PREFIX}${name}`;
-
         let textAssetBody = {
             name: name,
             assetType: {
@@ -171,22 +170,35 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults, j
         console.log('Upload error -->', error);
         failedItemsCount = failedItemsCount + 1;
 
+
+        const response = `There is an error ${error}`; 
+        const uploadStatus ='Failed';
+
+         // update job status    
+         if(jobId && response){
+            updateJobProgress(jobId, response, name, uploadStatus, referenceId);
+        }
+
         updateStatusToServer(org);
     }
 }
 
 async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults, jobId, org) {
     return new Promise(async (resolve, reject) => {
+        const imageUrl = imageNode.unauthenticatedUrl ? imageNode.unauthenticatedUrl : imageNode.url;
+        const fileName = imageNode.fileName || null;
+        const imageExt = imageNode.ext || null;
+        const referenceId = imageNode.referenceId || null;
+        const name = imageNode.name;
+
+        
         try {
-            const imageUrl = imageNode.unauthenticatedUrl ? imageNode.unauthenticatedUrl : imageNode.url;
-            const fileName = imageNode.fileName || null;
-            const imageExt = imageNode.ext || null;
+            
+            
             // console.log('img imageUrl', imageUrl);
             // console.log('img fileName', fileName);
             if (imageUrl) {
-                const referenceId = imageNode.referenceId || null;
-                const name = imageNode.name;
-
+                
                 const base64ImageBody = await downloadBase64FromURL(
                     imageUrl,
                     cmsAuthResults.access_token
@@ -227,6 +239,15 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
             console.log('Upload error -->', error);
             failedItemsCount = failedItemsCount + 1;
 
+
+            const response = `There is an error ${error}`; 
+            const uploadStatus ='Failed';
+
+             // update job status    
+             if(jobId && response){
+                updateJobProgress(jobId, response, name, uploadStatus, referenceId);
+            }
+            
             updateStatusToServer(org);
         }
     });
@@ -234,15 +255,17 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
 
 async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults, jobId, org) {
     return new Promise(async (resolve, reject) => {
+        const docUrl = documentNode.unauthenticatedUrl ? documentNode.unauthenticatedUrl : documentNode.url;
+        const fileName = documentNode.fileName || null;
+        const docExt = documentNode.ext || null;
+        const referenceId = documentNode.referenceId || null;
+        const name = documentNode.name;
+            
         try {
-            const docUrl = documentNode.unauthenticatedUrl ? documentNode.unauthenticatedUrl : documentNode.url;
-            const fileName = documentNode.fileName || null;
-            const docExt = documentNode.ext || null;
             //console.log('doc docUrl-->', docUrl);
             //console.log('doc fileName-->', fileName);
             if (docUrl) {
-                const referenceId = documentNode.referenceId || null;
-                const name = documentNode.name;
+                
 
                 const base64DocBody = await downloadBase64FromURL(
                     docUrl,
@@ -284,6 +307,16 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
             console.log('Upload error -->', error);
             failedItemsCount = failedItemsCount + 1;
 
+
+            const response = `There is an error ${error}`; 
+            const uploadStatus ='Failed';
+    
+             // update job status    
+             if(jobId && response){
+                updateJobProgress(jobId, response, name, uploadStatus, referenceId);
+            }
+
+            
             updateStatusToServer(org);
         }
     });
@@ -613,7 +646,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         }
 
         skippedItemsCount = skippedItemsCount + skippedItems.length;
-        //updateAlreadySyncMediaStatus(skippedItems);
+        updateAlreadySyncMediaStatus(skippedItems);
         // addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName);
     } else {
         console.log('All Content Type synced');
@@ -924,9 +957,11 @@ module.exports = {
         totalUploadItems = 0;
         base64SkipedItems = 0;
         jobWorkQueueList = [];
-        if(source !== 'Heroku'){
+        */
+
+       if(source !== 'Heroku'){
             jobWorkQueueList = [];
-        }*/
+       }
         const workQueue = new Queue(`work-${channelId}`, REDIS_URL);
         addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, channelName, mcFolderId)
     },
