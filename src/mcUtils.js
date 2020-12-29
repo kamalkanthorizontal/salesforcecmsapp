@@ -59,7 +59,7 @@ async function verfiyFileNameMCFolder(fileName, alreadySyncedContents, name) {
         const item = [...alreadySyncedContents.items].find(ele => ele.name === fileName);
         return item ? false : true;
     } else {
-        try {
+        /*try {
             const mcAuthResults = await getMcAuth();
             const serviceUrl = `${validateUrl(MC_REST_BASE_URI)}${MC_ASSETS_API_PATH}?$filter=Name%20like%20'${fileName}'`;
             console.log(`Separete call to verify ${fileName} in Marketing Cloud`);
@@ -76,7 +76,8 @@ async function verfiyFileNameMCFolder(fileName, alreadySyncedContents, name) {
         } catch (error) {
             console.log('Error in file Name:', error);
             return false;
-        }
+        }*/
+        return true;
     }
 }
 
@@ -245,6 +246,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
             async (error, res, body) => {
                 totalUploadItems = totalUploadItems - 1;
                 if (error) {
+                    failedItemsCount = failedItemsCount + 1;
                     const response = `Error for:${assetBody.name} ${error}`;
                     console.log(response)
                     const uploadStatus = 'Failed';
@@ -262,7 +264,9 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                         const uploadStatus = body.id ? 'Uploaded' : 'Failed';
 
                         console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset Id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error code: ${errorCode} - Error message: ${msg}`);
-
+                        if(errorCode) {
+                            failedItemsCount = failedItemsCount + 1;
+                        }
                         // update job status    
                         if (jobId && response) {
                             updateJobProgress(jobId, response, name, uploadStatus, referenceId);
@@ -626,6 +630,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
             console.log('Content Type Index --->', ctIndex);
 
             if (skippedItems.length === totalUploadItems) {
+                totalUploadItems = totalUploadItems - skippedItems.length;
                 updateStatusToServer(org);
             } else {
                 totalUploadItems = totalUploadItems - skippedItems.length;
@@ -640,8 +645,6 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         // addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName);
     } else {
         console.log('All Content Type synced');
-        global.gc();
-
         nextPageUrl = '';
         ctIndex = 0;
         totalUploadItems = 0;
@@ -655,6 +658,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         setTimeout(async () => {
             updateSfRecord(null, null, null, true);
         }, 10000);
+        global.gc();
     }
 
     /*if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count === 0 ){    
