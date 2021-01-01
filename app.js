@@ -2,7 +2,6 @@ var express = require("express");
 var bodyParser = require("body-parser");
 var nforce = require("nforce");
 const fetch = require('node-fetch');
-const cors = require('cors');
 
 var dotenv = require("dotenv").config();
 var path = require('path');
@@ -21,28 +20,10 @@ const {
 var isLocal;
 var herokuApp;
 
-/*const corsDomains = ENV_URL.split(',');
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests).
-    if (!origin) return callback(null, true);
-
-    // Block non-matching origins.
-    if (corsDomains.indexOf(origin) === -1) {
-      var msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-
-      return callback(new Error(msg), false);
-    }
-
-    return callback(null, true);
-  },
-};*/
-
 let app = express();
 app.enable('trust proxy');
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
-app.use(cors());
 
 function isNotBlank(val) {
     if (typeof val !== 'undefined' && val) {
@@ -86,9 +67,6 @@ app.get('/', async (req, res) => {
 
 app.get("/queue", async function (req, res) {
     const { cmsConnectionId, channelId } = req.query;
-    //console.log('cmsConnectionId--->', cmsConnectionId);
-    //console.log('channelId--->', channelId);
-    //console.log('origin--->', req.get('host'), req.get('origin'));
     if (process.env.SF_CMS_CONNECTION_ID === cmsConnectionId) {
         res.sendFile('./queue.html', { root: __dirname });
     } else {
@@ -215,62 +193,6 @@ async function getFolderId(folderId) {
         return folderId;
     }
 }
-
-/*async function updateSfRecord(appName, folderId = '', error) {
-    try {
-        let org = nforce.createConnection({
-            clientId: process.env.CONSUMER_KEY,
-            clientSecret: process.env.CONSUMER_SECRET,
-            redirectUri: process.env.SF_CMS_URL,
-            apiVersion: process.env.SF_API_VERSION,
-            mode: "single",
-            environment: process.env.SF_ENVIRONMENT,
-            autoRefresh: true
-        });
-
-        const oauth = await org.authenticate({
-            username: process.env.SF_USERNAME,
-            password: process.env.SF_PASSWORD,
-            securityToken: process.env.SF_SECURITY_TOKEN
-        });
-        if(org && oauth){
-            const resQuery = await org.query({ query: SF_CMS_CONNECTION_SOQL });
-
-            if (resQuery && resQuery.records && resQuery.records.length) {
-
-                let sobject = resQuery.records[0];
-
-                if(error){
-                    sobject.set('Connection_Status__c', CONNETION_FAILED_STATUS);
-                    sobject.set('Error_Message__c', error);
-                    
-                }else if (!error && sobject._fields.connection_status__c === null
-                    || sobject._fields.connection_status__c === ALLOWED_CONNECTION_STATUS
-                    || sobject._fields.sfmc_folder_id__c != folderId
-                    || sobject._fields.heroku_endpoint__c != appName) {
-    
-                    if (appName) {
-                        sobject.set('Heroku_Endpoint__c', appName);
-                        sobject.set('Connection_Status__c', CONNETION_STATUS);
-                    }
-    
-                    sobject.set('SFMC_Folder_Id__c', folderId);   
-                }
-                console.log('Updating Salesforce CMS Connection Details:', sobject._fields);
-
-                await org.update({ sobject, oauth });
-
-                
-                console.log('resQuery', sobject._fields);
-                
-            }
-        }else{
-            console.log('Error in salesforce authentication: ', SF_AUTH_FAILED_MSG);
-        }
-    } catch (error) {
-        console.log('Error in salesforce authentication: ', error);
-    }
-}*/
 
 async function getFolderIdFromServer() {
     try {

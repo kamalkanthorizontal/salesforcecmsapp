@@ -13,9 +13,6 @@ let totalUploadItems = 0;
 let failedItemsCount = 0;
 let skippedItemsCount = 0;
 
-//const allowedBase64Count = 50;
-//let nextUploadBase64Items = 0;
-
 const getMcAuthBody = {
     grant_type: 'client_credentials',
     client_id: process.env.MC_CLIENT_ID,
@@ -110,25 +107,6 @@ async function verfiyFileNameMCFolder(fileName, alreadySyncedContents, name) {
     } else {
         const result = await checkFileInMc(folderId, fileName);
         return result && result.items ? false : true;
-        /*try {
-            const mcAuthResults = await getMcAuth();
-            const serviceUrl = `${validateUrl(MC_REST_BASE_URI)}${MC_ASSETS_API_PATH}?$filter=Name%20like%20'${fileName}'`;
-            console.log(`Separete call to verify ${fileName} in Marketing Cloud`);
-            const res = await fetch(serviceUrl, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${mcAuthResults.access_token}`
-                },
-            });
-            const response = await res.json();
-            const notInMc = response.count === 0 ? true : false;
-            return notInMc;
-        } catch (error) {
-            console.log('Error in file Name:', error);
-            return false;
-        }*/
-        return true;
     }
 }
 
@@ -143,7 +121,6 @@ async function getMcAuth() {
         .then(res => res.json())
         .catch((err) => {
             console.log(err)
-            // reject(err);
         });
 }
 
@@ -358,9 +335,6 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
 }
 
 async function updateStatusToServer(org) {
-    // Call next service
-    //if(totalUploadItems > 0 ){
-
     const formatMemmoryUsage = (data) => `${Math.round(data / 1024 / 1024 * 100) / 100}`
     const memoryData = process.memoryUsage()
     const memmoryUsage = {
@@ -372,22 +346,12 @@ async function updateStatusToServer(org) {
 
     console.log('memmoryUsage', `${formatMemmoryUsage(memoryData.heapUsed)} -> actual memory used during the execution`);
 
-    /*if(formatMemmoryUsage(memoryData.heapUsed) > 400){
-        global.gc();
-    }*/
-
     // Csll the next betch service
     if (totalUploadItems === 0) {
         setTimeout(async () => {
             callNextBatchService(org.oauth.access_token);
         }, 50000);
     }
-    //}
-    /*else if(totalUploadItems === 0 && nextUploadBase64Items === 0){
-        setTimeout(async() => {
-            updateSfRecord(null, null, null, true); 
-        }, 10000);
-    }*/
 }
 
 async function getAllContent(org, cmsURL, items = []) {
@@ -529,8 +493,6 @@ async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, co
         const alreadySyncedContents = await getPresentMCAssets(folderId);
 
         if (serviceResults && serviceResults.length) {
-            // serviceResults = serviceResults.slice(0, 1)
-            // console.log('serviceResults--->', serviceResults);
             const result = { items: serviceResults, managedContentNodeTypes };
             let items = getAssestsWithProperNaming(result);
             totalUploadItems = items.length;
@@ -543,7 +505,6 @@ async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, co
                     if (notInMC) {
                         jobItems = [...jobItems, ele];
                     } else {
-                        //localSkiped = localSkiped+1;
                         const referenceId = ele.referenceId || null;
                         skippedItems = [...skippedItems, { referenceId, name: ele.name }];
                     }
@@ -552,7 +513,6 @@ async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, co
                 else if (ele => ele.assetTypeId === '8' || ele.assetTypeId === '11') {
                     const node = await getMediaSourceFile(ele, alreadySyncedContents);
                     if (typeof node == "string") {
-                        //localSkiped = localSkiped+1;
                         const referenceId = ele.referenceId || null;
                         let name = ele.name;
                         skippedItems = ele.assetTypeId === '8' ? [...skippedItems, { referenceId, name, fileName: ele.fileName }] : [...skippedItems, { referenceId, name }];
@@ -637,7 +597,6 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         if (skippedItems) {
             updateAlreadySyncMediaStatus(skippedItems);
         }
-        // addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName);
     } else {
         console.log('All Content Type synced');
         nextPageUrl = '';
@@ -655,157 +614,6 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         }, 10000);
         global.gc();
     }
-
-    /*if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count === 0 ){    
-        setTimeout(async() => {
-            updateSfRecord(null, null, null, true); 
-        }, 10000);
-
-    }else{
-        // Call the upload start
-        startUploadProcess(workQueue);
-    }*/
-
-    /*  await Promise.all(contentTypeNodes.map(async (ele) => {
-         try {
-             const managedContentTypeAPI = ele.DeveloperName;
-             const managedContentNodeTypes = ele.managedContentNodeTypes;
- 
-             // page 0 and page size 25
-             // next url
- 
-             const cmsURL = `/services/data/v${SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentTypeAPI}&showAbsoluteUrl=true&pageSize=50`;
-            
-             const serviceResults = await getAllContent(org, cmsURL);
-             
-             if (serviceResults && serviceResults.length) {
-                 const result = {items: serviceResults, managedContentNodeTypes};
-                 let items = getAssestsWithProperNaming(result);
- 
-                
- 
-                 const itemContents =  items.filter(ele => ele.assetTypeId === '196' || ele.assetTypeId === '197');
-                 const itemDocuments = items.filter(ele => ele.assetTypeId === '11');
-                 const itemImages = items.filter(ele => ele.assetTypeId === '8');
- 
-                 totalBase64Items = totalBase64Items+itemContents.length+itemDocuments.length+itemImages.length;
- 
-                 totalUploadItems = totalUploadItems + items.length;
-                 // Images 
-                 let images = []; 
-                 let documents = []; 
- 
-                 let contents = []; 
-                 
- 
-                 let localSkiped = 0;
- 
-                 await Promise.all(itemContents.map(async (contentNode) => {
-                     
-                     const notInMC = await verfiyFileNameMCFolder( `${ASSETNAME_PREFIX}${contentNode.name}`, alreadySyncedContents);
- 
-                     if(notInMC){
-                         if(localBase64Count < allowedBase64Count){
-                             localBase64Count = localBase64Count+1;
-                             contents = [...contents, contentNode];
-                         }
-                     }else{
-                         localSkiped = localSkiped+1;
-                         const referenceId =  contentNode.referenceId || null;
- 
-                         skippedItems = [...skippedItems, { referenceId, name: contentNode.name}];
-                        // items = updateAlreadySyncMediaStatus(items, contentNode.name, referenceId, contentNode.name);
-                     }
-                  }));
- 
-                 await Promise.all(itemImages.map(async (imageNode) => {
-                    const node =  await getMediaSourceFile(imageNode, alreadySyncedContents);
-                    //console.log('image --->', node, imageNode.referenceId, imageNode)
-                    if(typeof node == "string"){
-                         localSkiped = localSkiped+1;
-                         const referenceId =  imageNode.referenceId || null;
-                         let name =  imageNode.name;
-                         
-                         skippedItems = [...skippedItems, { referenceId, name, fileName: imageNode.fileName}];
-                    }else if(node){
-                         if(localBase64Count < allowedBase64Count){
-                             localBase64Count = localBase64Count+1;
-                             images = [...images, node];
-                         }
-                    }
- 
-                 }));
- 
- 
-                 
-                 await Promise.all(itemDocuments.map(async (docNode) => {
-                    const node =  await getMediaSourceFile(docNode, alreadySyncedContents);
- 
-                     if(typeof node == "string"){
-                         localSkiped = localSkiped+1;
-                         const referenceId =  docNode.referenceId || null;
-                         const name =  docNode.name;
-                         
-                         skippedItems = [...skippedItems, { referenceId, name}];
-                         
-                     }else if(node){
-                         if(localBase64Count < allowedBase64Count){
-                             localBase64Count = localBase64Count+1;
-                             documents = [...documents, node];
-                         }
-                     }
-                 }));
- 
-                 base64SkipedItems = base64SkipedItems+localSkiped;
-                // console.log('contents--->', contents, items);
-                 //Sync content based on source
-                 const jobItems =  [...contents, ...documents, ...images]; //source === 'Heroku' ? [...documents, ...images] : [...contents, ...documents, ...images];
-                 if(jobItems && jobItems.length){
-                     // content type
-                     const job = await workQueue.add({ content: { items: jobItems, cmsAuthResults, folderId, totalItems: items.length, org } }, {
-                         attempts: 1,
-                         lifo: true
-                     });
-                     jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0, channelName }];
-                 }else{
-                     jobWorkQueueList = [...jobWorkQueueList, { queueName: ele.MasterLabel, id: ele.Id, channelId, jobId: 0, state: "Skiped", items, response: '', counter: 0, channelName }];
-                 }
- 
-                 
-             }
-         } catch (error) {
-             console.log(error);
-         }
-     }));
-     
-     // console.log('jobWorkQueueList', jobWorkQueueList);
-      console.log('skippedItems', skippedItems);
- 
-     console.log('totalUploadItems', totalUploadItems);
-     console.log('base64SkipedItems', base64SkipedItems);
-     console.log('localBase64Count', localBase64Count);
-     console.log('totalBase64Items', totalBase64Items);
-    
-     totalUploadItems = totalUploadItems - base64SkipedItems;
-     nextUploadBase64Items = totalBase64Items - (base64SkipedItems + localBase64Count);
-     base64Count = localBase64Count;
-     console.log('totalUploadItems', totalUploadItems);
-    
-     console.log('nextUploadBase64Items', nextUploadBase64Items);
- 
-     updateAlreadySyncMediaStatus(skippedItems);
-    
-     
- 
-     if(totalUploadItems === 0 && nextUploadBase64Items === 0 && base64Count === 0 ){    
-         setTimeout(async() => {
-             updateSfRecord(null, null, null, true); 
-         }, 10000);
- 
-     }else{
-         // Call the upload start
-         startUploadProcess(workQueue);
-     }*/
 }
 
 function getAssestsWithProperNaming(result) {
@@ -893,7 +701,6 @@ async function startUploadProcess(workQueue) {
             const { items, folderId, org } = content;
             if (items) {
                 //Upload CMS content to Marketing Cloud
-                // await Promise.all(
                 items.map(async (ele) => {
                     // console.log(ele.assetTypeId);
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
@@ -928,10 +735,6 @@ async function startUploadProcess(workQueue) {
                         );
                     }
                 })
-                // )
-                //await Promise.all());
-                // call done when finished
-                // workQueue.getJobCounts().then(res => console.log('Job Count:\n',res));
                 workQueue.close()
                 done();
             }
@@ -943,12 +746,6 @@ async function startUploadProcess(workQueue) {
 
 module.exports = {
     run: function (cmsAuthResults, org, contentTypeNodes, channelId, channelName, mcFolderId, source) {
-        /*base64Count = 0;
-        totalUploadItems = 0;
-        base64SkipedItems = 0;
-        jobWorkQueueList = [];
-        */
-
         if (source !== 'Heroku') {
             jobWorkQueueList = [];
         }
