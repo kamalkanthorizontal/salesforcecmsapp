@@ -624,25 +624,26 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
             }
 
             skippedItems = await createJobQueue(serviceResults, workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName, skippedItems, managedContentNodeTypes, managedContentTypeLabel, Id)
-
-            console.log('Total Skipped Items --->', skippedItems ? skippedItems.length : 0);
+            
+            const skippedItemsSize = skippedItems ? skippedItems.length : 0;
+            console.log('Total Skipped Items --->', skippedItemsSize);
             console.log('Total Items --->', totalUploadItems);
 
             console.log('CMS NextPage Url --->', nextPageUrl);
             console.log('Content Type Index --->', ctIndex);
 
-            if (skippedItems.length === totalUploadItems) {
-                totalUploadItems = totalUploadItems - skippedItems.length;
+            if (skippedItemsSize === totalUploadItems) {
+                totalUploadItems = totalUploadItems - skippedItemsSize;
                 updateStatusToServer(org);
             } else {
-                totalUploadItems = totalUploadItems - skippedItems.length;
+                totalUploadItems = totalUploadItems - skippedItemsSize;
                 console.log('Call the startUploadProcess for items --->', totalUploadItems);
                 // Call the upload start
                 startUploadProcess(workQueue);
             }
         }
 
-        skippedItemsCount = skippedItemsCount + skippedItems.length;
+        skippedItemsCount = skippedItemsCount + skippedItems ? skippedItems.length : 0;
         updateAlreadySyncMediaStatus(skippedItems);
         // addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName);
     } else {
