@@ -86,9 +86,9 @@ app.get('/', async (req, res) => {
 
 app.get("/queue", async function (req, res) {
     const { cmsConnectionId, channelId } = req.query;
-    console.log('cmsConnectionId--->', cmsConnectionId);
-    console.log('channelId--->', channelId);
-    console.log('origin--->', req.get('host'), req.get('origin'));
+    //console.log('cmsConnectionId--->', cmsConnectionId);
+    //console.log('channelId--->', channelId);
+    //console.log('origin--->', req.get('host'), req.get('origin'));
     if (process.env.SF_CMS_CONNECTION_ID === cmsConnectionId) {
         res.sendFile('./queue.html', { root: __dirname });
     } else {
