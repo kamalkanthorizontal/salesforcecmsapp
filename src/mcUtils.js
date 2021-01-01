@@ -644,7 +644,9 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         }
 
         skippedItemsCount = skippedItemsCount + skippedItems ? skippedItems.length : 0;
-        updateAlreadySyncMediaStatus(skippedItems);
+        if(skippedItems) {
+            updateAlreadySyncMediaStatus(skippedItems);
+        }
         // addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName);
     } else {
         console.log('All Content Type synced');
