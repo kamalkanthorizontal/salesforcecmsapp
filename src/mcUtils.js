@@ -54,7 +54,7 @@ async function callNextBatchService(accessToken) {
     }
 }
 
-async function checkFileInMc(folderId, fileName){
+async function checkFileInMc(folderId, fileName) {
     const mcAuthResults = await getMcAuth();
     const serviceUrl = `${validateUrl(MC_REST_BASE_URI)}${MC_CONTENT_QUERY_API_PATH}`;
 
@@ -99,20 +99,17 @@ async function checkFileInMc(folderId, fileName){
         .then(res => res.json())
         .catch((err) => {
             console.log(err);
-    });
+        });
 }
 
 async function verfiyFileNameMCFolder(fileName, alreadySyncedContents, name) {
-    
+
     if (alreadySyncedContents && alreadySyncedContents.items && alreadySyncedContents.items.length) {
         const item = [...alreadySyncedContents.items].find(ele => ele.name === fileName);
         return item ? false : true;
     } else {
-       const result =  await checkFileInMc(folderId, fileName);
-       
-       return result && result.items ? false : true;
-        
-
+        const result = await checkFileInMc(folderId, fileName);
+        return result && result.items ? false : true;
         /*try {
             const mcAuthResults = await getMcAuth();
             const serviceUrl = `${validateUrl(MC_REST_BASE_URI)}${MC_ASSETS_API_PATH}?$filter=Name%20like%20'${fileName}'`;
@@ -171,11 +168,11 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults, j
         failedItemsCount = failedItemsCount + 1;
 
 
-        const response = `There is an error ${error}`; 
-        const uploadStatus ='Failed';
+        const response = `There is an error ${error}`;
+        const uploadStatus = 'Failed';
 
-         // update job status    
-         if(jobId && response){
+        // update job status    
+        if (jobId && response) {
             updateJobProgress(jobId, response, name, uploadStatus, referenceId);
         }
 
@@ -191,14 +188,14 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
         const referenceId = imageNode.referenceId || null;
         const name = imageNode.name;
 
-        
+
         try {
-            
-            
+
+
             // console.log('img imageUrl', imageUrl);
             // console.log('img fileName', fileName);
             if (imageUrl) {
-                
+
                 const base64ImageBody = await downloadBase64FromURL(
                     imageUrl,
                     cmsAuthResults.access_token
@@ -240,14 +237,14 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
             failedItemsCount = failedItemsCount + 1;
 
 
-            const response = `There is an error ${error}`; 
-            const uploadStatus ='Failed';
+            const response = `There is an error ${error}`;
+            const uploadStatus = 'Failed';
 
-             // update job status    
-             if(jobId && response){
+            // update job status    
+            if (jobId && response) {
                 updateJobProgress(jobId, response, name, uploadStatus, referenceId);
             }
-            
+
             updateStatusToServer(org);
         }
     });
@@ -260,12 +257,12 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         const docExt = documentNode.ext || null;
         const referenceId = documentNode.referenceId || null;
         const name = documentNode.name;
-            
+
         try {
             //console.log('doc docUrl-->', docUrl);
             //console.log('doc fileName-->', fileName);
             if (docUrl) {
-                
+
 
                 const base64DocBody = await downloadBase64FromURL(
                     docUrl,
@@ -308,15 +305,15 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
             failedItemsCount = failedItemsCount + 1;
 
 
-            const response = `There is an error ${error}`; 
-            const uploadStatus ='Failed';
-    
-             // update job status    
-             if(jobId && response){
+            const response = `There is an error ${error}`;
+            const uploadStatus = 'Failed';
+
+            // update job status    
+            if (jobId && response) {
                 updateJobProgress(jobId, response, name, uploadStatus, referenceId);
             }
 
-            
+
             updateStatusToServer(org);
         }
     });
@@ -351,7 +348,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
                         const uploadStatus = body.id ? 'Uploaded' : 'Failed';
 
                         console.log(body.id ? `${assetBody.name} uploaded with status code: ${res.statusCode} - Asset Id: ${body.id}` : `${assetBody.name} failed with status code: ${res.statusCode} - Error code: ${errorCode} - Error message: ${msg}`);
-                        if(errorCode) {
+                        if (errorCode) {
                             failedItemsCount = failedItemsCount + 1;
                         }
                         // update job status    
@@ -529,7 +526,7 @@ async function getPresentMCAssets(folderId) {
         .then(res => res.json())
         .catch((err) => {
             console.log(err);
-    });
+        });
 
 }
 
@@ -539,7 +536,7 @@ let ctIndex = 0;
 async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName, skippedItems, managedContentNodeTypes, managedContentTypeLabel, Id) {
     try {
         const alreadySyncedContents = await getPresentMCAssets(folderId);
-        
+
         if (serviceResults && serviceResults.length) {
             // serviceResults = serviceResults.slice(0, 1)
             // console.log('serviceResults--->', serviceResults);
@@ -561,13 +558,13 @@ async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, co
                     }
                 }
                 // Image and Document
-                else if (ele => ele.assetTypeId === '8' ||  ele.assetTypeId === '11') {
+                else if (ele => ele.assetTypeId === '8' || ele.assetTypeId === '11') {
                     const node = await getMediaSourceFile(ele, alreadySyncedContents);
                     if (typeof node == "string") {
                         //localSkiped = localSkiped+1;
                         const referenceId = ele.referenceId || null;
                         let name = ele.name;
-                        skippedItems = ele.assetTypeId === '8' ? [...skippedItems, { referenceId, name, fileName: ele.fileName }] :  [...skippedItems, { referenceId, name }];
+                        skippedItems = ele.assetTypeId === '8' ? [...skippedItems, { referenceId, name, fileName: ele.fileName }] : [...skippedItems, { referenceId, name }];
                     } else if (node) {
                         jobItems = [...jobItems, node];
                     }
@@ -575,8 +572,8 @@ async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, co
                 }
             }))
 
-            console.log('Total Available Items to upload --->', jobItems.length);
             if (jobItems && jobItems.length) {
+                console.log('Total Available Items to upload --->', jobItems.length);
                 // content type
                 const job = await workQueue.add({ content: { items: jobItems, cmsAuthResults, folderId, totalItems: items.length, org } }, {
                     attempts: 1,
@@ -598,7 +595,7 @@ async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, co
 }
 
 async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, channelName, folderId) {
-    console.log('Total CMS Content Type --->', contentTypeNodes.length);
+    console.log('Total CMS Content Type --->', contentTypeNodes ? contentTypeNodes.length : 0);
     console.log('Content Type Index --->', ctIndex);
 
     if (contentTypeNodes[ctIndex] && ctIndex < contentTypeNodes.length) {
@@ -614,7 +611,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         console.log('CMS URL --->', cmsURL);
 
         let result = await org.getUrl(cmsURL);
-        console.log(`${managedContentTypeLabel} records --->`, result.items.length);
+        console.log(`${managedContentTypeLabel} records --->`, result && result.items ? result.items.length : 0);
 
         if (result) {
             let serviceResults = result.items || [];
@@ -628,7 +625,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
 
             skippedItems = await createJobQueue(serviceResults, workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName, skippedItems, managedContentNodeTypes, managedContentTypeLabel, Id)
 
-            console.log('Total Skipped Items --->', skippedItems.length);
+            console.log('Total Skipped Items --->', skippedItems ? skippedItems.length : 0);
             console.log('Total Items --->', totalUploadItems);
 
             console.log('CMS NextPage Url --->', nextPageUrl);
@@ -959,9 +956,9 @@ module.exports = {
         jobWorkQueueList = [];
         */
 
-       if(source !== 'Heroku'){
+        if (source !== 'Heroku') {
             jobWorkQueueList = [];
-       }
+        }
         const workQueue = new Queue(`work-${channelId}`, REDIS_URL);
         addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, channelName, mcFolderId)
     },

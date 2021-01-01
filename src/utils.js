@@ -306,7 +306,7 @@ module.exports = {
                         sobject.set('Connection_Status__c', CONNETION_FAILED_STATUS);
                         sobject.set('Error_Message__c', mcError);
                     } else if (!mcError && dateTime) {
-                        console.log('datetime: ', new Date().toISOString())
+                        console.log('Updating SF Last Sync Time:', new Date().toISOString())
                         sobject.set('Connection_Status__c', CONNETION_STATUS);
                         sobject.set('Error_Message__c', '');
                         sobject.set('Last_Synchronized_Time__c', new Date().toISOString());
