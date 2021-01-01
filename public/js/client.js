@@ -68,12 +68,12 @@ function renderJob(job) {
 
     job.items.forEach(item => {
         const html = `<div class="flex justify-between mb2">
-        <div class='mt2 mb1'><span>Title:</span> ${item.title}</div>
-        <div class='mt2 mb1'><span>File:</span> ${item.name}</div>
-        <div class='mt2 mb1'><span>Type:</span> ${item.type}</div>
-        <div class='mt2 mb1'><span>Status:</span> <b>${item.status}</b></div>
+        <div class='mt2 mb1'><span><b>Title:</b></span> ${item.title}</div>
+        <div class='mt2 mb1'><span><b>File:</b></span> ${item.name}</div>
+        <div class='mt2 mb1'><span><b>Type:</b></span> ${item.type}</div>
+        <div class='mt2 mb1'><span><b>Status:</b></span> ${item.status}</div>
       </div>
-      <div class='tl mt2 mb1'><span>Respone Message:</span> ${item.response}</div>
+      <div class='tl mt2 mb1'><span><b>Respone Message:</b></span> <i>${item.response}</i></div>
       <hr/>
       `
         items = items + html;
@@ -89,10 +89,10 @@ function renderJob(job) {
       </div>
 
       <div class="flex justify-between mb2">
-        <div class='mt2 mb1'><span><b>Job ID:</span> ${job.jobId}</b></div>
-        <div class='mt2 mb1'><span><b>Total Contents:</span> ${job.items.length}</b></div>
-        <div class='mt2 mb1'><span><b>Uploaded Contents:</span> ${job.counter}</b></div>
-        <div class='mt2 mb1'><span><b>State:</span> ${job.state}</b></div>
+        <div class='mt2 mb1'><span><b>Job Id:</b></span> ${job.jobId}</div>
+        <div class='mt2 mb1'><span><b>Total Contents:</b></span> ${job.items.length}</div>
+        <div class='mt2 mb1'><span><b>Uploaded Contents:</b></span> ${job.counter}</div>
+        <div class='mt2 mb1'><span><b>State:</b></span> ${job.state}</div>
       </div>
       <div>
         ${items}
