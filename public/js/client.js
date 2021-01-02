@@ -22,7 +22,7 @@ async function getJobs() {
     jobs = response.jobs;
 
     if (jobs && jobs.length) {
-        const filteredJobs = jobs ? jobs.filter(ele => ele.state !== 'completed') : [];
+        const filteredJobs = jobs ? jobs.filter(ele => ele.state !== 'Completed') : [];
         if (filteredJobs.length === 0) {
             clearInterval(refreshIntervalId);
         }
@@ -56,7 +56,7 @@ function renderJob(job) {
     let progress = job.progress || 0;
     let color = "bg-light-purple";
 
-    if (job.state === "completed") {
+    if (job.state === "Completed") {
         color = "bg-purple";
         progress = 100;
     } else if (job.state === "failed") {

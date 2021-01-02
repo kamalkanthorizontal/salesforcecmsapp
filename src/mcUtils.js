@@ -100,7 +100,6 @@ async function checkFileInMc(folderId, fileName) {
 }
 
 async function verfiyFileNameMCFolder(fileName, alreadySyncedContents, name) {
-
     if (alreadySyncedContents && alreadySyncedContents.items && alreadySyncedContents.items.length) {
         const item = [...alreadySyncedContents.items].find(ele => ele.name === fileName);
         return item ? false : true;
@@ -151,7 +150,6 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults, j
         if (jobId && response) {
             updateJobProgress(jobId, response, name, uploadStatus, referenceId);
         }
-
         updateStatusToServer(org);
     }
 }
@@ -168,7 +166,6 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
             // console.log('img imageUrl', imageUrl);
             // console.log('img fileName', fileName);
             if (imageUrl) {
-
                 const base64ImageBody = await downloadBase64FromURL(
                     imageUrl,
                     cmsAuthResults.access_token
@@ -281,7 +278,6 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
             if (jobId && response) {
                 updateJobProgress(jobId, response, name, uploadStatus, referenceId);
             }
-
             updateStatusToServer(org);
         }
     });
@@ -354,21 +350,6 @@ async function updateStatusToServer(org) {
     }
 }
 
-async function getAllContent(org, cmsURL, items = []) {
-    let result = await org.getUrl(cmsURL);
-
-    if (result) {
-        items = result.items || [];
-        if (result.nextPageUrl) {
-            const recursiveItems = await getAllContent(org, result.nextPageUrl, result.items);
-            items = [...items, ...recursiveItems];
-
-        }
-        return items;
-    }
-    return [];
-}
-
 async function getMediaSourceFile(node, alreadySyncedContents) {
     const referenceId = node.referenceId || null;
     const name = node.name;
@@ -376,7 +357,6 @@ async function getMediaSourceFile(node, alreadySyncedContents) {
     const url = node.unauthenticatedUrl ? `${node.unauthenticatedUrl}` : null;
 
     if (url) {
-
         const ext = node.fileName ? path.parse(node.fileName).ext : null;
         const publishedDate = node.publishedDate ? node.publishedDate.replace(/[^a-zA-Z0-9]/g, "") : '';
 
@@ -434,7 +414,6 @@ function updateAlreadySyncMediaStatus(skippedItems) {
     } catch (error) {
         console.log(error);
     }
-
 }
 
 async function getPresentMCAssets(folderId) {
@@ -482,7 +461,6 @@ async function getPresentMCAssets(folderId) {
         .catch((err) => {
             console.log(err);
         });
-
 }
 
 let nextPageUrl = '';
@@ -558,7 +536,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
 
         const ctPageSize = process.env.SF_CT_PAGESIZE ? process.env.SF_CT_PAGESIZE : 25;
         const cmsURL = nextPageUrl ? nextPageUrl : `/services/data/v${SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentTypeAPI}&showAbsoluteUrl=true&pageSize=${ctPageSize}`;
-        console.log('CMS URL --->', cmsURL);
+        console.log('CMS URL --->', cmsURL.split("?")[1]);
 
         let result = await org.getUrl(cmsURL);
         console.log(`${managedContentTypeLabel} records --->`, result && result.items ? result.items.length : 0);
@@ -684,7 +662,7 @@ function updateJobProgress(jobId, serverResponse, name, serverStatus, referenceI
                 return { ...item, response, status }
             })
         }
-        const state = percents == 100.0 ? 'completed' : 'In-Progress';
+        const state = percents == 100.0 ? 'Completed' : 'In-Progress';
         return { ...ele, progress: percents, counter, state, items, counter };
     });
 }
