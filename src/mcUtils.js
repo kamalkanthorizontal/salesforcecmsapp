@@ -170,6 +170,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                     imageUrl,
                     cmsAuthResults.access_token
                 );
+                
                 let imageAssetBody = {
                     name: fileName + imageExt,
                     assetType: {
@@ -230,45 +231,39 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
             //console.log('doc docUrl-->', docUrl);
             //console.log('doc fileName-->', fileName);
             if (docUrl) {
-                /*const base64DocBody = await downloadBase64FromURL(
+                const base64DocBody = await downloadBase64FromURL(
                     docUrl,
                     cmsAuthResults.access_token
-                );*/
- 
-                toDataUrl(docUrl, async function(base64DocBody) {
-                    console.log(base64DocBody); // myBase64 is the base64 string
+                );
 
-                    let docAssetBody = {
-                        name: fileName + docExt,
-                        assetType: {
-                            id: getDocumentAssetTypeId(docExt.replace('.', '')),
-                        },
-                        fileProperties: {
-                            fileName: fileName + docExt,
-                            extension: docExt,
-                        },
-                        file: base64DocBody,
-                        category: {
-                            id: folderId
-                        },
-                    };
-    
-                    //Marketing Cloud Regex for file fullName i.e. Developer name
-                    var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
-                    // Create Marketing Cloud Image Asset
-                    if (mcRegex.test(fileName)) {
-                        await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId, name, true, fileName, org);
-                    } else {
-                        const response = `FileProperties.fileName contains prohibited characters: ${fileName}`;
-                        const uploadStatus = 'Failed';
-                        // update job status    
-                        if (jobId && response) {
-                            updateJobProgress(jobId, response, name, uploadStatus, referenceId);
-                        }
+                let docAssetBody = {
+                    name: fileName + docExt,
+                    assetType: {
+                        id: getDocumentAssetTypeId(docExt.replace('.', '')),
+                    },
+                    fileProperties: {
+                        fileName: fileName + docExt,
+                        extension: docExt,
+                    },
+                    file: base64DocBody,
+                    category: {
+                        id: folderId
+                    },
+                };
+
+                //Marketing Cloud Regex for file fullName i.e. Developer name
+                var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
+                // Create Marketing Cloud Image Asset
+                if (mcRegex.test(fileName)) {
+                    await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId, name, true, fileName, org);
+                } else {
+                    const response = `FileProperties.fileName contains prohibited characters: ${fileName}`;
+                    const uploadStatus = 'Failed';
+                    // update job status    
+                    if (jobId && response) {
+                        updateJobProgress(jobId, response, name, uploadStatus, referenceId);
                     }
-                });
-
-                
+                }
             }
             resolve();
         } catch (error) {
