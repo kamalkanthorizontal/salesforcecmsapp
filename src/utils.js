@@ -241,7 +241,7 @@ async function downloadBase64FromURL(url, access_token, callback) {
                 (resp) => {
                     if (resp) {
                         resp.setEncoding('base64');
-                        let body = "data:" + resp.headers["content-type"] + ";base64,";
+                        body = "data:" + resp.headers["content-type"] + ";base64,";
                         resp.on('data', (data) => { body += data});
    
 
