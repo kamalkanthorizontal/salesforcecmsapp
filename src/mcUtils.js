@@ -105,7 +105,7 @@ async function verfiyFileNameMCFolder(folderId, fileName, alreadySyncedContents)
         return item ? false : true;
     } else {
         const result = await checkFileInMc(folderId, fileName);
-        return result && result.items ? false : true;
+        return result && result.items && result.items.length ? false : true;
     }
 }
 
@@ -550,6 +550,8 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 console.log('ctIndex set to 0');
                 ctIndex = 0;
             }
+
+            serviceResults = serviceResults.slice(1, 3);
 
             skippedItems = await createJobQueue(serviceResults, workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName, skippedItems, managedContentNodeTypes, managedContentTypeLabel, Id)
 
