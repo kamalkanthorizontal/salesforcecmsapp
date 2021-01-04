@@ -241,6 +241,11 @@ async function downloadBase64FromURL(url, access_token, callback) {
                 (resp) => {
                     if (resp) {
                         resp.setEncoding('base64');
+                        let body = "data:" + resp.headers["content-type"] + ";base64,";
+                        resp.on('data', (data) => { body += data});
+   
+
+                        //resp.setEncoding('base64');
                         let imageBody = '';
                         resp.on('data', (data) => {
                             imageBody += data;
