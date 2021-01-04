@@ -99,7 +99,7 @@ async function checkFileInMc(folderId, fileName) {
         });
 }
 
-async function verfiyFileNameMCFolder(fileName, alreadySyncedContents, name) {
+async function verfiyFileNameMCFolder(folderId, fileName, alreadySyncedContents) {
     if (alreadySyncedContents && alreadySyncedContents.items && alreadySyncedContents.items.length) {
         const item = [...alreadySyncedContents.items].find(ele => ele.name === fileName);
         return item ? false : true;
@@ -350,7 +350,7 @@ async function updateStatusToServer(org) {
     }
 }
 
-async function getMediaSourceFile(node, alreadySyncedContents) {
+async function getMediaSourceFile(node, alreadySyncedContents, folderId) {
     const referenceId = node.referenceId || null;
     const name = node.name;
 
@@ -364,7 +364,7 @@ async function getMediaSourceFile(node, alreadySyncedContents) {
 
         fileName = `${ASSETNAME_PREFIX}${fileName}`;
 
-        const notInMC = await verfiyFileNameMCFolder(fileName + ext, alreadySyncedContents, fileName);
+        const notInMC = await verfiyFileNameMCFolder(folderId, fileName + ext, alreadySyncedContents);
         if (notInMC) {
             return {
                 assetTypeId: node.assetTypeId,
@@ -479,7 +479,7 @@ async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, co
             await Promise.all([...items].map(async (ele) => {
                 // Content
                 if (ele.assetTypeId === '196' || ele.assetTypeId === '197') {
-                    const notInMC = await verfiyFileNameMCFolder(`${ASSETNAME_PREFIX}${ele.name}`, alreadySyncedContents);
+                    const notInMC = await verfiyFileNameMCFolder(folderId, `${ASSETNAME_PREFIX}${ele.name}`, alreadySyncedContents);
                     if (notInMC) {
                         jobItems = [...jobItems, ele];
                     } else {
@@ -489,7 +489,7 @@ async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, co
                 }
                 // Image and Document
                 else if (ele => ele.assetTypeId === '8' || ele.assetTypeId === '11') {
-                    const node = await getMediaSourceFile(ele, alreadySyncedContents);
+                    const node = await getMediaSourceFile(ele, alreadySyncedContents, folderId);
                     if (typeof node == "string") {
                         const referenceId = ele.referenceId || null;
                         let name = ele.name;
