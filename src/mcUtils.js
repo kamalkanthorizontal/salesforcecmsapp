@@ -84,7 +84,7 @@ async function checkFileInMc(folderId, fileName) {
                 "name"
             ]
     });
-    console.log('body--->', body);
+    
     return await fetch(serviceUrl, {
         method: 'POST',
         body,
