@@ -3,6 +3,8 @@ const nforce = require("nforce");
 var dotenv = require("dotenv").config();
 var path = require('path');
 var XMLHttpRequest = require('node-http-xhr');
+var FileReader = require('filereader');
+
 
 const {
     SF_CMS_CONNECTION_SOQL,
