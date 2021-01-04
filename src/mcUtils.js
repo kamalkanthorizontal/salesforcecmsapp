@@ -551,8 +551,6 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 ctIndex = 0;
             }
 
-            serviceResults = serviceResults.slice(1, 3);
-
             skippedItems = await createJobQueue(serviceResults, workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName, skippedItems, managedContentNodeTypes, managedContentTypeLabel, Id)
 
             const skippedItemsSize = skippedItems ? skippedItems.length : 0;
