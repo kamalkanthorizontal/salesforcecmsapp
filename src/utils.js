@@ -233,10 +233,12 @@ function getDocumentAssetTypeId(docExtension) {
 }
 
 async function downloadBase64FromURL(url, access_token, callback) {
+    const urlCon = new URL(url)
+
     return new Promise((resolve, reject) => {
         https
             .get(
-                url,
+                urlCon,
                 { headers: { Authorization: 'Bearer ' + access_token } },
                 (resp) => {
                     if (resp) {
