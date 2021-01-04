@@ -234,7 +234,7 @@ function getDocumentAssetTypeId(docExtension) {
 }
 
 async function downloadBase64FromURL(url, access_token, callback) {
-    const urlCon = new URL(url)
+    //const urlCon = new URL(url)
 
     var xhr = new XMLHttpRequest();
     xhr.onload = function() {
@@ -244,7 +244,7 @@ async function downloadBase64FromURL(url, access_token, callback) {
         }
         reader.readAsDataURL(xhr.response);
     };
-    xhr.open('GET', urlCon);
+    xhr.open('GET', url);
     xhr.responseType = 'blob';
     xhr.send();
 
