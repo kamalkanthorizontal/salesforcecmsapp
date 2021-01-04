@@ -2,6 +2,7 @@ const https = require('https');
 const nforce = require("nforce");
 var dotenv = require("dotenv").config();
 var path = require('path');
+var XMLHttpRequest = require('node-http-xhr');
 
 const {
     SF_CMS_CONNECTION_SOQL,
@@ -235,7 +236,19 @@ function getDocumentAssetTypeId(docExtension) {
 async function downloadBase64FromURL(url, access_token, callback) {
     const urlCon = new URL(url)
 
-    return new Promise((resolve, reject) => {
+    var xhr = new XMLHttpRequest();
+    xhr.onload = function() {
+        var reader = new FileReader();
+        reader.onloadend = function() {
+            callback(reader.result);
+        }
+        reader.readAsDataURL(xhr.response);
+    };
+    xhr.open('GET', urlCon);
+    xhr.responseType = 'blob';
+    xhr.send();
+
+    /*return new Promise((resolve, reject) => {
         https
             .get(
                 urlCon,
@@ -264,7 +277,7 @@ async function downloadBase64FromURL(url, access_token, callback) {
             .on('error', (e) => {
                 reject(`Got error: ${e.message}`);
             });
-    });
+    });*/
 }
 
 module.exports = {
