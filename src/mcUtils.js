@@ -84,7 +84,7 @@ async function checkFileInMc(folderId, fileName) {
                 "name"
             ]
     });
-    
+
     return await fetch(serviceUrl, {
         method: 'POST',
         body,
@@ -170,7 +170,10 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                     imageUrl,
                     cmsAuthResults.access_token
                 );
+                console.log('base64ImageBody--->', base64ImageBody);
 
+                console.log('fileName + imageExt--->', fileName + imageExt);
+                console.log('getImageAssetTypeId()--->', getImageAssetTypeId(imageExt.replace('.', '')));
                 let imageAssetBody = {
                     name: fileName + imageExt,
                     assetType: {
