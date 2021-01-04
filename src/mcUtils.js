@@ -234,8 +234,8 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
                     docUrl,
                     cmsAuthResults.access_token
                 );*/
-
-                toDataUrl(docUrl, function(base64DocBody) {
+ 
+                toDataUrl(docUrl, async function(base64DocBody) {
                     console.log(base64DocBody); // myBase64 is the base64 string
 
                     let docAssetBody = {
