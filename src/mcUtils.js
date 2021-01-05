@@ -195,6 +195,9 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                 if (mcRegex.test(fileName)) {
                     await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name, true, fileName, org);
                 } else {
+                    totalUploadItems = totalUploadItems - 1;
+                    failedItemsCount = failedItemsCount + 1;
+                
                     const response = `FileProperties.fileName contains prohibited characters: ${fileName}`;
                     const uploadStatus = 'Failed';
                     // update job status    
