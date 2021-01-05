@@ -548,7 +548,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
 
         if (result) {
             let serviceResults = result.items || [];
-            nextPageUrl = result.nextPageUrl;
+            nextPageUrl = result.nextPageUrl ? `${result.nextPageUrl}&showAbsoluteUrl=true` : undefined;
             if (!nextPageUrl) {
                 ctIndex = ctIndex + 1;
             } else if (contentTypeNodes.length === ctIndex && !nextPageUrl) {

@@ -10,7 +10,6 @@
     "start": "node --expose_gc app.js"
   },
   "dependencies": {
-    "axios": "^0.21.1",
     "body-parser": "^1.19.0",
     "bull": "^3.4.8",
     "dotenv": "^8.2.0",
