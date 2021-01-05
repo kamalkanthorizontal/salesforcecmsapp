@@ -208,7 +208,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
             resolve();
         } catch (error) {
             totalUploadItems = totalUploadItems - 1;
-           // console.log('Upload error -->', error);
+            console.log('Upload error -->', error);
             failedItemsCount = failedItemsCount + 1;
 
             const response = `There is an error ${error}`;
