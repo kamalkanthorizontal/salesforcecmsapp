@@ -162,6 +162,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
         const referenceId = imageNode.referenceId || null;
         const name = imageNode.name;
 
+        console.log('imageUrl--->', imageUrl);
         try {
             // console.log('img imageUrl', imageUrl);
             // console.log('img fileName', fileName);
@@ -696,7 +697,7 @@ async function startUploadProcess(workQueue) {
                             ele.referenceId,
                             org
                         );
-                    } else if (ele.assetTypeId === '8') { //image
+                    } else if (ele.assetTypeId == '8') { //image
                         //console.log('upload img')
                         await moveImageToMC(
                             ele,
