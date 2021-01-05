@@ -289,6 +289,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
 }
 
 async function createMCAsset(access_token, assetBody, jobId, referenceId, name, isMedia, fileName, org) {
+    console.log('name', name);
     return new Promise((resolve, reject) => {
         request.post(validateUrl(MC_REST_BASE_URI) + MC_ASSETS_API_PATH, {
             headers: {
@@ -297,6 +298,7 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
             json: assetBody,
         },
             async (error, res, body) => {
+                console.log('error-->', error);
                 totalUploadItems = totalUploadItems - 1;
                 if (error) {
                     failedItemsCount = failedItemsCount + 1;
