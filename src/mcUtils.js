@@ -162,7 +162,6 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
         const referenceId = imageNode.referenceId || null;
         const name = imageNode.name;
 
-        console.log('imageUrl--->', imageUrl);
         try {
             // console.log('img imageUrl', imageUrl);
             // console.log('img fileName', fileName);
@@ -172,7 +171,6 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                     cmsAuthResults.access_token
                 );
 
-                console.log('base64ImageBody---> ', base64ImageBody.length)
                 
                 let imageAssetBody = {
                     name: fileName + imageExt,
@@ -302,7 +300,6 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
             json: assetBody,
         },
             async (error, res, body) => {
-                console.log('error-->', error);
                 totalUploadItems = totalUploadItems - 1;
                 if (error) {
                     failedItemsCount = failedItemsCount + 1;
