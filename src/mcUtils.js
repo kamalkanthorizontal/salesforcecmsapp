@@ -201,6 +201,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                     if (jobId && response) {
                         updateJobProgress(jobId, response, name, uploadStatus, referenceId);
                     }
+                    console.log('Error--->', response);
                 }
             }else{
                 console.log('Image url not available-->', fileName + imageExt)
