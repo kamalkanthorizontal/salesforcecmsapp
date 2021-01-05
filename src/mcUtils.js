@@ -677,10 +677,12 @@ async function startUploadProcess(workQueue) {
         try {
             let { content } = job.data;
             const { items, folderId, org } = content;
+            console.log('items--->', items.length);
             if (items) {
                 //Upload CMS content to Marketing Cloud
                 items.map(async (ele) => {
-                    // console.log(ele.assetTypeId);
+
+                    console.log(ele.assetTypeId);
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
                             ele.name,
