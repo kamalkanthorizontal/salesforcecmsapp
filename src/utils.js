@@ -3,6 +3,11 @@ const nforce = require("nforce");
 var dotenv = require("dotenv").config();
 var path = require('path');
 
+
+const axios = require('axios');
+
+
+
 const {
     SF_CMS_CONNECTION_SOQL,
     SF_AUTH_FAILED_MSG,
@@ -233,7 +238,21 @@ function getDocumentAssetTypeId(docExtension) {
 }
 
 async function downloadBase64FromURL(url, access_token, callback) {
-    return new Promise((resolve, reject) => {
+    /*try{
+        const result = await fetch.remote(url);
+        console.log(result);
+    }catch(error){
+        console.log(`Got error: ${error}`);
+    }*/
+    
+    let image = await axios.get(url, {responseType: 'arraybuffer'});
+    return Buffer.from(image.data).toString('base64');
+
+
+   // console.log('result--->', returnedB64);
+
+    /*return new Promise((resolve, reject) => {
+
         https
             .get(
                 url,
@@ -262,7 +281,7 @@ async function downloadBase64FromURL(url, access_token, callback) {
             .on('error', (e) => {
                 reject(`Got error: ${e.message}`);
             });
-    });
+    });*/
 }
 
 module.exports = {
