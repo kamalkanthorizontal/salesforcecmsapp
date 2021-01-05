@@ -199,6 +199,8 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                         updateJobProgress(jobId, response, name, uploadStatus, referenceId);
                     }
                 }
+            }else{
+                console.log('Image url not available-->', fileName + imageExt)
             }
             resolve();
         } catch (error) {
