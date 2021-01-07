@@ -660,11 +660,10 @@ function updateJobProgress(jobId, serverResponse, name, serverStatus, referenceI
                 // response
                 let response = item.response;
                 let status = item.status;
-                if (name && `${ASSETNAME_PREFIX}${item.name}` === name && !item.response) {
-                    
+                if (name && (`${ASSETNAME_PREFIX}${item.name}` === name || item.name === name) && !item.response) {   
                     response = serverResponse;
                     status = serverStatus;
-                } else if (referenceId && item.referenceId === referenceId && !item.response) {
+                }else if (referenceId && item.referenceId === referenceId && !item.response) {
                     response = serverResponse;
                     status = serverStatus;
                 }
