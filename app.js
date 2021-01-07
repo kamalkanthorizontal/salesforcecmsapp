@@ -26,21 +26,9 @@ let app = express();
 app.enable('trust proxy');
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
+app.use(cors());
 
-var whitelist = ['http://salesforce.com']
-var corsOptions = {
-  origin: function (origin, callback) {
-    console.log('origin->', origin);  
-    if (whitelist.indexOf(origin) !== -1 || !origin) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
-    }
-  }
-}
-
-app.use(cors(corsOptions));
-/*app.use((req, res, next) => {
+app.use((req, res, next) => {
   res.set('Cache-Control', 'no-cache');
   res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.set('Strict-Transport-Security', 'max-age=200'); 
@@ -49,9 +37,7 @@ app.use(cors(corsOptions));
   res.set('X-Powered-By', '');
   res.set('X-XSS-Protection', '1; mode=block');
   next();
-});*/
-
-
+});
 
 
 function oauthCallbackUrl(req) {
@@ -59,69 +45,75 @@ function oauthCallbackUrl(req) {
 }
 
 
-app.post('/uploadCMSContent', cors(corsOptions), async (req, res, next) => {
-    console.log(req.headers['user-agent'])
-    try {
-        const origin = req.get('origin');
-        console.log('origin-->', origin)
-
-        isLocal = req.hostname.indexOf("localhost") == 0;
-        if (req.hostname.indexOf(".herokuapp.com") > 0) {
-            herokuApp = req.hostname.replace(".herokuapp.com", "");
-        }
-
-        let { contentTypeNodes, channelId, channelName, mcFolderId, source } = req.body;
-
-        if (!contentTypeNodes || !channelId || !channelName || !source) {
-            res.send('Required fields not found.');
-        }
-
-        if (isSetup()) {
-
-            mcFolderId = await checkFolderId(mcFolderId);
-
-            if (mcFolderId) {
-                contentTypeNodes = JSON.parse(contentTypeNodes);
-                try {
-                    //nforce setup to connect Salesforce
-                    let org = nforce.createConnection({
-                        clientId: process.env.CONSUMER_KEY,
-                        clientSecret: process.env.CONSUMER_SECRET,
-                        redirectUri: oauthCallbackUrl(req),
-                        apiVersion: process.env.SF_API_VERSION,
-                        mode: "single",
-                        environment: process.env.SF_ENVIRONMENT,
-                        autoRefresh: true
-                    });
-
-                    const resp = await org.authenticate({
-                        username: process.env.SF_USERNAME,
-                        password: process.env.SF_PASSWORD,
-                        securityToken: process.env.SF_SECURITY_TOKEN
-                    });
-
-                    console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
-
-                    if (resp.access_token) {
-                        run(resp, org, contentTypeNodes, channelId, channelName, mcFolderId, source);
-                        res.send('CMS Content Type is syncing in the background. Please wait..');
-                    } else {
-                        console.log(SF_AUTH_FAILED_MSG);
-                    }
-                } catch (error) {
-                    res.send(error.message);
-                }
-            } else {
-                updateSfRecord(null, null, MC_AUTH_FAILED_MSG);
-                res.send(MC_AUTH_FAILED_MSG);
+app.post('/uploadCMSContent', cors(), async (req, res, next) => {
+    
+    if(req.headers['user-agent']  && req.headers['user-agent'].includes('SFDC')){
+        try {
+            const origin = req.get('origin');
+            console.log('origin-->', origin)
+    
+            isLocal = req.hostname.indexOf("localhost") == 0;
+            if (req.hostname.indexOf(".herokuapp.com") > 0) {
+                herokuApp = req.hostname.replace(".herokuapp.com", "");
             }
-
-        } else {
-            res.send('Required environment variables not found.');
+    
+            let { contentTypeNodes, channelId, channelName, mcFolderId, source } = req.body;
+    
+            if (!contentTypeNodes || !channelId || !channelName || !source) {
+                res.send('Required fields not found.');
+            }
+    
+            if (isSetup()) {
+    
+                mcFolderId = await checkFolderId(mcFolderId);
+    
+                if (mcFolderId) {
+                    contentTypeNodes = JSON.parse(contentTypeNodes);
+                    try {
+                        //nforce setup to connect Salesforce
+                        let org = nforce.createConnection({
+                            clientId: process.env.CONSUMER_KEY,
+                            clientSecret: process.env.CONSUMER_SECRET,
+                            redirectUri: oauthCallbackUrl(req),
+                            apiVersion: process.env.SF_API_VERSION,
+                            mode: "single",
+                            environment: process.env.SF_ENVIRONMENT,
+                            autoRefresh: true
+                        });
+    
+                        const resp = await org.authenticate({
+                            username: process.env.SF_USERNAME,
+                            password: process.env.SF_PASSWORD,
+                            securityToken: process.env.SF_SECURITY_TOKEN
+                        });
+    
+                        console.log("Salesforce authentication :", resp.access_token ? 'Successful' : 'Failure');
+    
+                        if (resp.access_token) {
+                            run(resp, org, contentTypeNodes, channelId, channelName, mcFolderId, source);
+                            res.send('CMS Content Type is syncing in the background. Please wait..');
+                        } else {
+                            console.log(SF_AUTH_FAILED_MSG);
+                        }
+                    } catch (error) {
+                        res.send(error.message);
+                    }
+                } else {
+                    updateSfRecord(null, null, MC_AUTH_FAILED_MSG);
+                    res.send(MC_AUTH_FAILED_MSG);
+                }
+    
+            } else {
+                res.send('Required environment variables not found.');
+            }
+        } catch (error) {
+            res.send(error.message);
         }
-    } catch (error) {
-        res.send(error.message);
+    }else{
+        res.send('Invalid request.');
     }
+
+    
 });
 
 // Kick off a new job by adding it to the work queue
