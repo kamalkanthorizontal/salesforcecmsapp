@@ -23,7 +23,8 @@
     "redis-cli": "^2.0.0",
     "redis-server": "^1.2.2",
     "request": "^2.88.2",
-    "unescape": "^1.0.1"
+    "unescape": "^1.0.1",
+    "cors": "^2.8.5"
   },
   "repository": {
     "type": "git",
