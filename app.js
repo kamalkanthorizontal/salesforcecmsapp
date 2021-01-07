@@ -104,7 +104,7 @@ app.get("/queue", async function (req, res) {
     }
 })
 
-app.post('/uploadCMSContent', async (req, res, next) => {
+app.post('/uploadCMSContent', cors(corsOptions), async (req, res, next) => {
     console.log(req.headers.host)
     try {
         const origin = req.get('origin');
