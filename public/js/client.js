@@ -89,7 +89,6 @@ function renderJob(job) {
       </div>
 
       <div class="flex justify-between mb2">
-        <div class='mt2 mb1'><span><b>Job Id:</b></span> ${job.jobId}</div>
         <div class='mt2 mb1'><span><b>Total Contents:</b></span> ${job.items.length}</div>
         <div class='mt2 mb1'><span><b>Uploaded Contents:</b></span> ${job.counter}</div>
         <div class='mt2 mb1'><span><b>State:</b></span> ${job.state}</div>

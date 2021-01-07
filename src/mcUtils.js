@@ -533,6 +533,7 @@ async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, co
 async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, channelName, folderId) {
     console.log('Total CMS Content Type --->', contentTypeNodes ? contentTypeNodes.length : 0);
     console.log('Content Type Index --->', ctIndex);
+    console.log('nextPageUrl --->', nextPageUrl);
 
     if (contentTypeNodes[ctIndex] && ctIndex < contentTypeNodes.length) {
         let skippedItems = [];
@@ -545,7 +546,7 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
         const ctPageSize = process.env.SF_CT_PAGESIZE ? process.env.SF_CT_PAGESIZE : 25;
         const cmsURL = nextPageUrl ? nextPageUrl : `/services/data/v${SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentTypeAPI}&showAbsoluteUrl=true&pageSize=${ctPageSize}`;
         console.log('CMS URL --->', cmsURL.split("?")[1]);
-
+       
         let result = await org.getUrl(cmsURL);
         console.log(`${managedContentTypeLabel} records --->`, result && result.items ? result.items.length : 0);
 
@@ -644,13 +645,13 @@ function getAssestsWithProperNaming(result) {
     return finalArray;
 }
 
-function updateJobProgress(jobId, serverResponse, name, serverStatus, referenceId) {
+function updateJobProgress(jobId, serverResponse, name, serverStatus, referenceId) { 
+
     jobWorkQueueList = [...jobWorkQueueList].map(ele => {
         let percents = ele.progress;
         let counter = ele.counter || 0;
         const totalItems = ele.items.length;
         let items = ele.items;
-
         if (ele.jobId === jobId) {
             counter = counter + 1;
             percents = ((counter / totalItems) * 100).toFixed(1);
@@ -659,7 +660,8 @@ function updateJobProgress(jobId, serverResponse, name, serverStatus, referenceI
                 // response
                 let response = item.response;
                 let status = item.status;
-                if (name && item.name === name && !item.response) {
+                if (name && `${ASSETNAME_PREFIX}${item.name}` === name && !item.response) {
+                    
                     response = serverResponse;
                     status = serverStatus;
                 } else if (referenceId && item.referenceId === referenceId && !item.response) {
