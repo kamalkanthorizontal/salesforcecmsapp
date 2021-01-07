@@ -264,6 +264,15 @@ async function downloadBase64FromURL(url, access_token, callback) {
     });
 }
 
+
+function isNotBlank(val) {
+    if (typeof val !== 'undefined' && val) {
+        return true;
+    };
+    return false;
+}
+
+
 module.exports = {
     getImageAssetTypeId: function (imageExtension) {
         return getImageAssetTypeId(imageExtension);
@@ -337,5 +346,25 @@ module.exports = {
         } catch (err) {
             console.log('Error in salesforce authentication:', err ? err.body ? err.body : err : 'Unknown error');
         }
+    },
+
+    isSetup: function() {
+        return (
+            isNotBlank(process.env.APP_NAME) &&
+            isNotBlank(process.env.CONSUMER_KEY) &&
+            isNotBlank(process.env.CONSUMER_SECRET) &&
+            isNotBlank(process.env.SF_ENVIRONMENT) &&
+            isNotBlank(process.env.SF_USERNAME) &&
+            isNotBlank(process.env.SF_PASSWORD) &&
+            isNotBlank(process.env.SF_SECURITY_TOKEN) &&
+            isNotBlank(process.env.SF_API_VERSION) &&
+            isNotBlank(process.env.SF_CMS_CONNECTION_ID) &&
+            isNotBlank(process.env.SF_CMS_URL) &&
+            isNotBlank(process.env.MC_CLIENT_ID) &&
+            isNotBlank(process.env.MC_CLIENT_SECRET) &&
+            isNotBlank(process.env.MC_AUTHENTICATION_BASE_URI) &&
+            isNotBlank(process.env.MC_REST_BASE_URI) &&
+            isNotBlank(process.env.MC_FOLDER_NAME)
+        );
     }
 }

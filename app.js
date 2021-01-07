@@ -8,7 +8,7 @@ var dotenv = require("dotenv").config();
 var path = require('path');
 
 const { run, getMcFolders, createMcFolder, getMcAuth, jobs } = require('./src/mcUtils.js');
-const { validateUrl, updateSfRecord } = require('./src/utils');
+const { validateUrl, updateSfRecord, isSetup } = require('./src/utils');
 
 const {
     MC_CONTENT_CATEGORIES_API_PATH,
@@ -20,9 +20,6 @@ const {
 
 var isLocal;
 var herokuApp;
-
-
-// const corsDomains = ENV_URL.split(',');
 
 
 let app = express();
@@ -43,7 +40,7 @@ var corsOptions = {
 }
 
 app.use(cors(corsOptions));
-app.use((req, res, next) => {
+/*app.use((req, res, next) => {
   res.set('Cache-Control', 'no-cache');
   res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.set('Strict-Transport-Security', 'max-age=200'); 
@@ -52,60 +49,18 @@ app.use((req, res, next) => {
   res.set('X-Powered-By', '');
   res.set('X-XSS-Protection', '1; mode=block');
   next();
-});
+});*/
 
 
-function isNotBlank(val) {
-    if (typeof val !== 'undefined' && val) {
-        return true;
-    };
-    return false;
-}
 
-function isSetup() {
-    return (
-        isNotBlank(process.env.APP_NAME) &&
-        isNotBlank(process.env.CONSUMER_KEY) &&
-        isNotBlank(process.env.CONSUMER_SECRET) &&
-        isNotBlank(process.env.SF_ENVIRONMENT) &&
-        isNotBlank(process.env.SF_USERNAME) &&
-        isNotBlank(process.env.SF_PASSWORD) &&
-        isNotBlank(process.env.SF_SECURITY_TOKEN) &&
-        isNotBlank(process.env.SF_API_VERSION) &&
-        isNotBlank(process.env.SF_CMS_CONNECTION_ID) &&
-        isNotBlank(process.env.SF_CMS_URL) &&
-        isNotBlank(process.env.MC_CLIENT_ID) &&
-        isNotBlank(process.env.MC_CLIENT_SECRET) &&
-        isNotBlank(process.env.MC_AUTHENTICATION_BASE_URI) &&
-        isNotBlank(process.env.MC_REST_BASE_URI) &&
-        isNotBlank(process.env.MC_FOLDER_NAME)
-    );
-}
 
 function oauthCallbackUrl(req) {
     return req.protocol + "://" + req.get("host");
 }
-// Kick off a new job by adding it to the work queue
-app.get('/jobs', async (req, res) => {
-    res.json({ jobs: jobs() });
-});
 
-// Kick off a new job by adding it to the work queue
-app.get('/', async (req, res) => {
-    res.send('Welcome to CMS SFMC Sync Heroku App.');
-});
-
-app.get("/queue", async function (req, res) {
-    const { cmsConnectionId, channelId } = req.query;
-    if (process.env.SF_CMS_CONNECTION_ID === cmsConnectionId) {
-        res.sendFile('./queue.html', { root: __dirname });
-    } else {
-        res.send('Required fields not found.');
-    }
-})
 
 app.post('/uploadCMSContent', cors(corsOptions), async (req, res, next) => {
-    console.log(req.headers.host)
+    console.log(req.headers['user-agent'])
     try {
         const origin = req.get('origin');
         console.log('origin-->', origin)
@@ -168,6 +123,25 @@ app.post('/uploadCMSContent', cors(corsOptions), async (req, res, next) => {
         res.send(error.message);
     }
 });
+
+// Kick off a new job by adding it to the work queue
+app.get('/jobs', async (req, res) => {
+    res.json({ jobs: jobs() });
+});
+
+// Kick off a new job by adding it to the work queue
+app.get('/', async (req, res) => {
+    res.send('Welcome to CMS SFMC Sync Heroku App.');
+});
+
+app.get("/queue", async function (req, res) {
+    const { cmsConnectionId, channelId } = req.query;
+    if (process.env.SF_CMS_CONNECTION_ID === cmsConnectionId) {
+        res.sendFile('./queue.html', { root: __dirname });
+    } else {
+        res.send('Required fields not found.');
+    }
+})
 
 async function checkFolderId(mcFolderId) {
     let validFolderId;
