@@ -2,6 +2,7 @@ var express = require("express");
 var bodyParser = require("body-parser");
 var nforce = require("nforce");
 const fetch = require('node-fetch');
+const cors = require('cors');
 
 var dotenv = require("dotenv").config();
 var path = require('path');
@@ -20,10 +21,39 @@ const {
 var isLocal;
 var herokuApp;
 
+
+// const corsDomains = ENV_URL.split(',');
+
+
 let app = express();
 app.enable('trust proxy');
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
+
+var whitelist = ['http://salesforce.com']
+var corsOptions = {
+  origin: function (origin, callback) {
+    console.log('origin->', origin);  
+    if (whitelist.indexOf(origin) !== -1 || !origin) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  }
+}
+
+app.use(cors(corsOptions));
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-cache');
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.set('Strict-Transport-Security', 'max-age=200'); 
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('X-Frame-Options', 'deny');
+  res.set('X-Powered-By', '');
+  res.set('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
 
 function isNotBlank(val) {
     if (typeof val !== 'undefined' && val) {
@@ -75,8 +105,10 @@ app.get("/queue", async function (req, res) {
 })
 
 app.post('/uploadCMSContent', async (req, res, next) => {
+    console.log(req.headers.host)
     try {
         const origin = req.get('origin');
+        console.log('origin-->', origin)
 
         isLocal = req.hostname.indexOf("localhost") == 0;
         if (req.hostname.indexOf(".herokuapp.com") > 0) {
