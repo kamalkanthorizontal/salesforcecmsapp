@@ -49,9 +49,6 @@ app.post('/uploadCMSContent', cors(), async (req, res, next) => {
     
     if(req.headers['user-agent']  && req.headers['user-agent'].includes('SFDC')){
         try {
-            const origin = req.get('origin');
-            console.log('origin-->', origin)
-    
             isLocal = req.hostname.indexOf("localhost") == 0;
             if (req.hostname.indexOf(".herokuapp.com") > 0) {
                 herokuApp = req.hostname.replace(".herokuapp.com", "");
@@ -111,9 +108,7 @@ app.post('/uploadCMSContent', cors(), async (req, res, next) => {
         }
     }else{
         res.send('Invalid request.');
-    }
-
-    
+    }    
 });
 
 // Kick off a new job by adding it to the work queue
@@ -127,12 +122,17 @@ app.get('/', async (req, res) => {
 });
 
 app.get("/queue", async function (req, res) {
-    const { cmsConnectionId, channelId } = req.query;
-    if (process.env.SF_CMS_CONNECTION_ID === cmsConnectionId) {
-        res.sendFile('./queue.html', { root: __dirname });
-    } else {
-        res.send('Required fields not found.');
+    if(req.headers['user-agent']  && req.headers['user-agent'].includes('SFDC')){
+        const { cmsConnectionId, channelId } = req.query;
+        if (process.env.SF_CMS_CONNECTION_ID === cmsConnectionId) {
+            res.sendFile('./queue.html', { root: __dirname });
+        } else {
+            res.send('Required fields not found.');
+        }
+    }else{
+        res.send('Invalid request.');
     }
+
 })
 
 async function checkFolderId(mcFolderId) {
