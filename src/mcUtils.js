@@ -743,10 +743,10 @@ async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNode
                 // Call the upload start
                 startUploadProcess(workQueue);
             }
+            console.log('Total Skipped Items --->', skippedItemsSize);
+            console.log('Total Items --->', totalUploadItems);    
         }
 
-        console.log('Total Skipped Items --->', skippedItemsSize);
-        console.log('Total Items --->', totalUploadItems);
         console.log('CMS NextPage Url --->', nextPageUrl);
         console.log('Content Type Index --->', ctIndex);
 
