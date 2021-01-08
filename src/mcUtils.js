@@ -6,19 +6,6 @@ const decode = require('unescape');
 const { getImageAssetTypeId, getDocumentAssetTypeId, downloadBase64FromURL, validateUrl, updateSfRecord } = require('./utils.js');
 const { MC_ASSETS_API_PATH, MS_AUTH_PATH, MC_CONTENT_CATEGORIES_API_PATH, REDIS_URL, MC_CONTENT_QUERY_API_PATH } = require('./constants');
 
-let maxJobsPerWorker = 150;
-let jobWorkQueueList = [];
-
-let totalUploadItems = 0;
-let failedItemsCount = 0;
-let skippedItemsCount = 0;
-
-const getMcAuthBody = {
-    grant_type: 'client_credentials',
-    client_id: process.env.MC_CLIENT_ID,
-    client_secret: process.env.MC_CLIENT_SECRET,
-};
-
 const MC_AUTHENTICATION_BASE_URI = process.env.MC_AUTHENTICATION_BASE_URI;
 const MC_REST_BASE_URI = process.env.MC_REST_BASE_URI;
 const SF_CMS_CONNECTION_ID = process.env.SF_CMS_CONNECTION_ID;
@@ -27,6 +14,24 @@ const SF_API_VERSION = process.env.SF_API_VERSION;
 const MC_FOLDER_NAME = process.env.MC_FOLDER_NAME;
 const ASSETNAME_PREFIX = process.env.ASSETNAME_PREFIX || '';
 
+let maxJobsPerWorker = 150;
+let jobWorkQueueList = [];
+
+let totalUploadItems = 0;
+let failedItemsCount = 0;
+let skippedItemsCount = 0;
+
+let nextPageUrl = '';
+let ctIndex = 0;
+
+const getMcAuthBody = {
+    grant_type: 'client_credentials',
+    client_id: process.env.MC_CLIENT_ID,
+    client_secret: process.env.MC_CLIENT_SECRET,
+};
+
+
+//Method is use to call api for next available batch 
 async function callNextBatchService(accessToken) {
     console.log('Failed Items --->', failedItemsCount);
     console.log('Skipped Items --->', skippedItemsCount);
@@ -50,6 +55,14 @@ async function callNextBatchService(accessToken) {
         console.log('Error in next call:', error);
     }
 }
+
+// Marketing cloud API calling
+
+/**
+ * method use for check is file is already avalibale or not in marketing cloud folder
+ * @param {*} folderId 
+ * @param {*} fileName 
+ */
 
 async function checkFileInMc(folderId, fileName) {
     const mcAuthResults = await getMcAuth();
@@ -99,6 +112,63 @@ async function checkFileInMc(folderId, fileName) {
         });
 }
 
+/**
+ * Metod is use for get all content from marketing cloud for a folder
+ * @param {*} folderId 
+ */
+async function getPresentMCAssets(folderId) {
+    const mcAuthResults = await getMcAuth();
+    const serviceUrl = `${validateUrl(MC_REST_BASE_URI)}${MC_CONTENT_QUERY_API_PATH}`;
+
+    const body = JSON.stringify({
+        "page":
+        {
+            "pageSize": 7500 //fixed
+        },
+
+        "query":
+        {
+            "leftOperand":
+            {
+                "property": "category.id",
+                "simpleOperator": "equal",
+                "value": folderId // folderid
+            },
+            "logicalOperator": "AND",
+            "rightOperand":
+            {
+                "property": "assetType.displayName",
+                "simpleOperator": "like",
+                "value": "Document,Image,Text Block,HTML Block"
+            }
+        },
+        "fields":
+            [
+                "id",
+                "assetType",
+                "name"
+            ]
+    });
+    return await fetch(serviceUrl, {
+        method: 'POST',
+        body,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${mcAuthResults.access_token}`
+        },
+    })
+        .then(res => res.json())
+        .catch((err) => {
+            console.log(err);
+        });
+}
+
+/**
+ * Method check is given file already sync or not in marketing cloud
+ * @param {*} folderId 
+ * @param {*} fileName 
+ * @param {*} alreadySyncedContents 
+ */
 async function verfiyFileNameMCFolder(folderId, fileName, alreadySyncedContents) {
     if (alreadySyncedContents && alreadySyncedContents.items && alreadySyncedContents.items.length) {
         const item = [...alreadySyncedContents.items].find(ele => ele.name === fileName);
@@ -109,6 +179,9 @@ async function verfiyFileNameMCFolder(folderId, fileName, alreadySyncedContents)
     }
 }
 
+/**
+ * Method use for get the marketing cloud authonication token. 
+ */
 async function getMcAuth() {
     return await fetch(`${validateUrl(MC_AUTHENTICATION_BASE_URI)}${MS_AUTH_PATH}`, {
         method: 'POST',
@@ -123,6 +196,10 @@ async function getMcAuth() {
         });
 }
 
+// Move content to marketing cloud
+
+
+// Method is use for move rich text, html content and normal text.
 async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults, jobId, referenceId, org) {
     name = `${ASSETNAME_PREFIX}${name}`;
     try {
@@ -139,21 +216,25 @@ async function moveTextToMC(name, value, assetTypeId, folderId, mcAuthResults, j
         // Create Marketing Cloud Block Asset
         await createMCAsset(mcAuthResults.access_token, textAssetBody, jobId, referenceId, name, false, null, org);
     } catch (error) {
-        totalUploadItems = totalUploadItems - 1;
         console.log('Upload error -->', error);
+
+        // update file status in job queue
+
+        totalUploadItems = totalUploadItems - 1;
         failedItemsCount = failedItemsCount + 1;
 
         const response = `There is an error ${error}`;
         const uploadStatus = 'Failed';
-
         // update job status    
         if (jobId && response) {
             updateJobProgress(jobId, response, name, uploadStatus, referenceId);
         }
+
         updateStatusToServer(org);
     }
 }
 
+// Method is use for move base 64 images to marketing cloud
 async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults, jobId, org) {
     return new Promise(async (resolve, reject) => {
         const imageUrl = imageNode.unauthenticatedUrl ? imageNode.unauthenticatedUrl : imageNode.url;
@@ -163,8 +244,7 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
         const name = imageNode.name;
 
         try {
-            // console.log('img imageUrl', imageUrl);
-            // console.log('img fileName', fileName);
+
             if (imageUrl) {
                 const base64ImageBody = await downloadBase64FromURL(
                     imageUrl,
@@ -188,11 +268,14 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                 };
 
                 //Marketing Cloud Regex for file fullName i.e. Developer name
-                var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
+                let mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
                 // Create Marketing Cloud Image Asset
                 if (mcRegex.test(fileName)) {
                     await createMCAsset(mcAuthResults.access_token, imageAssetBody, jobId, referenceId, name, true, fileName, org);
                 } else {
+                    console.log('Error--->', response);
+
+                    // update file status in job queue
                     totalUploadItems = totalUploadItems - 1;
                     failedItemsCount = failedItemsCount + 1;
                 
@@ -201,21 +284,21 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
                     // update job status    
                     if (jobId && response) {
                         updateJobProgress(jobId, response, name, uploadStatus, referenceId);
-                    }
-                    console.log('Error--->', response);
+                    }   
                 }
             }else{
                 console.log('Image url not available-->', fileName + imageExt)
             }
             resolve();
         } catch (error) {
-            totalUploadItems = totalUploadItems - 1;
-            console.log('Upload error -->', error);
-            failedItemsCount = failedItemsCount + 1;
 
+            console.log('Upload error -->', error);
+
+            // update file status in job queue
+            totalUploadItems = totalUploadItems - 1;
+            failedItemsCount = failedItemsCount + 1;
             const response = `There is an error ${error}`;
             const uploadStatus = 'Failed';
-
             // update job status    
             if (jobId && response) {
                 updateJobProgress(jobId, response, name, uploadStatus, referenceId);
@@ -226,6 +309,8 @@ async function moveImageToMC(imageNode, folderId, mcAuthResults, cmsAuthResults,
     });
 }
 
+// Method is use for move base 64 document to marketing cloud
+
 async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthResults, jobId, org) {
     return new Promise(async (resolve, reject) => {
         const docUrl = documentNode.unauthenticatedUrl ? documentNode.unauthenticatedUrl : documentNode.url;
@@ -235,8 +320,6 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
         const name = documentNode.name;
 
         try {
-            //console.log('doc docUrl-->', docUrl);
-            //console.log('doc fileName-->', fileName);
             if (docUrl) {
                 const base64DocBody = await downloadBase64FromURL(
                     docUrl,
@@ -259,7 +342,7 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
                 };
 
                 //Marketing Cloud Regex for file fullName i.e. Developer name
-                var mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
+                let mcRegex = /^[a-z](?!\w*__)(?:\w*[^\W_])?$/i;
                 // Create Marketing Cloud Image Asset
                 if (mcRegex.test(fileName)) {
                     await createMCAsset(mcAuthResults.access_token, docAssetBody, jobId, referenceId, name, true, fileName, org);
@@ -274,8 +357,10 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
             }
             resolve();
         } catch (error) {
-            totalUploadItems = totalUploadItems - 1;
             console.log('Upload error -->', error);
+
+            // update file status in job queue
+            totalUploadItems = totalUploadItems - 1;
             failedItemsCount = failedItemsCount + 1;
 
             const response = `There is an error ${error}`;
@@ -290,6 +375,8 @@ async function moveDocumentToMC(documentNode, folderId, mcAuthResults, cmsAuthRe
     });
 }
 
+
+// Method is use for send conent to marketing cloud
 async function createMCAsset(access_token, assetBody, jobId, referenceId, name, isMedia, fileName, org) {
     console.log('name', name);
     return new Promise((resolve, reject) => {
@@ -301,12 +388,13 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
         },
             async (error, res, body) => {
                 totalUploadItems = totalUploadItems - 1;
+                
+                
                 if (error) {
+                    // update job status    
                     failedItemsCount = failedItemsCount + 1;
                     const response = `Error for:${assetBody.name} ${error}`;
-                    console.log(response)
                     const uploadStatus = 'Failed';
-                    // update job status    
                     if (jobId && response) {
                         updateJobProgress(jobId, response, name, uploadStatus, referenceId);
                     }
@@ -338,18 +426,8 @@ async function createMCAsset(access_token, assetBody, jobId, referenceId, name, 
     });
 }
 
+// Method is use to call the next batch service
 async function updateStatusToServer(org) {
-    const formatMemmoryUsage = (data) => `${Math.round(data / 1024 / 1024 * 100) / 100}`
-    const memoryData = process.memoryUsage()
-    const memmoryUsage = {
-        rss: `${formatMemmoryUsage(memoryData.rss)} -> Resident Set Size - total memory allocated for the process execution`,
-        heapTotal: `${formatMemmoryUsage(memoryData.heapTotal)} -> total size of the allocated heap`,
-        heapUsed: `${formatMemmoryUsage(memoryData.heapUsed)} -> actual memory used during the execution`,
-        external: `${formatMemmoryUsage(memoryData.external)} -> V8 external memory`,
-    }
-
-    console.log('memmoryUsage', `${formatMemmoryUsage(memoryData.heapUsed)} -> actual memory used during the execution`);
-
     // Csll the next betch service
     if (totalUploadItems === 0) {
         setTimeout(async () => {
@@ -424,229 +502,66 @@ function updateAlreadySyncMediaStatus(skippedItems) {
     }
 }
 
-async function getPresentMCAssets(folderId) {
-    const mcAuthResults = await getMcAuth();
-    const serviceUrl = `${validateUrl(MC_REST_BASE_URI)}${MC_CONTENT_QUERY_API_PATH}`;
 
-    const body = JSON.stringify({
-        "page":
-        {
-            "pageSize": 7500 //fixed
-        },
 
-        "query":
-        {
-            "leftOperand":
-            {
-                "property": "category.id",
-                "simpleOperator": "equal",
-                "value": folderId // folderid
-            },
-            "logicalOperator": "AND",
-            "rightOperand":
-            {
-                "property": "assetType.displayName",
-                "simpleOperator": "like",
-                "value": "Document,Image,Text Block,HTML Block"
-            }
-        },
-        "fields":
-            [
-                "id",
-                "assetType",
-                "name"
-            ]
-    });
-    return await fetch(serviceUrl, {
-        method: 'POST',
-        body,
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${mcAuthResults.access_token}`
-        },
-    })
-        .then(res => res.json())
-        .catch((err) => {
-            console.log(err);
-        });
-}
 
-let nextPageUrl = '';
-let ctIndex = 0;
 
-async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName, skippedItems, managedContentNodeTypes, managedContentTypeLabel, Id) {
-    try {
-        const alreadySyncedContents = await getPresentMCAssets(folderId);
 
-        if (serviceResults && serviceResults.length) {
-            const result = { items: serviceResults, managedContentNodeTypes };
-            let items = getAssestsWithProperNaming(result);
-            totalUploadItems = items.length;
-            let jobItems = [];
-
-            await Promise.all([...items].map(async (ele) => {
-                // Content
-                if (ele.assetTypeId === '196' || ele.assetTypeId === '197') {
-                    const notInMC = await verfiyFileNameMCFolder(folderId, `${ASSETNAME_PREFIX}${ele.name}`, alreadySyncedContents);
-                    if (notInMC) {
-                        jobItems = [...jobItems, ele];
-                    } else {
-                        const referenceId = ele.referenceId || null;
-                        skippedItems = [...skippedItems, { referenceId, name: ele.name }];
-                    }
-                }
-                // Image and Document
-                else if (ele => ele.assetTypeId === '8' || ele.assetTypeId === '11') {
-                    const node = await getMediaSourceFile(ele, alreadySyncedContents, folderId);
-                    if (typeof node == "string") {
-                        const referenceId = ele.referenceId || null;
-                        let name = ele.name;
-                        skippedItems = ele.assetTypeId === '8' ? [...skippedItems, { referenceId, name, fileName: ele.fileName }] : [...skippedItems, { referenceId, name }];
-                    } else if (node) {
-                        jobItems = [...jobItems, node];
-                    }
-                }
-            }))
-
-            if (jobItems && jobItems.length) {
-                console.log('Total Available Items to upload --->', jobItems.length);
-                // content type
-                const job = await workQueue.add({ content: { items: jobItems, cmsAuthResults, folderId, totalItems: items.length, org } }, {
-                    attempts: 1,
-                    lifo: true
-                });
-                console.log('Job Id --->', job.id)
-                jobWorkQueueList = [...jobWorkQueueList, { queueName: managedContentTypeLabel, id: Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0, channelName }];
-
-                return skippedItems;
-            } else {
-                jobWorkQueueList = [...jobWorkQueueList, { queueName: managedContentTypeLabel, id: Id, channelId, jobId: 0, state: "Skipped", items, response: '', counter: 0, channelName }];
-
-                return skippedItems;
-            }
-        }
-    } catch (error) {
-        console.log(error);
-    }
-}
-
-async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, channelName, folderId) {
-    console.log('Total CMS Content Type --->', contentTypeNodes ? contentTypeNodes.length : 0);
-    console.log('Content Type Index --->', ctIndex);
-    console.log('nextPageUrl --->', nextPageUrl);
-
-    if (contentTypeNodes[ctIndex] && ctIndex < contentTypeNodes.length) {
-        let skippedItems = [];
-
-        const managedContentTypeAPI = contentTypeNodes[ctIndex].DeveloperName;
-        const managedContentNodeTypes = contentTypeNodes[ctIndex].managedContentNodeTypes;
-        const managedContentTypeLabel = contentTypeNodes[ctIndex].MasterLabel;
-        const Id = contentTypeNodes[ctIndex].Id;
-
-        const ctPageSize = process.env.SF_CT_PAGESIZE ? process.env.SF_CT_PAGESIZE : 25;
-        const cmsURL = nextPageUrl ? nextPageUrl : `/services/data/v${SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentTypeAPI}&showAbsoluteUrl=true&pageSize=${ctPageSize}`;
-        console.log('CMS URL --->', cmsURL.split("?")[1]);
-       
-        let result = await org.getUrl(cmsURL);
-        console.log(`${managedContentTypeLabel} records --->`, result && result.items ? result.items.length : 0);
-
-        if (result) {
-            let serviceResults = result.items || [];
-            nextPageUrl = result.nextPageUrl ? `${result.nextPageUrl}&showAbsoluteUrl=true` : undefined;
-            if (!nextPageUrl) {
-                ctIndex = ctIndex + 1;
-            } else if (contentTypeNodes.length === ctIndex && !nextPageUrl) {
-                console.log('ctIndex set to 0');
-                ctIndex = 0;
-            }
-
-            skippedItems = await createJobQueue(serviceResults, workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName, skippedItems, managedContentNodeTypes, managedContentTypeLabel, Id)
-
-            const skippedItemsSize = skippedItems ? skippedItems.length : 0;
-            console.log('Total Skipped Items --->', skippedItemsSize);
-            console.log('Total Items --->', totalUploadItems);
-
-            console.log('CMS NextPage Url --->', nextPageUrl);
-            console.log('Content Type Index --->', ctIndex);
-
-            if (skippedItemsSize === totalUploadItems) {
-                totalUploadItems = totalUploadItems - skippedItemsSize;
-                updateStatusToServer(org);
-            } else {
-                totalUploadItems = totalUploadItems - skippedItemsSize;
-                console.log('Call the startUploadProcess for items --->', totalUploadItems);
-                // Call the upload start
-                startUploadProcess(workQueue);
-            }
-        }
-
-        skippedItemsCount = skippedItemsCount + skippedItems ? skippedItems.length : 0;
-        if (skippedItems) {
-            updateAlreadySyncMediaStatus(skippedItems);
-        }
-    } else {
-        console.log('All Content Type synced');
-        nextPageUrl = '';
-        ctIndex = 0;
-        totalUploadItems = 0;
-        //base64SkipedItems = 0;
-
-        console.log('Failed Items --->', failedItemsCount);
-        console.log('Skipped Items --->', skippedItemsCount);
-
-        skippedItemsCount = 0;
-        failedItemsCount = 0;
-        setTimeout(async () => {
-            updateSfRecord(null, null, null, true);
-        }, 10000);
-        global.gc();
-    }
-}
-
+/**
+ * Method is use for get proper name according to version and content type
+ * @param {*} result 
+ */
 function getAssestsWithProperNaming(result) {
-    const { managedContentNodeTypes, items } = result;
-    // Get name prefix
-
-    const defaultNameNode = managedContentNodeTypes.find(mcNode => mcNode.assetTypeId == 0);
-    const nameKey = defaultNameNode ? defaultNameNode.nodeName : null;
     let finalArray = [];
-
-    items.forEach(item => {
-        const title = item.title;
-        const type = item.type;
-        const contentNodes = item.contentNodes; // nodes 
-        const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value : '';
-        const publishedDate = item.publishedDate ? item.publishedDate : '';
-
-        //Filter node.nodeName except node with assetTypeId = 0
-        let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName);
-
-        //Filter nodes from the REST response as per the Salesforce CMS Content Type Node mapping
-        Object.entries(contentNodes).forEach(([key, value]) => {
-            if (nodes.includes(key)) {
-                const mcNodes = managedContentNodeTypes.find(mcNode => mcNode.nodeName === key);
-                const nameSuffix = mcNodes ? mcNodes.nodeLabel : '';
-                const assetTypeId = mcNodes ? mcNodes.assetTypeId : '';
-                let objItem;
-
-                if (value.nodeType === 'MediaSource') { // MediaSource - cms_image and cms_document
-                    value.assetTypeId = assetTypeId;
-                    objItem = { ...value, publishedDate, title, type, status: 'Queued', response: '' };
-                } else if (value.nodeType === 'Media') { // Image Node
-                    objItem = { ...value, assetTypeId: assetTypeId, name: `${namePrefix}-${nameSuffix}-${publishedDate}`, title, type, status: 'Queued', response: '' };
-                } else {
-                    objItem = { assetTypeId: assetTypeId, nodeType: value.nodeType, name: `${namePrefix}-${nameSuffix}-${publishedDate}`, value: value.value, title, type, status: 'Queued', response: '' };
+    try{
+        const { managedContentNodeTypes, items } = result;
+        // Get name prefix
+    
+        const defaultNameNode = managedContentNodeTypes.find(mcNode => mcNode.assetTypeId == 0);
+        const nameKey = defaultNameNode ? defaultNameNode.nodeName : null;
+    
+        items.forEach(item => {
+            const title = item.title;
+            const type = item.type;
+            const contentNodes = item.contentNodes; // nodes 
+            const namePrefix = nameKey && contentNodes[nameKey] ? contentNodes[nameKey].value : '';
+            const publishedDate = item.publishedDate ? item.publishedDate : '';
+    
+            //Filter node.nodeName except node with assetTypeId = 0
+            let nodes = [...managedContentNodeTypes].filter(node => node.assetTypeId !== '0').map(node => node.nodeName);
+    
+            //Filter nodes from the REST response as per the Salesforce CMS Content Type Node mapping
+            Object.entries(contentNodes).forEach(([key, value]) => {
+                if (nodes.includes(key)) {
+                    const mcNodes = managedContentNodeTypes.find(mcNode => mcNode.nodeName === key);
+                    const nameSuffix = mcNodes ? mcNodes.nodeLabel : '';
+                    const assetTypeId = mcNodes ? mcNodes.assetTypeId : '';
+                    let objItem;
+    
+                    if (value.nodeType === 'MediaSource') { // MediaSource - cms_image and cms_document
+                        value.assetTypeId = assetTypeId;
+                        objItem = { ...value, publishedDate, title, type, status: 'Queued', response: '' };
+                    } else if (value.nodeType === 'Media') { // Image Node
+                        objItem = { ...value, assetTypeId: assetTypeId, name: `${namePrefix}-${nameSuffix}-${publishedDate}`, title, type, status: 'Queued', response: '' };
+                    } else {
+                        objItem = { assetTypeId: assetTypeId, nodeType: value.nodeType, name: `${namePrefix}-${nameSuffix}-${publishedDate}`, value: value.value, title, type, status: 'Queued', response: '' };
+                    }
+                    finalArray = [...finalArray, objItem];
                 }
-                finalArray = [...finalArray, objItem];
-            }
+            });
+    
         });
-
-    });
+    }catch(error){
+        console.log(`Error in name`,  error);
+    }
+    
     return finalArray;
 }
 
-function updateJobProgress(jobId, serverResponse, name, serverStatus, referenceId) { 
 
+// Method is use to update progress in job queue for logs screen
+
+function updateJobProgress(jobId, serverResponse, name, serverStatus, referenceId) { 
     jobWorkQueueList = [...jobWorkQueueList].map(ele => {
         let percents = ele.progress;
         let counter = ele.counter || 0;
@@ -686,12 +601,9 @@ async function startUploadProcess(workQueue) {
         try {
             let { content } = job.data;
             const { items, folderId, org } = content;
-            console.log('items--->', items.length);
             if (items) {
                 //Upload CMS content to Marketing Cloud
                 items.map(async (ele) => {
-
-                    
                     if (ele.assetTypeId === '196' || ele.assetTypeId === '197') { // 196 - 'Text' &'MultilineText' and 197 - 'RichText'
                         await moveTextToMC(
                             ele.name,
@@ -704,7 +616,6 @@ async function startUploadProcess(workQueue) {
                             org
                         );
                     } else if (ele.assetTypeId == '8') { //image
-                        //console.log('upload img')
                         await moveImageToMC(
                             ele,
                             folderId,
@@ -733,6 +644,132 @@ async function startUploadProcess(workQueue) {
             console.log('error', error);
         }
     });
+}
+
+/**
+ * Method is use for create job queue based content type and also check 
+ * content is already sync or not in mc.
+ */
+
+async function createJobQueue(serviceResults, workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName, skippedItems, managedContentNodeTypes, managedContentTypeLabel, Id) {
+    try {
+        const alreadySyncedContents = await getPresentMCAssets(folderId);
+
+        if (serviceResults && serviceResults.length) {
+            const result = { items: serviceResults, managedContentNodeTypes };
+            let items = getAssestsWithProperNaming(result);
+            totalUploadItems = items.length;
+            let jobItems = [];
+
+            await Promise.all([...items].map(async (ele) => {
+                // Content
+                if (ele.assetTypeId === '196' || ele.assetTypeId === '197') {
+                    const notInMC = await verfiyFileNameMCFolder(folderId, `${ASSETNAME_PREFIX}${ele.name}`, alreadySyncedContents);
+                    if (notInMC) {
+                        jobItems = [...jobItems, ele];
+                    } else {
+                        const referenceId = ele.referenceId || null;
+                        skippedItems = [...skippedItems, { referenceId, name: ele.name }];
+                    }
+                }
+                // Image and Document
+                else if (ele => ele.assetTypeId === '8' || ele.assetTypeId === '11') {
+                    const node = await getMediaSourceFile(ele, alreadySyncedContents, folderId);
+                    if (typeof node == "string") {
+                        const referenceId = ele.referenceId || null;
+                        let name = ele.name;
+                        skippedItems = ele.assetTypeId === '8' ? [...skippedItems, { referenceId, name, fileName: ele.fileName }] : [...skippedItems, { referenceId, name }];
+                    } else if (node) {
+                        jobItems = [...jobItems, node];
+                    }
+                }
+            }))
+
+            if (jobItems && jobItems.length) {
+                // content type
+                const job = await workQueue.add({ content: { items: jobItems, cmsAuthResults, folderId, totalItems: items.length, org } }, {
+                    attempts: 1,
+                    lifo: true
+                });
+                jobWorkQueueList = [...jobWorkQueueList, { queueName: managedContentTypeLabel, id: Id, channelId, jobId: job.id, state: "Queued", items, response: '', counter: 0, channelName }];
+                return skippedItems;
+            } else {
+                jobWorkQueueList = [...jobWorkQueueList, { queueName: managedContentTypeLabel, id: Id, channelId, jobId: 0, state: "Skipped", items, response: '', counter: 0, channelName }];
+
+                return skippedItems;
+            }
+        }
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+//Method is use to get all data form salesforce cms and create job for upload into marketing cloud. 
+async function addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, channelName, folderId) {
+    console.log('Total CMS Content Type --->', contentTypeNodes ? contentTypeNodes.length : 0);
+    console.log('Content Type Index --->', ctIndex);
+    console.log('nextPageUrl --->', nextPageUrl);
+
+    if (contentTypeNodes[ctIndex] && ctIndex < contentTypeNodes.length) {
+        let skippedItems = [];
+
+        const managedContentTypeAPI = contentTypeNodes[ctIndex].DeveloperName;
+        const managedContentNodeTypes = contentTypeNodes[ctIndex].managedContentNodeTypes;
+        const managedContentTypeLabel = contentTypeNodes[ctIndex].MasterLabel;
+        const Id = contentTypeNodes[ctIndex].Id;
+
+        const ctPageSize = process.env.SF_CT_PAGESIZE ? process.env.SF_CT_PAGESIZE : 15;
+        const cmsURL = nextPageUrl ? nextPageUrl : `/services/data/v${SF_API_VERSION}/connect/cms/delivery/channels/${channelId}/contents/query?managedContentType=${managedContentTypeAPI}&showAbsoluteUrl=true&pageSize=${ctPageSize}`;
+        
+        let result = await org.getUrl(cmsURL); // Get the data from salesforce cms
+
+        if (result) {
+            let serviceResults = result.items || [];
+            nextPageUrl = result.nextPageUrl ? `${result.nextPageUrl}&showAbsoluteUrl=true` : undefined;
+            if (!nextPageUrl) {
+                ctIndex = ctIndex + 1;
+            } else if (contentTypeNodes.length === ctIndex && !nextPageUrl) {
+                ctIndex = 0;
+            }
+
+            skippedItems = await createJobQueue(serviceResults, workQueue, cmsAuthResults, org, contentTypeNodes, channelId, folderId, channelName, skippedItems, managedContentNodeTypes, managedContentTypeLabel, Id)
+
+            const skippedItemsSize = skippedItems ? skippedItems.length : 0;
+            if (skippedItemsSize === totalUploadItems) {
+                totalUploadItems = totalUploadItems - skippedItemsSize;
+                updateStatusToServer(org);
+            } else {
+                totalUploadItems = totalUploadItems - skippedItemsSize;
+                // Call the upload start
+                startUploadProcess(workQueue);
+            }
+        }
+
+        console.log('Total Skipped Items --->', skippedItemsSize);
+        console.log('Total Items --->', totalUploadItems);
+        console.log('CMS NextPage Url --->', nextPageUrl);
+        console.log('Content Type Index --->', ctIndex);
+
+        skippedItemsCount = skippedItemsCount + skippedItems ? skippedItems.length : 0;
+        if (skippedItems) {
+            updateAlreadySyncMediaStatus(skippedItems);
+        }
+
+    } else {
+        console.log('All Content Type synced');
+        console.log('Failed Items --->', failedItemsCount);
+        console.log('Skipped Items --->', skippedItemsCount);
+        
+        nextPageUrl = '';
+        ctIndex = 0;
+        totalUploadItems = 0;
+        skippedItemsCount = 0;
+        failedItemsCount = 0;
+        setTimeout(async () => {
+            updateSfRecord(null, null, null, true);
+        }, 10000);
+        global.gc();
+    }
 }
 
 module.exports = {

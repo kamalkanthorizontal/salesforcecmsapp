@@ -8,7 +8,7 @@ var dotenv = require("dotenv").config();
 var path = require('path');
 
 const { run, getMcFolders, createMcFolder, getMcAuth, jobs } = require('./src/mcUtils.js');
-const { validateUrl, updateSfRecord, isSetup } = require('./src/utils');
+const { validateUrl, updateSfRecord, isSetup, oauthCallbackUrl } = require('./src/utils');
 
 const {
     MC_CONTENT_CATEGORIES_API_PATH,
@@ -17,9 +17,6 @@ const {
     SF_AUTH_FAILED_MSG
 
 } = require('./src/constants');
-
-var isLocal;
-var herokuApp;
 
 
 let app = express();
@@ -39,15 +36,13 @@ app.use((req, res, next) => {
   next();
 });
 
-
-function oauthCallbackUrl(req) {
-    return req.protocol + "://" + req.get("host");
-}
+const whitelistUserAgent = 'SFDC';
 
 
+// Method is use to upload conent from salesforce cms to mrketing cloud.
 app.post('/uploadCMSContent', cors(), async (req, res, next) => {
     
-    if(req.headers['user-agent']  && req.headers['user-agent'].includes('SFDC')){
+    if(req.headers['user-agent']  && req.headers['user-agent'].includes(whitelistUserAgent)){
         try {
             isLocal = req.hostname.indexOf("localhost") == 0;
             if (req.hostname.indexOf(".herokuapp.com") > 0) {
@@ -121,8 +116,9 @@ app.get('/', async (req, res) => {
     res.send('Welcome to CMS SFMC Sync Heroku App.');
 });
 
+// Method return log queue.
 app.get("/queue", async function (req, res) {
-    if(req.headers['user-agent']  && req.headers['user-agent'].includes('SFDC')){
+    if(req.headers['user-agent']  && req.headers['user-agent'].includes(whitelistUserAgent)){
         const { cmsConnectionId, channelId } = req.query;
         if (process.env.SF_CMS_CONNECTION_ID === cmsConnectionId) {
             res.sendFile('./queue.html', { root: __dirname });
@@ -133,7 +129,12 @@ app.get("/queue", async function (req, res) {
         res.send('Invalid request.');
     }
 
-})
+});
+
+/**
+ * Method is use to validate marketing folder id.
+ * @param {*} mcFolderId 
+ */
 
 async function checkFolderId(mcFolderId) {
     let validFolderId;
@@ -162,6 +163,11 @@ async function checkFolderId(mcFolderId) {
     return validFolderId;
 }
 
+
+/**
+ * Method return folder id from mc if folder is not created.
+ * @param {*} folderId 
+ */
 async function getFolderId(folderId) {
     try {
         const mcAuthResults = await getMcAuth();

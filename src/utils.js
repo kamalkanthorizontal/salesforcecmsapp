@@ -366,5 +366,8 @@ module.exports = {
             isNotBlank(process.env.MC_REST_BASE_URI) &&
             isNotBlank(process.env.MC_FOLDER_NAME)
         );
+    },
+    oauthCallbackUrl: function(req) {
+        return req.protocol + "://" + req.get("host");
     }
 }
