@@ -116,15 +116,11 @@ app.get('/', async (req, res) => {
 
 // Method return log queue.
 app.get("/queue", async function (req, res) {
-    if(req.headers['user-agent']  && req.headers['user-agent'].includes(whitelistUserAgent)){
-        const { cmsConnectionId, channelId } = req.query;
-        if (process.env.SF_CMS_CONNECTION_ID === cmsConnectionId) {
-            res.sendFile('./queue.html', { root: __dirname });
-        } else {
-            res.send('Required fields not found.');
-        }
-    }else{
-        res.send('Invalid request.');
+    const { cmsConnectionId, channelId } = req.query;
+    if (process.env.SF_CMS_CONNECTION_ID === cmsConnectionId) {
+        res.sendFile('./queue.html', { root: __dirname });
+    } else {
+        res.send('Required fields not found.');
     }
 
 });
