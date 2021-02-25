@@ -69,6 +69,7 @@ module.exports = (app) => {
                     }
     
                 } else {
+                    console.log('Required environment variables not found.');
                     res.send('Required environment variables not found.');
                 }
             } catch (error) {
