@@ -778,6 +778,7 @@ module.exports = {
             jobWorkQueueList = [];
         }
         const workQueue = new Queue(`work-${channelId}`, REDIS_URL);
+        console.log('workQueue-->', `work-${channelId}`)
         addProcessInQueue(workQueue, cmsAuthResults, org, contentTypeNodes, channelId, channelName, mcFolderId)
     },
 

@@ -29,7 +29,7 @@ module.exports = (app) => {
                 if (isSetup()) {
     
                     mcFolderId = await checkFolderId(mcFolderId);
-    
+                    console.log('mcFolderId', mcFolderId);
                     if (mcFolderId) {
                         contentTypeNodes = JSON.parse(contentTypeNodes);
                         try {

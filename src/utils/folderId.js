@@ -15,9 +15,7 @@ const {
  async function getIdFromServer() {
     try {
         const folderName = MC_FOLDER_NAME || 'CMS Connect Folder'; // Env folder name
-        console.log('folderName', folderName);
         const mcAuthResults = await getMcAuth();
-        console.log('mcAuthResults', mcAuthResults);
         if (mcAuthResults && mcAuthResults.access_token) {
             const mcFolders = await getMcFolders(mcAuthResults.access_token); // Getting all folders
 
