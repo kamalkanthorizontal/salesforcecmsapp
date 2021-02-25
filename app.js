@@ -65,7 +65,7 @@ app.use((req, res, next) => {
 
 
 
-let app = express();
+// let app = express();
 app.enable('trust proxy');
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
