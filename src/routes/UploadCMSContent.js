@@ -12,6 +12,7 @@ const whitelistUserAgent = 'SFDC';
 
 module.exports = (app) => {
     app.post('/uploadCMSContent', async (req, res, next) => {
+        console.log('/uploadCMSContent')
 
         if (req.headers['user-agent'] && req.headers['user-agent'].includes(whitelistUserAgent)) {
             try {
