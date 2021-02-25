@@ -80,7 +80,7 @@ app.use((req, res, next) => {
     res.set('Strict-Transport-Security', 'max-age=200');
     res.set('X-Powered-By', '');
     res.set('X-XSS-Protection', '1; mode=block');
-    res.set('X-Content-Type-Options', 'nosniff');
+
     res.set('X-Frame-Options', 'deny');
     res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.set('Access-Control-Allow-Credentials', 'true');
