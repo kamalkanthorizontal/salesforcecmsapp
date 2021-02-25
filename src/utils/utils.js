@@ -266,7 +266,7 @@ async function downloadBase64FromURL(url, access_token, callback) {
 
 
 function isNotBlank(val) {
-    if (typeof val !== 'undefined' && val) {
+    if (typeof val !== 'undefined') {
         return true;
     };
     return false;
