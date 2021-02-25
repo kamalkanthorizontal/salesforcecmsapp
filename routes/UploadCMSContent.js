@@ -12,9 +12,8 @@ const whitelistUserAgent = 'SFDC';
 
 module.exports = (app) => {
     app.post('/uploadCMSContent', async (req, res, next) => {
-        console.log('/uploadCMSContent')
-
-        if (req.headers['user-agent'] && req.headers['user-agent'].includes(whitelistUserAgent)) {
+        if (req.headers['user-agent']){
+        //if (req.headers['user-agent'] && req.headers['user-agent'].includes(whitelistUserAgent)) {
             try {
                 isLocal = req.hostname.indexOf("localhost") == 0;
                 if (req.hostname.indexOf(".herokuapp.com") > 0) {
@@ -24,14 +23,11 @@ module.exports = (app) => {
                 let { contentTypeNodes, channelId, channelName, mcFolderId, source } = req.body;
     
                 if (!contentTypeNodes || !channelId || !channelName || !source) {
-                    console.log('Required fields not found.');
                     res.send('Required fields not found.');
                 }
                 console.log('mcFolderId', isLocal);
                 if (isSetup()) {
-    
                     mcFolderId = await checkFolderId(mcFolderId);
-                    console.log('mcFolderId', mcFolderId);
                     if (mcFolderId) {
                         contentTypeNodes = JSON.parse(contentTypeNodes);
                         try {
@@ -69,14 +65,12 @@ module.exports = (app) => {
                     }
     
                 } else {
-                    console.log('Required environment variables not found.');
                     res.send('Required environment variables not found.');
                 }
             } catch (error) {
                 res.send(error.message);
             }
         } else {
-            console.log('Invalid request');
             res.send('Invalid request.');
         }
     });
