@@ -1,6 +1,8 @@
 const { getMcFolders, createMcFolder, getMcAuth } = require('../mcUtils.js');
 const fetch = require('node-fetch');
 
+const { validateUrl } = require('./utils.js');
+
 const { MC_FOLDER_NAME, MC_REST_BASE_URI } = process.env;
 const {
     MC_CONTENT_CATEGORIES_API_PATH,
