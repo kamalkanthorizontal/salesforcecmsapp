@@ -102,7 +102,7 @@ app.get("/queue", async function (req, res) {
 
 });
 
-require('./src/routes/UploadCMSContent')(app);
+require('./routes/UploadCMSContent')(app);
 
 
 // Initialize the app.
