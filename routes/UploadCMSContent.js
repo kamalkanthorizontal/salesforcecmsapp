@@ -24,9 +24,10 @@ module.exports = (app) => {
                 let { contentTypeNodes, channelId, channelName, mcFolderId, source } = req.body;
     
                 if (!contentTypeNodes || !channelId || !channelName || !source) {
+                    console.log('Required fields not found.');
                     res.send('Required fields not found.');
                 }
-    
+                console.log('mcFolderId', isLocal);
                 if (isSetup()) {
     
                     mcFolderId = await checkFolderId(mcFolderId);
@@ -74,6 +75,7 @@ module.exports = (app) => {
                 res.send(error.message);
             }
         } else {
+            console.log('Invalid request');
             res.send('Invalid request.');
         }
     });
