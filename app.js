@@ -39,7 +39,7 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors(corsOptions));
-app.use(express.static(__dirname + '/client/build'));
+app.use(express.static(__dirname + '/public'));
 app.disable('x-powered-by');
 app.use(helmet.hidePoweredBy())
 app.use((req, res, next) => {
