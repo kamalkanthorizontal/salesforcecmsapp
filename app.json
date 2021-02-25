@@ -1,7 +1,7 @@
 {
-    "name": "CMS SFMC Connector",
-    "repository": "https://github.com/vinaybothra/salesforcecms",
-    "description": "The quickest and easiest way to move CMS content to Marketing Cloud",
+    "name": "CMS Connect",
+    "repository": "https://github.com/horizontalintegration/CMS-Connect",
+    "description": "The quickest and easiest way to move SF CMS content to Marketing Cloud",
     "logo": "https://cdn.rawgit.com/heroku/node-js-getting-started/main/public/node.svg",
     "image": "heroku/nodejs",
     "env": {
@@ -78,7 +78,7 @@
         "MC_FOLDER_NAME": {
             "description": "Marketing Cloud Content Builder Folder name where all the assets will be moved.",
             "required": true,
-            "value": "CMS SFMC Sync Folder"
+            "value": "CMS Connect Folder"
         }
     },
     "addons": [

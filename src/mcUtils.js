@@ -3,7 +3,7 @@ var request = require('request');
 let Queue = require('bull');
 const path = require('path');
 const decode = require('unescape');
-const { getImageAssetTypeId, getDocumentAssetTypeId, downloadBase64FromURL, validateUrl, updateSfRecord } = require('./utils.js');
+const { getImageAssetTypeId, getDocumentAssetTypeId, downloadBase64FromURL, validateUrl, updateSfRecord } = require('./utils/utils.js');
 const { MC_ASSETS_API_PATH, MS_AUTH_PATH, MC_CONTENT_CATEGORIES_API_PATH, REDIS_URL, MC_CONTENT_QUERY_API_PATH } = require('./constants');
 
 const MC_AUTHENTICATION_BASE_URI = process.env.MC_AUTHENTICATION_BASE_URI;

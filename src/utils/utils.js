@@ -11,7 +11,7 @@ const {
     CONNETION_STATUS,
     CONNETION_FAILED_STATUS,
     SF_INCORRECT_CMS_CONNECTION_ID_MSG
-} = require('./constants');
+} = require('../constants');
 
 function getImageAssetTypeId(imageExtension) {
     let assetTypeId = '8';
